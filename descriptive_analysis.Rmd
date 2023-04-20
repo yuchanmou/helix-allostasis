@@ -25,6 +25,17 @@ load("/Users/ymou/helix_project/data/analysis_data/df_full.RData")
 Sys.Date()
 ```
 
+```{r unit conversion, include=FALSE, echo=FALSE, message=FALSE, warning=FALSE}
+# hdl, ldl, totchol
+df_full$hs_hdlchol_c <- df_full$hs_hdlchol_c*38.67
+df_full$hs_ldlchol_c <- df_full$hs_ldlchol_c*38.67
+df_full$hs_totchol_c <- df_full$hs_totchol_c*38.67
+
+# triglycerides
+df_full$hs_triglyc_c <- df_full$hs_triglyc_c*88.57
+  
+```
+
 # Descriptive analysis
 ## Metabolic biomarkers
 ```{r metabolic}
