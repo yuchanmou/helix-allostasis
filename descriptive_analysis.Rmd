@@ -1,0 +1,147 @@
+---
+title: 'Descriptive analysis: Air pollution, noise level and allostatic load'
+author: "Yuchan Mou"
+date: "2023-04-20"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+---
+
+```{r setup, include=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+options(knitr.table.format = "html")
+```
+
+
+```{r load packages, include=FALSE, echo=FALSE, message=FALSE, warning=FALSE}
+# load pkgs
+packages <- c("dplyr", "tidyverse", "readxl", "openxlsx", "ggplot2", "kableExtra") 
+sapply(packages, library, character.only = T)
+```
+
+```{r import data, include=FALSE, echo=FALSE, message=FALSE, warning=FALSE}
+load("/Users/ymou/helix_project/data/analysis_data/df_full.RData")
+Sys.Date()
+```
+
+# Descriptive analysis
+## Metabolic biomarkers
+```{r metabolic}
+multiple.func <- function(x) {
+      c(n = length(x), min = min(x), q1 = quantile(x,probs = 0.25), median = median(x), q3 = quantile(x,probs = 0.75), max = max(x), mean = mean(x), sd = sd(x))
+}
+
+rowname <- c("HDL", "LDL", "Triglycerides", "TotalCholesterol", "Insulin", "Leptin", "Adiponectin")
+
+metab <- df_full %>%
+  select(hs_hdlchol_c, hs_ldlchol_c, hs_triglyc_c, hs_totchol_c,
+         INSULIN, Leptin, Adiponectin) 
+
+metab_desc <- metab %>% 
+  filter(complete.cases(.)) %>% 
+  base::sapply(., multiple.func) %>% 
+  t() %>% as.tibble() %>% 
+  mutate(biomarker = rowname) %>% 
+  relocate(biomarker) %>% 
+  as.tibble()
+
+metab_desc %>% 
+  kable(col.names = c("Biomarkers",
+                      "N",
+                      "Min",
+                      "Q1", 
+                      "Median",
+                      "Q3",
+                      "Max",
+                      "Mean",
+                      "Std"), escape = F) %>% 
+  column_spec(5:7, bold = T) %>% 
+  kable_styling(bootstrap_options = c("condensed", "responsive"), full_width = F, position = "left", font_size = 14, fixed_thead = T) %>% 
+  scroll_box(width = "100%", height = "100%")
+
+metab %>% 
+  pivot_longer(cols = 1:ncol(metab)) %>% 
+  ggplot(aes(value)) + 
+  geom_histogram() + 
+  facet_wrap(~name, scales = "free")
+```
+
+## Anthropometrics
+```{r anthropometrics}
+rowname <- c("WaistCircumference")
+
+anthro <- df_full %>%
+  select(hs_zwaist_mets) 
+  
+anthro_desc <- anthro %>% 
+  filter(complete.cases(.)) %>% 
+  base::sapply(., multiple.func) %>% 
+  t() %>% as.tibble() %>% 
+  mutate(biomarker = rowname) %>% 
+  relocate(biomarker) %>% 
+  as.tibble()
+
+anthro_desc %>% 
+  kable(col.names = c("Biomarkers",
+                      "N",
+                      "Min",
+                      "Q1", 
+                      "Median",
+                      "Q3",
+                      "Max",
+                      "Mean",
+                      "Std"), escape = F) %>% 
+  column_spec(5:7, bold = T) %>% 
+  kable_styling(bootstrap_options = c("condensed", "responsive"), full_width = F, position = "left", font_size = 14, fixed_thead = T) %>% 
+  scroll_box(width = "100%", height = "100%")
+
+anthro %>% 
+  pivot_longer(cols = 1:ncol(anthro)) %>% 
+  ggplot(aes(value)) + 
+  geom_histogram() + 
+  facet_wrap(~name, scales = "free")
+```
+
+## Inflammatory biomarkers
+```{r immune}
+rowname <- c("CRP", "IL1B", "IL6", "IL8", "IL10", "TNF")
+
+immune <- df_full %>%
+  select(CRP, IL1beta, IL6, IL8, IL10, TNFalfa)
+
+immune_desc <- immune %>% 
+  filter(complete.cases(.)) %>% 
+  base::sapply(., multiple.func) %>% 
+  t() %>% as.tibble() %>% 
+  mutate(biomarker = rowname) %>% 
+  relocate(biomarker) %>% 
+  as.tibble()
+
+immune_desc %>% 
+  kable(col.names = c("Biomarkers",
+                      "N",
+                      "Min",
+                      "Q1", 
+                      "Median",
+                      "Q3",
+                      "Max",
+                      "Mean",
+                      "Std"), escape = F) %>% 
+  column_spec(5:7, bold = T) %>% 
+  kable_styling(bootstrap_options = c("condensed", "responsive"), full_width = F, position = "left", font_size = 14, fixed_thead = T) %>% 
+  scroll_box(width = "100%", height = "100%")
+
+immune %>% 
+  pivot_longer(cols = 1:ncol(immune)) %>% 
+  ggplot(aes(value)) + 
+  geom_histogram() + 
+  facet_wrap(~name, scales = "free")
+```
+
+## Neuroendocrine biomarkers
+Cortisol not available now. 
+
+
+
+
