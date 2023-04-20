@@ -1,0 +1,66 @@
+---
+title: "Dataset prep: Air pollution, noise level and allostatic load"
+author: "Yuchan Mou"
+date: "2023-04"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Load pkgs
+```{r load packages, include=FALSE, echo=FALSE, message=FALSE, warning=FALSE}
+# load pkgs
+packages <- c("dplyr", "tidyverse", "readxl", "openxlsx", "ggplot2", "Biobase") 
+sapply(packages, library, character.only = T)
+```
+
+# Import data
+```{r import data}
+df <- read_excel("/Users/ymou/helix_project/data/HELIX_AP_132_request_updated31mar.2023.xlsx")
+# proteome data
+load("/Users/ymou/helix_project/data/proteome_subcohort_v5.Rdata")
+```
+
+# Merge datasets
+```{r proteome dataset feature}
+#ExpressionSetIntroduction
+#https://www.bioconductor.org/packages/devel/bioc/vignettes/Biobase/inst/doc/ExpressionSetIntroduction.pdf
+
+proteome_subcohort
+#36 protein/features, 1188 samples. unit pg/ml
+
+#extract assay data
+dt_protassay <- exprs(proteome_subcohort)
+class(dt_protassay)
+dim(dt_protassay)
+colnames(dt_protassay)
+
+dt_prot <- as.data.frame(t(dt_protassay))
+SampleID <- row.names.data.frame(dt_prot)
+dt_prot <- dt_prot %>% mutate(SampleID,.before = Adiponectin)
+
+#extract annotated data
+dt_annot <- phenoData(proteome_subcohort)
+dt_assaypheno <- dt_annot@data
+
+#merge assay data and annotated data
+df_prot <- full_join(dt_assaypheno, dt_prot, by = "SampleID")
+```
+
+```{r general dataset feature}
+# basic info
+dim(df) #1301 participants, 81 vars
+varname <- as_tibble(tbl_vars(df))
+```
+
+```{r final dataset merge}
+df_full <- df %>% full_join(df_prot, by = "HelixID")
+
+#missing in proteome: n=131
+length(which(is.na(df_full$Adiponectin)))
+```
+
+
+
