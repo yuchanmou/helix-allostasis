@@ -62,5 +62,9 @@ df_full <- df %>% full_join(df_prot, by = "HelixID")
 length(which(is.na(df_full$Adiponectin)))
 ```
 
+```{r export dataset}
+save(df_full, file="/Users/ymou/helix_project/data/analysis_data/df_full.RData")
+```
+
 
 
