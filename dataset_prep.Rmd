@@ -18,7 +18,7 @@ sapply(packages, library, character.only = T)
 
 # Import data
 ```{r import data}
-df <- read_excel("/Users/ymou/helix_project/data/HELIX_AP_132_request_updated31mar.2023.xlsx")
+df <- read_excel("/Users/ymou/helix_project/data/HELIX_AP_132_request_updated28abr.2023.xlsx")
 # proteome data
 load("/Users/ymou/helix_project/data/proteome_subcohort_v5.Rdata")
 ```
@@ -56,14 +56,69 @@ varname <- as_tibble(tbl_vars(df))
 ```
 
 ```{r final dataset merge}
-df_full <- df %>% full_join(df_prot, by = "HelixID")
+df_full <- df %>% full_join(df_prot, by = "HelixID", keep = FALSE) %>% 
+  rename_at(
+    vars(ends_with(".x")),
+    ~str_replace(., "\\..$","")
+  ) %>% 
+  select_at(
+    vars(-ends_with(".y"))
+  )
 
+#missing in pm25 wk: n=18
+length(which(is.na(df_full$hs_pm25_wk_hs_t)))
 #missing in proteome: n=131
 length(which(is.na(df_full$Adiponectin)))
 ```
 
+# Data Manipulation
+- unit conversion
+```{r unit conversion}
+# lipids unit conversion
+# original unit is mmol/L. Converted to mg/Lf
+# hdl, ldl, totchol
+chol_conv <- function(x){x*38.67}
+df_full <- df_full %>% 
+  mutate_at(
+    c("hs_hdlchol_c", "hs_ldlchol_c", "hs_totchol_c"), ~ chol_conv(.))
+
+# triglycerides
+triglyc_conv <- function(x){x*88.57}
+df_full <- df_full %>% 
+  mutate_at("hs_triglyc_c", ~ triglyc_conv(.))
+
+# inflammatory biomarkers 
+# DO NOT RUN: the data has been log2 transformed, imputed and normalized
+# orginal unit is pg/mL. Converted to mg/L
+# inflam_conv <- function(x){x*(1e-6)}
+# df_full <- df_full %>% 
+  #mutate_at(
+    #c("CRP", "IL1beta", "IL6", "IL8", "IL10", "TNFalfa"), ~ inflam_conv(.))
+```
+
+- Change variable class
+```{r var class conversion}
+df_full <- df_full %>% mutate_at(c("h_sex", "cohort",
+                                   "FAS_cat", "h_subjincome" ,"familyincomeC", "e3_ses", "h_native", "h_ethnicity_c", "h_ethnicity_cauc", "h_edumc", "h_edufc",
+                                   "hs_smk_parents", "hs_globalexp", "e3_asmokyn_p", "e3_alcpreg_yn", "h_marital"), as_factor)
+df_full <- df_full %>% mutate_at(c("hs_no2_dy_hs_t", "hs_no2_wk_hs_t", "hs_no2_yr_hs_t",
+                                   "hs_pm25_dy_hs_t", "hs_pm25_wk_hs_t", "hs_pm25_yr_hs_t",
+                                   "hs_pm25abs_dy_hs_t", "hs_pm25abs_wk_hs_t", "hs_pm25abs_yr_hs_t",
+                                   "hs_pm10_dy_hs_t", "hs_pm10_wk_hs_t", "hs_pm10_yr_hs_t",
+                                   "hs_lden_c_h", "hs_lden_c_s", "hs_lden_h", "hs_lden_s",
+                                   "hs_lden_p", "hs_lden_r", "hs_lden_t"), as.numeric)
+# warning message is fine. null and NA present in those variables. I checked the missing (NA and nulls) in the original dataset and the converted one, number of missing is the same. 
+
+
+df_full$h_cbirth <- as.Date(df_full$h_cbirth)
+
+df_g <- df_full %>% filter(h_sex == 1)
+df_b <- df_full %>% filter(h_sex == 2)
+```
+
+
 ```{r export dataset}
-save(df_full, file="/Users/ymou/helix_project/data/analysis_data/df_full.RData")
+save(df_full, df_g, df_b, file="/Users/ymou/helix_project/data/analysis_data/df_full.RData")
 ```
 
 

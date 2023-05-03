@@ -1,7 +1,7 @@
 ---
 title: 'Descriptive analysis: Air pollution, noise level and allostatic load'
 author: "Yuchan Mou"
-date: "2023-04-20"
+date: "2023-05-02"
 output: 
   html_document:
     toc: true
@@ -16,7 +16,8 @@ options(knitr.table.format = "html")
 
 ```{r load packages, include=FALSE, echo=FALSE, message=FALSE, warning=FALSE}
 # load pkgs
-packages <- c("dplyr", "tidyverse", "readxl", "openxlsx", "ggplot2", "kableExtra") 
+packages <- c("dplyr", "tidyverse", "readxl", "openxlsx", "ggplot2", "kableExtra",
+              "ggcorrplot", "JointAI") 
 sapply(packages, library, character.only = T)
 ```
 
@@ -25,40 +26,235 @@ load("/Users/ymou/helix_project/data/analysis_data/df_full.RData")
 Sys.Date()
 ```
 
-```{r unit conversion, include=FALSE, echo=FALSE, message=FALSE, warning=FALSE}
-# hdl, ldl, totchol
-df_full$hs_hdlchol_c <- df_full$hs_hdlchol_c*38.67
-df_full$hs_ldlchol_c <- df_full$hs_ldlchol_c*38.67
-df_full$hs_totchol_c <- df_full$hs_totchol_c*38.67
+# Descriptive analysis of exposure and covariates
+## 1. Distribution
 
-# triglycerides
-df_full$hs_triglyc_c <- df_full$hs_triglyc_c*88.57
-  
+The plots below shows the distributions of exposures and covariates.
+
+### - NO2
+```{r, fig.width = 10 , fig.height = 10}
+df_plot <- df_full %>% 
+  select(starts_with(c("hs_no2", "h_no2")), "cohort") %>% 
+  as.data.frame()
+
+par(mfrow = c(4,4))
+
+plot_all(df_plot)
+
+# separate by cohort
+df_plot %>% 
+  pivot_longer(cols = 1:ncol(df_plot)-1) %>% 
+  ggplot(aes(x = value, fill = cohort)) + 
+  geom_histogram(position='identity', alpha = 0.5) + 
+  facet_wrap(~name, scales = "free")
 ```
 
-# Descriptive analysis
-## Metabolic biomarkers
-```{r metabolic}
-multiple.func <- function(x) {
-      c(n = length(x), min = min(x), q1 = quantile(x,probs = 0.25), median = median(x), q3 = quantile(x,probs = 0.75), max = max(x), mean = mean(x), sd = sd(x))
+### - PM25
+```{r, fig.width = 10 , fig.height = 10}
+df_plot <- df_full %>% 
+  select(starts_with(c("hs_pm25_", "h_pm25_")), "cohort") %>% 
+  as.data.frame()
+
+par(mfrow = c(4,4))
+
+plot_all(df_plot)
+
+# separate by cohort
+df_plot %>% 
+  pivot_longer(cols = 1:ncol(df_plot)-1) %>% 
+  ggplot(aes(x = value, fill = cohort)) + 
+  geom_histogram(position='identity', alpha = 0.5) + 
+  facet_wrap(~name, scales = "free")
+```
+
+### - PM25abs
+```{r, fig.width = 10 , fig.height = 10}
+df_plot <- df_full %>% 
+  select(starts_with(c("hs_pm25abs", "h_pm25abs")), "cohort") %>% 
+  as.data.frame()
+
+par(mfrow = c(4,4))
+
+plot_all(df_plot)
+
+# separate by cohort
+df_plot %>% 
+  pivot_longer(cols = 1:ncol(df_plot)-1) %>% 
+  ggplot(aes(x = value, fill = cohort)) + 
+  geom_histogram(position='identity', alpha = 0.5) + 
+  facet_wrap(~name, scales = "free")
+```
+
+### - PM10
+```{r, fig.width = 10 , fig.height = 10}
+df_plot <- df_full %>% 
+  select(starts_with(c("hs_pm10", "h_pm10")), "cohort") %>% 
+  as.data.frame()
+
+par(mfrow = c(4,4))
+
+plot_all(df_plot)
+
+# separate by cohort
+df_plot %>% 
+  pivot_longer(cols = 1:ncol(df_plot)-1) %>% 
+  ggplot(aes(x = value, fill = cohort)) + 
+  geom_histogram(position='identity', alpha = 0.5) + 
+  facet_wrap(~name, scales = "free")
+```
+
+### - Lden
+```{r, fig.width = 10 , fig.height = 10}
+df_plot <- df_full %>% 
+  select(starts_with(c("hs_lden")), "cohort") %>% 
+  as.data.frame()
+
+par(mfrow = c(4,4))
+
+plot_all(df_plot)
+
+# separate by cohort
+df_plot %>% 
+  pivot_longer(cols = 1:ncol(df_plot)-1) %>% 
+  ggplot(aes(x = value, fill = cohort)) + 
+  geom_histogram(position='identity', alpha = 0.5) + 
+  facet_wrap(~name, scales = "free")
+```
+
+### - Covariates
+```{r, fig.width = 20 , fig.height = 20}
+df_plot <- df_full %>% 
+  select("FAS_score", "FAS_cat", "h_subjincome", "familyincomeC", "e3_ses",
+         "h_native", "h_ethnicity_c", "h_ethnicity_cauc", "h_edumc", "h_edufc",
+        "h_sex", "hs_mvpa", 
+        "hs_smk_parents", "hs_globalexp", "e3_asmokyn_p", "e3_alcpreg_yn",
+        "h_marital", "h_parity", "cohort") %>% 
+  #mutate_at(vars(-cohort), as.numeric) %>% 
+  as.data.frame()
+
+par(mfrow = c(5,3))
+
+plot_all(df_plot)
+```
+
+## 2. Missing percentage
+```{r,  fig.width = 15 , fig.height = 15}
+daf_impcheck <- df_full %>% 
+  select(starts_with(c("hs_no2", "h_no2", "hs_pm25", "h_pm25", "hs_pm25abs", "h_pm25abs", "hs_pm10", "h_pm10", "hs_lden",
+                       "FAS_score", "FAS_cat", "h_subjincome", "familyincomeC", "e3_ses",
+                       "h_native", "h_ethnicity_c", "h_ethnicity_cauc", "h_edumc", "h_edufc",
+                       "h_sex", "hs_mvpa", 
+                       "hs_smk_parents", "hs_globalexp", "e3_asmokyn_p", "e3_alcpreg_yn",
+                       "h_marital", "h_parity", "cohort"))) %>% 
+  filter(!is.na(cohort)) %>% 
+  group_by(cohort)
+
+# split group by cohort
+daf_impcheck_cohort <- group_split(daf_impcheck)
+cohort <- group_keys(daf_impcheck)
+
+# Proportion of missing values 
+# no cohort with complete cases
+prop_missing <- data.frame(matrix(nrow = length(cohort), ncol = 3))
+colnames(prop_missing) <- c("cohort", "#incompl.", "%incompl.")
+
+for (i in 1:nrow(cohort)) {
+ prop_missing[i, 1] = as.character(cohort[i,]$cohort)
+ prop_missing[i, 2] = table(ifelse(complete.cases(daf_impcheck_cohort[[i]]), 'complete', 'incompl.'))
+ prop_missing[i, 3] = round(100 * sort(table(complete.cases(daf_impcheck_cohort[[i]])))/nrow(daf_impcheck_cohort[[i]]) , 2)
 }
 
-rowname <- c("HDL", "LDL", "Triglycerides", "TotalCholesterol", "Insulin", "Leptin", "Adiponectin")
+kable(prop_missing) %>%
+  kable_styling(bootstrap_options = c("striped", "hover", 'responsive'), full_width = F )
 
-metab <- df_full %>%
-  select(hs_hdlchol_c, hs_ldlchol_c, hs_triglyc_c, hs_totchol_c,
-         INSULIN, Leptin, Adiponectin) 
+# Proportion of missing values per variable
+#as.data.frame(cbind(
+#  "# NA-SAB" = sort(colSums(is.na(daf_impcheck_cohort[[1]]))),
+#  "% NA-SAB" = round(sort(colMeans(is.na(daf_impcheck_cohort[[1]]))) * 100, 2))
 
-metab_desc <- metab %>% 
-  filter(complete.cases(.)) %>% 
-  base::sapply(., multiple.func) %>% 
-  t() %>% as.tibble() %>% 
-  mutate(biomarker = rowname) %>% 
-  relocate(biomarker) %>% 
-  as.tibble()
+prop_missing_pervar <- as.data.frame(cbind(
+  "# NA-SAB" = colSums(is.na(daf_impcheck_cohort[[1]])),
+  "% NA-SAB" = round(colMeans(is.na(daf_impcheck_cohort[[1]])) * 100, 2),
+  "# NA-EDEN" = colSums(is.na(daf_impcheck_cohort[[2]])),
+  "% NA-EDEN" = round(colMeans(is.na(daf_impcheck_cohort[[2]])) * 100, 2),
+  "# NA-BIB" = colSums(is.na(daf_impcheck_cohort[[3]])),
+  "% NA-BIB" = round(colMeans(is.na(daf_impcheck_cohort[[3]])) * 100, 2),
+  "# NA-RHEA" = colSums(is.na(daf_impcheck_cohort[[4]])),
+  "% NA-RHEA" = round(colMeans(is.na(daf_impcheck_cohort[[4]])) * 100, 2),
+  "# NA-KANC" = colSums(is.na(daf_impcheck_cohort[[5]])),
+  "% NA-KANC" = round(colMeans(is.na(daf_impcheck_cohort[[5]])) * 100, 2),
+  "# NA-MOBA" = colSums(is.na(daf_impcheck_cohort[[6]])),
+  "% NA-MOBA" = round(colMeans(is.na(daf_impcheck_cohort[[6]])) * 100, 2)))
 
-metab_desc %>% 
-  kable(col.names = c("Biomarkers",
+prop_missing_pervar %>% 
+  tibble::rownames_to_column(var = 'Variables') %>% 
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", 'condensed'), full_width = T )
+
+# write.table(tbl_missing, file = 'proportion of missings_1y.txt', sep = ',', quote = F, row.names = F)
+
+```
+
+
+# Descriptive analysis of biomarkers
+The following descriptive statistics were estimated based on complete cases.
+
+```{r descriptive statistic func}
+continuous_stats <- function(data, var) {
+  data %>% 
+    group_by(cohort) %>%
+    summarise(
+      variable = quo_name(var),
+      n = sum(!is.na({{ var }})),
+      min    = min({{ var }}, na.rm = TRUE),
+      q1 = quantile({{ var }}, probs = 0.25, na.rm = TRUE),
+      median = median({{ var }}, na.rm = TRUE),
+      q3 = quantile({{ var }}, probs = 0.75, na.rm = TRUE),
+      max    = max({{ var }}, na.rm = TRUE),
+      mean   = mean({{ var }}, na.rm = TRUE),
+      sd = sd({{ var }}, na.rm = TRUE),
+    )
+}
+
+#interesting function, calculate quantiles
+#quibble2 <- function(x, q = c(0.25, 0.5, 0.75)) {
+#  tibble("{{ x }}" := quantile(x, q, na.rm = T), "{{ x }}_q" := q)
+#}
+```
+
+## Metabolic biomarkers
+Unit mg/dL
+```{r metabolic}
+metab_desc <- map_dfr(
+  data = df_full,
+  .x = quos(hs_hdlchol_c, hs_ldlchol_c, hs_triglyc_c, hs_totchol_c,
+         INSULIN, Glucose, Creatinine, Leptin, Adiponectin),
+  .f = continuous_stats) %>% 
+  mutate(across(where(is.numeric), round, 2)) %>% 
+  mutate(group = "total")
+
+metab_desc_g <- map_dfr(
+  data = df_g,
+  .x = quos(hs_hdlchol_c, hs_ldlchol_c, hs_triglyc_c, hs_totchol_c,
+         INSULIN, Glucose, Creatinine, Leptin, Adiponectin),
+  .f = continuous_stats) %>% 
+  mutate(across(where(is.numeric), round, 2)) %>% 
+  mutate(group = "girl")
+
+metab_desc_b <- map_dfr(
+  data = df_b,
+  .x = quos(hs_hdlchol_c, hs_ldlchol_c, hs_triglyc_c, hs_totchol_c,
+         INSULIN, Glucose, Creatinine, Leptin, Adiponectin),
+  .f = continuous_stats) %>% 
+  mutate(across(where(is.numeric), round, 2)) %>% 
+  mutate(group = "boy")
+
+metab_desc_all <- rbind(metab_desc, metab_desc_g, metab_desc_b) %>% 
+  arrange(match(group, c("total", "girl", "boy")), variable, cohort)
+
+metab_desc_all %>% 
+  kable(col.names = c("Cohort",
+                      "Biomarkers",
                       "N",
                       "Min",
                       "Q1", 
@@ -66,35 +262,54 @@ metab_desc %>%
                       "Q3",
                       "Max",
                       "Mean",
-                      "Std"), escape = F) %>% 
+                      "Std",
+                      "Group"), escape = F) %>% 
   column_spec(5:7, bold = T) %>% 
+  row_spec(which(metab_desc_all$group == "total"), color = "black", background = "#bdbdbd") %>% 
+  row_spec(which(metab_desc_all$group == "girl"), color = "black", background = "white") %>% 
+  row_spec(which(metab_desc_all$group == "boy"), color = "black", background = "#bdbdbd") %>% 
   kable_styling(bootstrap_options = c("condensed", "responsive"), full_width = F, position = "left", font_size = 14, fixed_thead = T) %>% 
   scroll_box(width = "100%", height = "100%")
 
+metab <- df_full %>%
+  select(h_sex, hs_hdlchol_c, hs_ldlchol_c, hs_triglyc_c, hs_totchol_c,
+         INSULIN, Glucose, Creatinine, Leptin, Adiponectin) 
 metab %>% 
-  pivot_longer(cols = 1:ncol(metab)) %>% 
-  ggplot(aes(value)) + 
-  geom_histogram() + 
+  pivot_longer(cols = 2:ncol(metab)) %>% 
+  ggplot(aes(x = value, fill = h_sex)) + 
+  geom_histogram(position='identity', alpha = 0.5) + 
   facet_wrap(~name, scales = "free")
 ```
 
 ## Anthropometrics
+Unit z score
 ```{r anthropometrics}
-rowname <- c("WaistCircumference")
+anthro_desc <- map_dfr(
+  data = df_full,
+  .x = quos(hs_zbmi_who, hs_zwaist_mets, hs_skf_sum4, hs_skf_sum2, hs_fatprop, hs_fatmass, hs_freefatmass_bia, hs_fatmass_bia, hs_fatprop_bia),
+  .f = continuous_stats) %>% 
+  mutate(across(where(is.numeric), round, 2)) %>% 
+  mutate(group = "total")
 
-anthro <- df_full %>%
-  select(hs_zwaist_mets) 
-  
-anthro_desc <- anthro %>% 
-  filter(complete.cases(.)) %>% 
-  base::sapply(., multiple.func) %>% 
-  t() %>% as.tibble() %>% 
-  mutate(biomarker = rowname) %>% 
-  relocate(biomarker) %>% 
-  as.tibble()
+anthro_desc_g <- map_dfr(
+  data = df_g,
+  .x = quos(hs_zbmi_who, hs_zwaist_mets, hs_skf_sum4, hs_skf_sum2, hs_fatprop, hs_fatmass, hs_freefatmass_bia, hs_fatmass_bia, hs_fatprop_bia),
+  .f = continuous_stats) %>% 
+  mutate(across(where(is.numeric), round, 2)) %>% 
+  mutate(group = "girl")
 
-anthro_desc %>% 
-  kable(col.names = c("Biomarkers",
+anthro_desc_b <- map_dfr(
+  data = df_b,
+  .x = quos(hs_zbmi_who, hs_zwaist_mets, hs_skf_sum4, hs_skf_sum2, hs_fatprop, hs_fatmass, hs_freefatmass_bia, hs_fatmass_bia, hs_fatprop_bia),
+  .f = continuous_stats) %>% 
+  mutate(across(where(is.numeric), round, 2)) %>% 
+  mutate(group = "boy")
+
+anthro_desc_all <- rbind(anthro_desc, anthro_desc_g, anthro_desc_b) %>% 
+  arrange(match(group, c("total", "girl", "boy")), variable, cohort)
+
+anthro_desc_all %>% 
+  kable(col.names = c("Cohort", "Biomarkers",
                       "N",
                       "Min",
                       "Q1", 
@@ -102,35 +317,62 @@ anthro_desc %>%
                       "Q3",
                       "Max",
                       "Mean",
-                      "Std"), escape = F) %>% 
+                      "Std",
+                      "Group"), escape = F) %>% 
   column_spec(5:7, bold = T) %>% 
+  row_spec(which(anthro_desc_all$group == "total"), color = "black", background = "#bdbdbd") %>% 
+  row_spec(which(anthro_desc_all$group == "girl"), color = "black", background = "white") %>% 
+  row_spec(which(anthro_desc_all$group == "boy"), color = "black", background = "#bdbdbd") %>% 
   kable_styling(bootstrap_options = c("condensed", "responsive"), full_width = F, position = "left", font_size = 14, fixed_thead = T) %>% 
   scroll_box(width = "100%", height = "100%")
 
+anthro <- df_full %>%
+  select(h_sex, hs_zbmi_who, hs_zwaist_mets, hs_skf_sum4, hs_skf_sum2, hs_fatprop, hs_fatmass, hs_freefatmass_bia, hs_fatmass_bia, hs_fatprop_bia) 
 anthro %>% 
-  pivot_longer(cols = 1:ncol(anthro)) %>% 
-  ggplot(aes(value)) + 
-  geom_histogram() + 
+  pivot_longer(cols = 2:ncol(anthro)) %>% 
+  ggplot(aes(x = value, fill = h_sex)) + 
+  geom_histogram(position='identity', alpha = 0.5) + 
   facet_wrap(~name, scales = "free")
+
+# correlations
+df_full %>% 
+  select(hs_zbmi_who, hs_zwaist_mets, hs_skf_sum4, hs_skf_sum2, hs_fatprop, hs_fatmass, hs_freefatmass_bia, hs_fatmass_bia, hs_fatprop_bia) %>% 
+ # mutate_if(is.factor, as.numeric) %>% 
+  cor(use = 'pairwise.complete.obs', method = 'pearson') %>% 
+  ggcorrplot(hc.order = TRUE, 
+             type = "lower",
+             lab = TRUE)
 ```
 
 ## Inflammatory biomarkers
+Unit pg/mL, log2 transformed, imputed and normalized
 ```{r immune}
-rowname <- c("CRP", "IL1B", "IL6", "IL8", "IL10", "TNF")
+immune_desc <- map_dfr(
+  data = df_full,
+  .x = quos(CRP, IL1beta, IL6, IL8, IL10, TNFalfa),
+  .f = continuous_stats) %>% 
+  mutate(across(where(is.numeric), round, 2)) %>% 
+  mutate(group = "total")
 
-immune <- df_full %>%
-  select(CRP, IL1beta, IL6, IL8, IL10, TNFalfa)
+immune_desc_g <- map_dfr(
+  data = df_g,
+  .x = quos(CRP, IL1beta, IL6, IL8, IL10, TNFalfa),
+  .f = continuous_stats) %>% 
+  mutate(across(where(is.numeric), round, 2)) %>% 
+  mutate(group = "girl")
 
-immune_desc <- immune %>% 
-  filter(complete.cases(.)) %>% 
-  base::sapply(., multiple.func) %>% 
-  t() %>% as.tibble() %>% 
-  mutate(biomarker = rowname) %>% 
-  relocate(biomarker) %>% 
-  as.tibble()
+immune_desc_b <- map_dfr(
+  data = df_b,
+  .x = quos(CRP, IL1beta, IL6, IL8, IL10, TNFalfa),
+  .f = continuous_stats) %>% 
+  mutate(across(where(is.numeric), round, 2)) %>% 
+  mutate(group = "boy")
 
-immune_desc %>% 
-  kable(col.names = c("Biomarkers",
+immune_desc_all <- rbind(immune_desc, immune_desc_g, immune_desc_b) %>% 
+  arrange(match(group, c("total", "girl", "boy")), variable, cohort)
+
+immune_desc_all %>% 
+  kable(col.names = c("Cohort", "Biomarkers",
                       "N",
                       "Min",
                       "Q1", 
@@ -138,15 +380,22 @@ immune_desc %>%
                       "Q3",
                       "Max",
                       "Mean",
-                      "Std"), escape = F) %>% 
-  column_spec(5:7, bold = T) %>% 
+                      "Std",
+                      "Group"), escape = F) %>% 
+  column_spec(5:7, bold = T) %>%   
+  row_spec(which(immune_desc_all$group == "total"), color = "black", background = "#bdbdbd") %>% 
+  row_spec(which(immune_desc_all$group == "girl"), color = "black", background = "white") %>% 
+  row_spec(which(immune_desc_all$group == "boy"), color = "black", background = "#bdbdbd") %>% 
+
   kable_styling(bootstrap_options = c("condensed", "responsive"), full_width = F, position = "left", font_size = 14, fixed_thead = T) %>% 
   scroll_box(width = "100%", height = "100%")
 
+immune <- df_full %>%
+  select(h_sex, CRP, IL1beta, IL6, IL8, IL10, TNFalfa)
 immune %>% 
-  pivot_longer(cols = 1:ncol(immune)) %>% 
-  ggplot(aes(value)) + 
-  geom_histogram() + 
+  pivot_longer(cols = 2:ncol(immune)) %>% 
+  ggplot(aes(x = value, fill = h_sex)) + 
+  geom_histogram(position='identity', alpha = 0.5) + 
   facet_wrap(~name, scales = "free")
 ```
 
