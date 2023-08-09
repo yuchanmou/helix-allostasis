@@ -3,6 +3,8 @@ title: "Dataset prep: Air pollution, noise level and allostatic load"
 author: "Yuchan Mou"
 date: "2023-04"
 output: html_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
@@ -12,26 +14,136 @@ knitr::opts_chunk$set(echo = TRUE)
 # Load pkgs
 ```{r load packages, include=FALSE, echo=FALSE, message=FALSE, warning=FALSE}
 # load pkgs
-packages <- c("dplyr", "tidyverse", "readxl", "openxlsx", "ggplot2", "Biobase") 
+packages <- c("dplyr", "tidyverse", "readxl", "openxlsx", "ggplot2", "Biobase", "Hmisc", "labelled")
 sapply(packages, library, character.only = T)
 ```
 
 # Import data
 ```{r import data}
-df <- read_excel("/Users/ymou/helix_project/data/HELIX_AP_132_request_updated28abr.2023.xlsx")
+df <- read_excel("/Users/ymou/helix_project/data/HELIX_AP_132_request_updated21jul.2023.xlsx")
 # proteome data
 load("/Users/ymou/helix_project/data/proteome_subcohort_v5.Rdata")
+# steriod data
+dt <- read_excel("/Users/ymou/helix_project/data/cortisol/urine_results_combined.xlsx", sheet = 1)
+dt_lloq <- read_excel("/Users/ymou/helix_project/data/cortisol/urine_results_combined.xlsx", sheet = 2) # originally 1008 obs, 4 duplicated rows were removed (data duplication confirmed by lab). Final dataset contains 1004 obs.
+dt_creatinine <- read_excel("/Users/ymou/helix_project/data/cortisol/urine_results_combined.xlsx", sheet = 3) # 1007 obs
 ```
 
-# Merge datasets
+# Steriod data manipulation
+Unnormalized concentrations (ng/mL)
+
+2 Sample lost, removed in the dataset: 
+- RHEA:232094
+- MOB154
+
+```{r steriod data add variable feature}
+colname <- colnames(dt)
+colname <- colname[-c(1, 2, 3, 5, 30)] # exclude variable ID_original, HelixID, cohort, F_outlier, S_outlier
+
+# create copies of analytes
+dt_1 <- dt %>% mutate(
+  across(
+    .cols = colname,
+    .names = "{col}_cp"
+  )
+)
+
+# replace <LOQ to <LLOQ
+dt_1 <- dt_1 %>% mutate_all(str_replace, "<LOQ", "<LLOQ")
+
+# create descriptive columns for each analytes
+dt_2 <- dt_1 %>%
+  mutate_at(
+    vars(-c("ID_original", "HelixID", ends_with("_cp"), "F_outlier", "S_outlier", "cohort")),
+    ~ na_if(., "<LLOQ")
+  ) %>% # replace '<LLOQ' with NA
+  mutate_at(
+    vars(-c("ID_original", "HelixID", ends_with("_cp"), "F_outlier", "S_outlier", "cohort")),
+    ~ na_if(., "n.d.")
+  ) %>% # replace "n.d." with NA
+  mutate_at(vars(-c("ID_original", "HelixID", ends_with("_cp"), "F_outlier", "S_outlier", "cohort")), as.numeric) %>%
+  mutate(across(ends_with("_cp"),
+    ~ ifelse(. == "<LLOQ", "LLOQ",
+      ifelse(. == "n.d.", "n.d.", "complete")
+    ),
+    .names = "{col}_des"
+  ))
+
+dt_2$F_cp_des[dt_2$F_outlier == "outlier"] <- "outlier"
+dt_2$S_cp_des[dt_2$S_outlier == "outlier"] <- "outlier"
+
+# analytes feature were named as ._cp_des
+# n.d.: not detected
+# outlier: outlier
+# LLOQ: lower than limit of quantification
+dt_final <- dt_2 %>%
+  select_at(
+    vars(-ends_with(c("_cp", "_outlier")))
+  )
+
+# modify ID
+dt_final$HelixID <- str_replace(dt_final$HelixID, "_1A", "")
+dt_final$HelixID <- str_replace(dt_final$HelixID, "_1X", "")
+dt_final$HelixID <- str_replace(dt_final$HelixID, "_1x", "")
+dt_final$HelixID <- str_replace(dt_final$HelixID, "_1a", "")
+dt_final$HelixID <- str_replace(dt_final$HelixID, "-1X", "")
+dt_final$HelixID <- str_replace(dt_final$HelixID, "-1A", "")
+dt_final$HelixID <- str_replace(dt_final$HelixID, " 1X ORINA", "")
+dt_final$HelixID <- str_replace(dt_final$HelixID, " 1A ORINA", "")
+dt_final$HelixID <- str_replace(dt_final$HelixID, " 1XORINA", "")
+dt_final$HelixID <- str_replace(dt_final$HelixID, " 1 X ORINA", "")
+dt_final$HelixID <- str_replace(dt_final$HelixID, " 1X ORINA", "")
+dt_final$HelixID <- str_replace(dt_final$HelixID, " 2A ORINA", "")
+dt_final$HelixID <- str_replace(dt_final$HelixID, "SAB ", "SAB")
+dt_final$HelixID <- str_replace(dt_final$HelixID, "SAB00", "SAB")
+dt_final$HelixID <- str_replace(dt_final$HelixID, "SAB0", "SAB")
+dt_final$HelixID <- str_replace(dt_final$HelixID, "MOB00", "MOB")
+dt_final$HelixID <- str_replace(dt_final$HelixID, "MOB0", "MOB")
+
+dt_final <- dt_final %>% mutate(across(HelixID, ~ str_replace(., "EDP", "EDE")))
+
+# !!! KAN1292, KAN147, KAN315, KAN918 duplicated
+# 4 Duplicated samples has been removed in the dataset. Aug 1, 2023
+# check if duplicated obs exist
+dt_final[duplicated(dt_final$HelixID), ]
+
+# Action on Jul 19, 2023: delete those 8 cases
+# dt_final_temp <- dt_final %>%
+#   filter(HelixID %nin% c("KAN1292","KAN147", "KAN315", "KAN918"))
+```
+
+```{r steriod data creatinine}
+dt_creatinine$HelixID <- str_replace(dt_creatinine$HelixID, "_1A", "")
+dt_creatinine$HelixID <- str_replace(dt_creatinine$HelixID, "_1X", "")
+dt_creatinine$HelixID <- str_replace(dt_creatinine$HelixID, "_1x", "")
+dt_creatinine$HelixID <- str_replace(dt_creatinine$HelixID, "_1a", "")
+dt_creatinine$HelixID <- str_replace(dt_creatinine$HelixID, "-1X", "")
+dt_creatinine$HelixID <- str_replace(dt_creatinine$HelixID, "-1A", "")
+dt_creatinine$HelixID <- str_replace(dt_creatinine$HelixID, "_9Y_C_0", "")
+dt_creatinine$HelixID <- str_replace(dt_creatinine$HelixID, "_UN01_1A", "")
+dt_creatinine$HelixID <- str_replace(dt_creatinine$HelixID, "_UN01", "")
+dt_creatinine$HelixID <- str_replace(dt_creatinine$HelixID, "SAB00", "SAB")
+dt_creatinine$HelixID <- str_replace(dt_creatinine$HelixID, "SAB0", "SAB")
+
+dt_creatinine <- dt_creatinine %>% mutate(across(HelixID, ~ str_replace(., "EDP", "EDE")))
+
+# no duplicated ID.
+dt_creatinine[duplicated(dt_creatinine$HelixID), ]
+
+# final dataset
+dt_creatinine <- dt_creatinine %>% select(-"ID_original")
+```
+
+
+# Proteome dataset
 ```{r proteome dataset feature}
-#ExpressionSetIntroduction
-#https://www.bioconductor.org/packages/devel/bioc/vignettes/Biobase/inst/doc/ExpressionSetIntroduction.pdf
+# ExpressionSetIntroduction
+# https://www.bioconductor.org/packages/devel/bioc/vignettes/Biobase/inst/doc/ExpressionSetIntroduction.pdf
 
 proteome_subcohort
-#36 protein/features, 1188 samples. unit pg/ml
+# 36 protein/features, 1188 samples. unit pg/ml
 
-#extract assay data
+# extract assay data
 dt_protassay <- exprs(proteome_subcohort)
 class(dt_protassay)
 dim(dt_protassay)
@@ -39,87 +151,256 @@ colnames(dt_protassay)
 
 dt_prot <- as.data.frame(t(dt_protassay))
 SampleID <- row.names.data.frame(dt_prot)
-dt_prot <- dt_prot %>% mutate(SampleID,.before = Adiponectin)
+dt_prot <- dt_prot %>% mutate(SampleID, .before = Adiponectin)
 
-#extract annotated data
+# extract annotated data
 dt_annot <- phenoData(proteome_subcohort)
 dt_assaypheno <- dt_annot@data
 
-#merge assay data and annotated data
+# merge assay data and annotated data
 df_prot <- full_join(dt_assaypheno, dt_prot, by = "SampleID")
 ```
 
+# General daatset
 ```{r general dataset feature}
 # basic info
-dim(df) #1301 participants, 81 vars
+dim(df) # 1301 participants, 119 vars
 varname <- as_tibble(tbl_vars(df))
+
+# set null, unable to complete (pulse) into NA
+df <- df %>% mutate(across(where(is.character), ~ na_if(., "null")))
+df <- df %>% mutate(across(where(is.character), ~ na_if(., "unable to complete")))
+df <- df %>% mutate(across(where(is_logical), as.numeric))
+
+df <- df %>%
+  mutate_at(c("hs_bp_pulse1", "hs_bp_pulse2", "hs_bp_pulse3"), as.numeric) %>%
+  mutate(bp_pulse_avg = (hs_bp_pulse1 + hs_bp_pulse2 + hs_bp_pulse3) / 3)
 ```
 
+# Merge datasets
 ```{r final dataset merge}
-df_full <- df %>% full_join(df_prot, by = "HelixID", keep = FALSE) %>% 
+# steriod data
+dt_final2 <- dt_final %>%
+  select(-"cohort") %>%
+  left_join(dt_creatinine, by = "HelixID", keep = FALSE, unmatched = "drop")
+# check unmatched data
+# 5 obs no creatinine data
+anti_join(dt_final, dt_creatinine, by = "HelixID")
+
+# merge general dataset, proteome and steriod datasets together
+df_full <- df %>%
+  left_join(df_prot, by = "HelixID", keep = FALSE, unmatched = "drop") %>%
+  left_join(dt_final2, by = "HelixID", keep = FALSE) %>%
   rename_at(
     vars(ends_with(".x")),
-    ~str_replace(., "\\..$","")
-  ) %>% 
+    ~ str_replace(., "\\..$", "")
+  ) %>%
   select_at(
     vars(-ends_with(".y"))
   )
-
-#missing in pm25 wk: n=18
-length(which(is.na(df_full$hs_pm25_wk_hs_t)))
-#missing in proteome: n=131
-length(which(is.na(df_full$Adiponectin)))
 ```
 
 # Data Manipulation
-- unit conversion
+## Unit conversion
 ```{r unit conversion}
 # lipids unit conversion
-# original unit is mmol/L. Converted to mg/Lf
+# original unit is mmol/L. Converted to mg/L
 # hdl, ldl, totchol
-chol_conv <- function(x){x*38.67}
-df_full <- df_full %>% 
+chol_conv <- function(x) {
+  x * 38.67
+}
+df_full <- df_full %>%
   mutate_at(
-    c("hs_hdlchol_c", "hs_ldlchol_c", "hs_totchol_c"), ~ chol_conv(.))
+    c("hs_hdlchol_c", "hs_ldlchol_c", "hs_totchol_c"), ~ chol_conv(.)
+  )
 
 # triglycerides
-triglyc_conv <- function(x){x*88.57}
-df_full <- df_full %>% 
+triglyc_conv <- function(x) {
+  x * 88.57
+}
+df_full <- df_full %>%
   mutate_at("hs_triglyc_c", ~ triglyc_conv(.))
 
-# inflammatory biomarkers 
+# inflammatory biomarkers
 # DO NOT RUN: the data has been log2 transformed, imputed and normalized
 # orginal unit is pg/mL. Converted to mg/L
 # inflam_conv <- function(x){x*(1e-6)}
-# df_full <- df_full %>% 
-  #mutate_at(
-    #c("CRP", "IL1beta", "IL6", "IL8", "IL10", "TNFalfa"), ~ inflam_conv(.))
+# df_full <- df_full %>%
+# mutate_at(
+# c("CRP", "IL1beta", "IL6", "IL8", "IL10", "TNFalfa"), ~ inflam_conv(.))
+
+
+# urine creatinine 88.4 uM = 1 mg/dL. https://www.lsbio.com/assaykitdocuments/K207_Datasheet.pdf
+# 1 mg/dL = 10 ug/mL (microgram per milliliter)
+# 1 ug/mL = 1000 ng/mL, multiply by 1000
+# unit conversion reference: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3718461/
+uri_creatinine_conv <- function(x) {
+  (x / 88.4) * 10000
+}
+df_full <- df_full %>%
+  mutate_at("Creatinine (µM)", ~ uri_creatinine_conv(.)) %>%
+  rename(creatinine_cortisol = `Creatinine (µM)`)
 ```
 
-- Change variable class
-```{r var class conversion}
-df_full <- df_full %>% mutate_at(c("h_sex", "cohort",
-                                   "FAS_cat", "h_subjincome" ,"familyincomeC", "e3_ses", "h_native", "h_ethnicity_c", "h_ethnicity_cauc", "h_edumc", "h_edufc",
-                                   "hs_smk_parents", "hs_globalexp", "e3_asmokyn_p", "e3_alcpreg_yn", "h_marital"), as_factor)
-df_full <- df_full %>% mutate_at(c("hs_no2_dy_hs_t", "hs_no2_wk_hs_t", "hs_no2_yr_hs_t",
-                                   "hs_pm25_dy_hs_t", "hs_pm25_wk_hs_t", "hs_pm25_yr_hs_t",
-                                   "hs_pm25abs_dy_hs_t", "hs_pm25abs_wk_hs_t", "hs_pm25abs_yr_hs_t",
-                                   "hs_pm10_dy_hs_t", "hs_pm10_wk_hs_t", "hs_pm10_yr_hs_t",
-                                   "hs_lden_c_h", "hs_lden_c_s", "hs_lden_h", "hs_lden_s",
-                                   "hs_lden_p", "hs_lden_r", "hs_lden_t"), as.numeric)
-# warning message is fine. null and NA present in those variables. I checked the missing (NA and nulls) in the original dataset and the converted one, number of missing is the same. 
+## Cortisol data manipulation
+```{r}
+# LLoQ imputation
+# impute below LLoQ as LLoQ/sqr(2)
+# ._cp_des
+# complete: complete data
+# LLOQ: lower than limit of quantification
+# n.d.: not detected
+# outlier: outlier - HAVE NOT DONE ANYTHING WITH OUTLIER VALUE YET
+bare_to_quo <- function(x, var){
+  x %>% select(!!var) %>% head(1)
+}
 
+lloq_imp <- function(data, var, var_des, value = data$var) {
+  assign("lloq", bare_to_quo(dt_lloq, quo({{ var }})))
+  data %>%
+    mutate(
+      across(
+        .cols = {{ var }},
+        ~ ifelse({{ var_des }} == "LLOQ", as.numeric(lloq) / sqrt(2),
+                 ifelse({{ var_des }} == "n.d.", as.numeric(lloq) / sqrt(2),
+                        ifelse({{ var_des }} == "complete", value, NA)
+                 )
+        ),
+        .names = "{col}_imp"
+      )
+    )
+}
+
+# function test run: complete and LLOQ should be false (not missing), meaning that the imputation works
+# test <- lloq_imp(df_full, "F", F_cp_des, value = df_full$`F`)
+# table(test$F_cp_des)
+# length(which(!is.na(test$`F_imp`)))
+# table(test$F_cp_des, is.na(test$`F_imp`))
+# diagonal matrix means the imputation works perfect
+# table(head(test$`F`), head(test$F_imp))
+
+# 11 steriod analytes
+analytes <- c("F", "20aDHF", "20bDHF", "5bDHF", "5aTHF", "5bTHF", "6OHF", "5a20acortol", "5a20bcortol", "5b20acortol", "5b20bcortol")
+analytes_desc <- c("F_cp_des", "20aDHF_cp_des", "20bDHF_cp_des", "5bDHF_cp_des", "5aTHF_cp_des", "5bTHF_cp_des", "6OHF_cp_des", "5a20acortol_cp_des", "5a20bcortol_cp_des", "5b20acortol_cp_des", "5b20bcortol_cp_des")
+
+# loop didn't work...let's repeat everything
+df_full <- lloq_imp(df_full, "F", `F_cp_des`, value = df_full$`F`)
+df_full <- lloq_imp(df_full, "20aDHF", `20aDHF_cp_des`, value = df_full$`20aDHF`)
+df_full <- lloq_imp(df_full, "20bDHF", `20bDHF_cp_des`, value = df_full$`20bDHF`)
+df_full <- lloq_imp(df_full, "5bDHF", `5bDHF_cp_des`, value = df_full$`5bDHF`)
+df_full <- lloq_imp(df_full, "5aTHF", `5aTHF_cp_des`, value = df_full$`5aTHF`)
+df_full <- lloq_imp(df_full, "5bTHF", `5bTHF_cp_des`, value = df_full$`5bTHF`)
+df_full <- lloq_imp(df_full, "6OHF", `6OHF_cp_des`, value = df_full$`6OHF`)
+df_full <- lloq_imp(df_full, "5a20acortol", `5a20acortol_cp_des`, value = df_full$`5a20acortol`)
+df_full <- lloq_imp(df_full, "5a20bcortol", `5a20bcortol_cp_des`, value = df_full$`5a20bcortol`)
+df_full <- lloq_imp(df_full, "5b20acortol", `5b20acortol_cp_des`, value = df_full$`5b20acortol`)
+df_full <- lloq_imp(df_full, "5b20bcortol", `5b20bcortol_cp_des`, value = df_full$`5b20bcortol`)
+
+# check if the lloq imputation works. Should be 1 at diagonal.
+table(head(df_full$`5b20bcortol`), head(df_full$`5b20bcortol_imp`))
+# complete + LLOQ/n.d should be euqual to the non-missing
+table(df_full$`F_cp_des`, useNA = "always")
+length(which(is.na(df_full$`F`)))
+
+# for (i in (1)) {
+#  analyte = analytes[i]
+#  assign('lloq', dt_lloq[, analyte])
+#  test %>%
+#    mutate(
+#      analytes[i] == ifelse(analytes_desc[i] == "LLOQ", as.numeric(lloq)/sqrt(2),
+#                          ifelse(analytes_desc[i] == "complete", analytes[i], NA))
+#      )
+# }
+# table(test$F_cp_des)
+# length(which(!is.na(test$`F_imp`)))
+# table(test$F_cp_des, is.na(test$`F_imp`))
+
+
+# Normalization
+# cortisol value/urine creatinine value
+# 329 samples without cortisol production value. 328 samples with creatinine value as missing, 1 sample with F value as outlier
+df_full <- df_full %>%
+  mutate(
+    across(
+      .cols = c("F_imp", "20aDHF_imp", "20bDHF_imp", "5bDHF_imp", "5aTHF_imp", "5bTHF_imp", "6OHF_imp", "5a20acortol_imp", "5a20bcortol_imp", "5b20acortol_imp", "5b20bcortol_imp"),
+      ~ noquote(.) / creatinine_cortisol,
+      .names = "{col}_norm"
+    )
+  )
+# hist(df_full$`5b20bcortol_imp_norm`)
+
+# Cortisol production calculation
+df_full <- df_full %>%
+  mutate(cortisol_prod = `F_imp_norm` + `20aDHF_imp_norm` + `20bDHF_imp_norm` + `5bDHF_imp_norm` + `5aTHF_imp_norm` + `5bTHF_imp_norm` + `6OHF_imp_norm` + `5a20acortol_imp_norm` + `5a20bcortol_imp_norm` + `5b20acortol_imp_norm` + `5b20bcortol_imp_norm`)
+hist(df_full$cortisol_prod)
+
+# log 10 transformation
+df_full$cortisol_prod_log10 <- log10(df_full$cortisol_prod)
+hist(df_full$cortisol_prod_log10)
+mean(df_full$cortisol_prod_log10, na.rm = T)
+sd(df_full$cortisol_prod_log10, na.rm = T)
+```
+
+## Add value labels
+```{r add value labels}
+df_full$e3_asmokyn_p <- if_else(df_full$e3_asmokyn_p == "no", 0, 1, NA)
+
+df_full <- df_full %>% set_value_labels(
+  FAS_cat = c(Low = 1, Middle = 2, High = 3),
+  h_native = c("None native" = 0, "One native" = 1, "Both native" = 2),
+  h_edumc = c(Low = 1, Middle = 2, High = 3),
+  h_edufc = c(Low = 1, Middle = 2, High = 3),
+  h_sex = c(Boys = 1, Girls = 2),
+  hs_smk_parents = c(Neither = 1, One = 2, Both = 3),
+  hs_globalexp = c(No = 1, Outside = 2, Inside = 3, "In and outside house" = 4),
+  e3_asmokyn_p = c(No = 0, Yes = 1),
+  e3_alcpreg_yn = c(No = 0, Yes = 1),
+  h_marital = c("Living alone" = 1, "Living with the father" = 2, "Other situation" = 3),
+  h_parity = c("No child" = 0, "One child" = 1, ">=2 children" = 2)
+)
+```
+
+## Change variable class
+```{r var class conversion}
+df_full <- df_full %>% mutate_at(c(
+  "h_sex", "cohort",
+  "FAS_cat", "h_native", "h_ethnicity_c", "h_ethnicity_3cat", "h_ethnicity_cauc", "h_edumc", "h_edufc",
+  "hs_smk_parents", "hs_globalexp", "e3_asmokyn_p", "e3_alcpreg_yn", "h_marital", "h_parity"
+), as_factor)
+
+df_full <- df_full %>% mutate_at(c(
+  "hs_no2_dy_hs_t", "hs_no2_wk_hs_t", "hs_no2_yr_hs_t", "hs_no2_yr_hs_h", "hs_no2_yr_hs_s",
+  "hs_pm25_dy_hs_t", "hs_pm25_wk_hs_t", "hs_pm25_yr_hs_t", "hs_pm25_yr_hs_h", "hs_pm25_yr_hs_s",
+  "hs_pm25abs_dy_hs_t", "hs_pm25abs_wk_hs_t", "hs_pm25abs_yr_hs_t", "hs_pm25abs_yr_hs_h", "hs_pm25abs_yr_hs_s",
+  "hs_pm10_dy_hs_t", "hs_pm10_wk_hs_t", "hs_pm10_yr_hs_t", "hs_pm10_yr_hs_h", "hs_pm10_yr_hs_s",
+  "hs_lden_c_h", "hs_lden_c_s", "hs_lden_h", "hs_lden_s",
+  "hs_lden_p", "hs_lden_r", "hs_lden_t",
+  "FAS_score",
+  "hs_mvpa", "hs_sd_wk",
+  "h_age", "hs_child_age_years",
+  "cortisol_prod", "cortisol_prod_log10",
+  "hs_bp_pulse1", "hs_bp_pulse2", "hs_bp_pulse3", "bp_pulse_avg"
+), as.numeric)
 
 df_full$h_cbirth <- as.Date(df_full$h_cbirth)
 
-df_g <- df_full %>% filter(h_sex == 1)
-df_b <- df_full %>% filter(h_sex == 2)
+df_full$child_age_grp <- cut(df_full$hs_child_age_years,
+  breaks = c(5, 6, 7, 8, 9, 10, 11, 12.1),
+  labels = c("5-5.9", "6-6.9", "7-7.9", "8-8.9", "9-9.9", "10-10.9", "11+")
+) # greater than or equal to the cutpoint
 ```
 
+# Dataset stratified by sex
+```{r}
+df_g <- df_full %>% filter(h_sex == "Girls")
+df_b <- df_full %>% filter(h_sex == "Boys")
+```
 
 ```{r export dataset}
-save(df_full, df_g, df_b, file="/Users/ymou/helix_project/data/analysis_data/df_full.RData")
+save(df_full, df_g, df_b, dt_final, file = "/Users/ymou/helix_project/data/analysis_data/df_full.RData")
 ```
 
-
-
+```{r output, include=FALSE}
+# convert rmd to r file
+knitr::purl("dataset_prep.Rmd", documentation = 1L)
+```
