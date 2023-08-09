@@ -1,0 +1,287 @@
+---
+title: "Cortisol data description"
+author: "Yuchan Mou"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+options(knitr.table.format = "html")
+```
+
+```{r load packages, include=FALSE, echo=FALSE, message=FALSE, warning=FALSE}
+# load pkgs
+packages <- c("dplyr", "tidyverse", "readxl", "openxlsx", "ggplot2", "gtools", "kableExtra", "patchwork")
+sapply(packages, library, character.only = T)
+```
+
+```{r import data, include=FALSE, echo=FALSE, message=FALSE, warning=FALSE}
+load("/Users/ymou/helix_project/data/analysis_data/df_full.RData")
+Sys.Date()
+```
+
+# Percentage of LLoQ: lower than limit of quantification
+
+```{r lloq}
+dt_lloqcheck <- dt_final %>%
+  select("cohort", ends_with("_des")) %>%
+  group_by(cohort)
+
+prop_missing_pervar <- as.data.frame(cbind(
+  "# LLOQ" = sort(colSums(dt_lloqcheck == "LLOQ")),
+  "% LLOQ" = round(sort(colMeans(dt_lloqcheck == "LLOQ")) * 100, 2),
+  "# nd" = sort(colSums(dt_lloqcheck == "n.d.")),
+  "% nd" = round(sort(colMeans(dt_lloqcheck == "n.d.")) * 100, 2)
+))
+
+prop_missing_pervar %>%
+  filter(`# LLOQ` != 0 | `# nd` != 0) %>%
+  tibble::rownames_to_column(var = "Variables") %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "condensed"), full_width = T)
+```
+
+# Percentage of LLoQ by cohort
+
+```{r lloq_cohort}
+dt_lloqcheck <- dt_final %>%
+  select("cohort", ends_with("_des")) %>%
+  group_by(cohort)
+
+dt_lloqcheck_cohort <- group_split(dt_lloqcheck)
+cohort <- group_keys(dt_lloqcheck)
+
+prop_missing_pervar <- as.data.frame(cbind(
+  "# LLOQ-BIB" = sort(colSums(dt_lloqcheck_cohort[[1]] == "LLOQ")),
+  "% LLOQ-BIB" = round(sort(colMeans(dt_lloqcheck_cohort[[1]] == "LLOQ")) * 100, 2),
+  "# LLOQ-EDEN" = sort(colSums(dt_lloqcheck_cohort[[2]] == "LLOQ")),
+  "% LLOQ-EDEN" = round(sort(colMeans(dt_lloqcheck_cohort[[2]] == "LLOQ")) * 100, 2),
+  "# LLOQ-KAN" = sort(colSums(dt_lloqcheck_cohort[[3]] == "LLOQ")),
+  "% LLOQ-KAN" = round(sort(colMeans(dt_lloqcheck_cohort[[3]] == "LLOQ")) * 100, 2),
+  "# LLOQ-MOBA" = sort(colSums(dt_lloqcheck_cohort[[4]] == "LLOQ")),
+  "% LLOQ-MOBA" = round(sort(colMeans(dt_lloqcheck_cohort[[4]] == "LLOQ")) * 100, 2),
+  "# LLOQ-RHEA" = sort(colSums(dt_lloqcheck_cohort[[5]] == "LLOQ")),
+  "% LLOQ-RHEA" = round(sort(colMeans(dt_lloqcheck_cohort[[5]] == "LLOQ")) * 100, 2),
+  "# LLOQ-SAB" = sort(colSums(dt_lloqcheck_cohort[[6]] == "LLOQ")),
+  "% LLOQ-SAB" = round(sort(colMeans(dt_lloqcheck_cohort[[6]] == "LLOQ")) * 100, 2)
+))
+
+prop_missing_pervar %>%
+  filter(`# LLOQ-BIB` != 0 | `# LLOQ-EDEN` != 0 | `# LLOQ-KAN` != 0 | `# LLOQ-MOBA` != 0 | `# LLOQ-RHEA` != 0 | `# LLOQ-SAB` != 0) %>%
+  tibble::rownames_to_column(var = "Variables") %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "condensed"), full_width = T)
+```
+
+# Cortisol production
+
+## Total
+
+```{r cortisol_prod_hist}
+ggplot(df_full, aes(x = cortisol_prod_log10)) +
+  # Use semi-transparent fill
+  geom_histogram(position = "identity", alpha = 0.5)
+```
+
+## Stratification
+
+```{r cortisol_prod_hist_stratified}
+# by cohort
+mean_cohort <- df_full %>%
+  filter(!is.na(cohort)) %>%
+  select(cortisol_prod_log10, cohort) %>%
+  group_by(cohort) %>%
+  summarise_all(mean, na.rm = TRUE)
+
+p_cohort <- df_full %>%
+  ggplot(aes(x = cortisol_prod_log10, fill = cohort, color = cohort)) +
+  geom_histogram(position = "identity", alpha = 0.5) +
+  geom_vline(
+    data = mean_cohort, aes(xintercept = cortisol_prod_log10, color = cohort),
+    linetype = "dashed"
+  ) +
+  ggtitle("By cohort")
+
+# calculate mean value by sex
+mean_sex <- df_full %>%
+  filter(!is.na(h_sex)) %>%
+  select(cortisol_prod_log10, h_sex) %>%
+  group_by(h_sex) %>%
+  summarise_all(mean, na.rm = TRUE)
+
+df_p <- df_full %>% filter(!is.na(h_sex))
+
+p_sex <- ggplot(df_p, aes(x = cortisol_prod_log10, fill = h_sex, color = h_sex)) +
+  # geom_density(alpha=0.3)+
+  geom_histogram(position = "identity", alpha = 0.5) +
+  geom_vline(
+    data = mean_sex, aes(xintercept = cortisol_prod_log10, color = h_sex),
+    linetype = "dashed"
+  ) +
+  ggtitle("By sex")
+
+# by age
+mean_age <- df_full %>%
+  filter(!is.na(child_age_grp)) %>%
+  select(cortisol_prod_log10, child_age_grp) %>%
+  group_by(child_age_grp) %>%
+  summarise_all(mean, na.rm = TRUE)
+
+df_p <- df_full %>% filter(!is.na(child_age_grp))
+
+p_age <- ggplot(df_p, aes(x = cortisol_prod_log10, fill = child_age_grp, color = child_age_grp)) +
+  # geom_density(alpha=0.3)+
+  geom_histogram(position = "identity", alpha = 0.5) +
+  geom_vline(
+    data = mean_age, aes(xintercept = cortisol_prod_log10, color = child_age_grp),
+    linetype = "dashed"
+  ) +
+  ggtitle("By age")
+
+# calculate mean value by maternal education level
+mean_edum <- df_full %>%
+  filter(!is.na(h_edumc)) %>%
+  select(cortisol_prod_log10, h_edumc) %>%
+  group_by(h_edumc) %>%
+  summarise_all(mean, na.rm = TRUE)
+
+df_p <- df_full %>% filter(!is.na(h_edumc))
+
+p_edum <- ggplot(df_p, aes(x = cortisol_prod_log10, fill = h_edumc, color = h_edumc)) +
+  # geom_density(alpha=0.3)+
+  geom_histogram(position = "identity", alpha = 0.5) +
+  geom_vline(
+    data = mean_edum, aes(xintercept = cortisol_prod_log10, color = h_edumc),
+    linetype = "dashed"
+  ) +
+  ggtitle("By maternal education level")
+
+# calculate mean value by paternal education level
+mean_eduf <- df_full %>%
+  filter(!is.na(h_edufc)) %>%
+  select(cortisol_prod_log10, h_edufc) %>%
+  group_by(h_edufc) %>%
+  summarise_all(mean, na.rm = TRUE)
+
+df_p <- df_full %>% filter(!is.na(h_edufc))
+
+p_eduf <- ggplot(df_p, aes(x = cortisol_prod_log10, fill = h_edufc, color = h_edufc)) +
+  # geom_density(alpha=0.3)+
+  geom_histogram(position = "identity", alpha = 0.5) +
+  geom_vline(
+    data = mean_eduf, aes(xintercept = cortisol_prod_log10, color = h_edufc),
+    linetype = "dashed"
+  ) +
+  ggtitle("By paternal education level")
+
+# calculate mean value by family affluent scale
+mean_fasm <- df_full %>%
+  filter(!is.na(FAS_cat)) %>%
+  select(cortisol_prod_log10, FAS_cat) %>%
+  group_by(FAS_cat) %>%
+  summarise_all(mean, na.rm = TRUE)
+
+df_p <- df_full %>% filter(!is.na(FAS_cat))
+
+p_fas <- ggplot(df_p, aes(x = cortisol_prod_log10, fill = FAS_cat, color = FAS_cat)) +
+  # geom_density(alpha=0.3)+
+  geom_histogram(position = "identity", alpha = 0.5) +
+  geom_vline(
+    data = mean_fasm, aes(xintercept = cortisol_prod_log10, color = FAS_cat),
+    linetype = "dashed"
+  ) +
+  ggtitle("By family affluent scale")
+
+# calculate mean value by parental ethnic background
+mean_ethp <- df_full %>%
+  filter(!is.na(h_native)) %>%
+  select(cortisol_prod_log10, h_native) %>%
+  group_by(h_native) %>%
+  summarise_all(mean, na.rm = TRUE)
+
+df_p <- df_full %>% filter(!is.na(h_native))
+
+p_ethp <- ggplot(df_p, aes(x = cortisol_prod_log10, fill = h_native, color = h_native)) +
+  # geom_density(alpha=0.3)+
+  geom_histogram(position = "identity", alpha = 0.5) +
+  geom_vline(
+    data = mean_ethp, aes(xintercept = cortisol_prod_log10, color = h_native),
+    linetype = "dashed"
+  ) +
+  ggtitle("By parental ethnic background")
+
+# calculate mean value by child ethnic background
+mean_ethc <- df_full %>%
+  filter(!is.na(h_ethnicity_c)) %>%
+  select(cortisol_prod_log10, h_ethnicity_c) %>%
+  group_by(h_ethnicity_c) %>%
+  summarise_all(mean, na.rm = TRUE)
+
+df_p <- df_full %>% filter(!is.na(h_ethnicity_c))
+
+p_ethc <- ggplot(df_p, aes(x = cortisol_prod_log10, fill = h_ethnicity_c, color = h_ethnicity_c)) +
+  # geom_density(alpha=0.3)+
+  geom_histogram(position = "identity", alpha = 0.5) +
+  geom_vline(
+    data = mean_ethc, aes(xintercept = cortisol_prod_log10, color = h_ethnicity_c),
+    linetype = "dashed"
+  ) +
+  ggtitle("By child ethnic background")
+
+# calculate mean value by child ethnic backgound three categories
+mean_ethc3cat <- df_full %>%
+  filter(!is.na(h_ethnicity_3cat)) %>%
+  select(cortisol_prod_log10, h_ethnicity_3cat) %>%
+  group_by(h_ethnicity_3cat) %>%
+  summarise_all(mean, na.rm = TRUE)
+
+df_p <- df_full %>% filter(!is.na(h_ethnicity_3cat))
+
+p_ethc3cat <- ggplot(df_p, aes(x = cortisol_prod_log10, fill = h_ethnicity_3cat, color = h_ethnicity_3cat)) +
+  # geom_density(alpha=0.3)+
+  geom_histogram(position = "identity", alpha = 0.5) +
+  geom_vline(
+    data = mean_ethc3cat, aes(xintercept = cortisol_prod_log10, color = h_ethnicity_3cat),
+    linetype = "dashed"
+  ) +
+  ggtitle("By child ethnic background 3 categories")
+
+# calculate mean value by child ethnic background caucasian
+mean_ethccau <- df_full %>%
+  filter(!is.na(h_ethnicity_cauc)) %>%
+  select(cortisol_prod_log10, h_ethnicity_cauc) %>%
+  group_by(h_ethnicity_cauc) %>%
+  summarise_all(mean, na.rm = TRUE)
+
+df_p <- df_full %>% filter(!is.na(h_ethnicity_cauc))
+
+p_ethccau <- ggplot(df_p, aes(x = cortisol_prod_log10, fill = h_ethnicity_cauc, color = h_ethnicity_cauc)) +
+  # geom_density(alpha=0.3)+
+  geom_histogram(position = "identity", alpha = 0.5) +
+  geom_vline(
+    data = mean_ethccau, aes(xintercept = cortisol_prod_log10, color = h_ethnicity_cauc),
+    linetype = "dashed"
+  ) +
+  ggtitle("By child ethnic background caucasian")
+```
+
+### By cohort, age, SES
+```{r by_cohort_age_ses, fig.width = 15 , fig.height = 15}
+wrap_plots(p_cohort, p_age, p_fas, ncol = 2, nrow = 2)
+```
+
+### By parental education
+```{r by_education, fig.width = 15 , fig.height = 7.5}
+wrap_plots(p_edum, p_edum, ncol = 2, nrow = 1)
+```
+
+### By ethnic backgrounds
+```{r by_eth, fig.width = 15 , fig.height = 15}
+wrap_plots(p_ethp, p_ethc, p_ethc3cat, p_ethccau)
+```
