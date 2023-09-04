@@ -25,8 +25,22 @@ sapply(packages, library, character.only = T)
 ```
 
 ```{r import data, include=FALSE, echo=FALSE, message=FALSE, warning=FALSE}
-load("/Users/ymou/helix_project/data/analysis_data/df_full.RData")
+load("/Users/ymou/helix_project/data/analysis_data/df_al_final.RData")
 Sys.Date()
+```
+
+```{r define variables, include=FALSE, echo=FALSE, message=FALSE, warning=FALSE}
+expo <- c("hs_no2_yr_hs_t", "hs_no2_yr_hs_h", "hs_no2_yr_hs_s", 
+          "hs_pm25_yr_hs_t", "hs_pm25_yr_hs_h", "hs_pm25_yr_hs_s", 
+          "hs_pm25abs_yr_hs_t", "hs_pm25abs_yr_hs_h", "hs_pm25abs_yr_hs_s",
+          "hs_pm10_yr_hs_t", "hs_pm10_yr_hs_h", "hs_pm10_yr_hs_s",
+          "hs_lden_c_h", "hs_lden_c_s")
+
+cov <- c("h_sex", "hs_mvpa", "hs_sd_wk", # child characteristics
+         "FAS_cat", "h_native", "h_ethnicity_cauc", "h_edumc", "h_edufc",
+         "hs_smk_parents", "e3_asmokyn_p", "e3_alcpreg_yn", "h_marital", "h_age", "h_parity")
+
+out <- c("AL_1_tot", "AL_1_tot_wavg", "AL_2_tot", "AL_2_tot_wavg", "AL_z1_tot", "AL_z1_tot_wavg", "AL_z2_tot", "AL_z2_tot_wavg")
 ```
 
 # Descriptive analysis of exposure and covariates
@@ -38,7 +52,7 @@ The plots below shows the distributions of exposures and covariates.
 ### - NO2
 
 ```{r no2, fig.width = 10 , fig.height = 10}
-df_plot <- df_full %>%
+df_plot <- df_final %>%
   select(starts_with(c("hs_no2", "h_no2")), "cohort") %>%
   as.data.frame()
 
@@ -58,7 +72,7 @@ df_plot %>%
 ### - PM25
 
 ```{r pm25, fig.width = 10 , fig.height = 10}
-df_plot <- df_full %>%
+df_plot <- df_final %>%
   select(starts_with(c("hs_pm25_", "h_pm25_")), "cohort") %>%
   as.data.frame()
 
@@ -78,7 +92,7 @@ df_plot %>%
 ### - PM25abs
 
 ```{r pm25abs, fig.width = 10 , fig.height = 10}
-df_plot <- df_full %>%
+df_plot <- df_final %>%
   select(starts_with(c("hs_pm25abs", "h_pm25abs")), "cohort") %>%
   as.data.frame()
 
@@ -98,7 +112,7 @@ df_plot %>%
 ### - PM10
 
 ```{r pm10, fig.width = 10 , fig.height = 10}
-df_plot <- df_full %>%
+df_plot <- df_final %>%
   select(starts_with(c("hs_pm10", "h_pm10")), "cohort") %>%
   as.data.frame()
 
@@ -118,7 +132,7 @@ df_plot %>%
 ### - Lden
 
 ```{r lden, fig.width = 10 , fig.height = 10}
-df_plot <- df_full %>%
+df_plot <- df_final %>%
   select(starts_with(c("hs_lden")), "cohort") %>%
   as.data.frame()
 
@@ -138,7 +152,7 @@ df_plot %>%
 ### - Covariates
 
 ```{r cov, fig.width = 25 , fig.height = 25}
-df_plot <- df_full %>%
+df_plot <- df_final %>%
   select(
     "hs_child_age_years", "child_age_grp",
     "FAS_score", "FAS_cat",
@@ -156,27 +170,27 @@ plot_all(df_plot)
 ```
 
 ```{r cov_stratification, fig.width = 15 , fig.height = 15}
-p1 <- df_full %>%
+p1 <- df_final %>%
   ggplot(aes(x = child_age_grp, fill = cohort)) +
   geom_bar(position = "dodge") +
   ggtitle("Age group by cohort")
 
-p2 <- df_full %>%
+p2 <- df_final %>%
   ggplot(aes(x = h_sex, fill = child_age_grp)) +
   geom_bar(position = "dodge") +
   ggtitle("Child sex by age group")
 
-p3 <- df_full %>%
+p3 <- df_final %>%
   ggplot(aes(x = h_ethnicity_c, fill = child_age_grp)) +
   geom_bar(position = "dodge") +
   ggtitle("Child ethnicity by age group")
 
-p4 <- df_full %>%
+p4 <- df_final %>%
   ggplot(aes(x = h_ethnicity_c, fill = cohort)) +
   geom_bar(position = "dodge") +
   ggtitle("Child ethnicity by cohort")
 
-p5 <- df_full %>%
+p5 <- df_final %>%
   ggplot(aes(x = h_ethnicity_c, fill = FAS_cat)) +
   geom_bar(position = "dodge") +
   ggtitle("Child ethnicity by family affulent scale")
@@ -184,10 +198,44 @@ p5 <- df_full %>%
 wrap_plots(p1, p2, p3, p4, p5, ncol = 2, nrow = 3)
 ```
 
-## 2. Missing percentage
+## 2. Complete cases of exposures
+```{r}
+expo_desc <- df_final %>% 
+  filter(!is.na(h_sex)) %>% 
+  select(cohort, all_of(expo)) %>%
+  group_by(cohort)
+
+as.data.frame(cbind(
+  "#" = colSums(!is.na(expo_desc))
+)) %>% 
+  tibble::rownames_to_column(var = "Variables") %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "condensed"), full_width = T) %>% 
+  scroll_box(fixed_thead = T)
+
+expo_desc_cohort <- group_split(expo_desc)
+cohort <- group_keys(expo_desc)
+
+exposure_desc <- as.data.frame(cbind(
+  "# SAB" = colSums(!is.na(expo_desc_cohort[[1]])),
+  "# EDEN" = colSums(!is.na(expo_desc_cohort[[2]])),
+  "# BIB" = colSums(!is.na(expo_desc_cohort[[3]])),
+  "# RHEA" = colSums(!is.na(expo_desc_cohort[[4]])),
+  "# KANC" = colSums(!is.na(expo_desc_cohort[[5]])),
+  "# MOBA" = colSums(!is.na(expo_desc_cohort[[6]]))
+))
+
+exposure_desc %>%
+  tibble::rownames_to_column(var = "Variables") %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "condensed"), full_width = T) %>% 
+  scroll_box(fixed_thead = T)
+```
+
+## 3. Missing percentage of all variables
 
 ```{r missing,  fig.width = 15 , fig.height = 15}
-daf_impcheck <- df_full %>%
+daf_impcheck <- df_final %>%
   select(starts_with(c(
     "hs_no2", "h_no2", "hs_pm25", "h_pm25", "hs_pm25abs", "h_pm25abs", "hs_pm10", "h_pm10", "hs_lden",
     "FAS_score", "FAS_cat", "h_subjincome", "familyincomeC", "e3_ses",
@@ -211,16 +259,11 @@ colnames(prop_missing) <- c("cohort", "#incompl.", "%incompl.")
 for (i in 1:nrow(cohort)) {
   prop_missing[i, 1] <- as.character(cohort[i, ]$cohort)
   prop_missing[i, 2] <- table(ifelse(complete.cases(daf_impcheck_cohort[[i]]), "complete", "incompl."))
-  prop_missing[i, 3] <- round(100 * sort(table(complete.cases(daf_impcheck_cohort[[i]]))) / nrow(daf_impcheck_cohort[[i]]), 2)
+  prop_missing[i, 3] <- round(100 * table(complete.cases(daf_impcheck_cohort[[i]])) / nrow(daf_impcheck_cohort[[i]]), 2)
 }
 
 kable(prop_missing) %>%
   kable_styling(bootstrap_options = c("striped", "hover", "responsive"), full_width = F)
-
-# Proportion of missing values per variable
-# as.data.frame(cbind(
-#  "# NA-SAB" = sort(colSums(is.na(daf_impcheck_cohort[[1]]))),
-#  "% NA-SAB" = round(sort(colMeans(is.na(daf_impcheck_cohort[[1]]))) * 100, 2))
 
 prop_missing_pervar <- as.data.frame(cbind(
   "# NA-SAB" = colSums(is.na(daf_impcheck_cohort[[1]])),
@@ -276,7 +319,7 @@ continuous_stats <- function(data, var) {
 
 ```{r cardio}
 cardio_desc <- map_dfr(
-  data = df_full,
+  data = df_final,
   .x = quos(hs_zsys_bp, hs_zdia_bp, bp_pulse_avg),
   .f = continuous_stats
 ) %>%
@@ -284,7 +327,7 @@ cardio_desc <- map_dfr(
   mutate(group = "total")
 
 cardio_desc_g <- map_dfr(
-  data = df_g,
+  data = df_finalg,
   .x = quos(hs_zsys_bp, hs_zdia_bp, bp_pulse_avg),
   .f = continuous_stats
 ) %>%
@@ -292,7 +335,7 @@ cardio_desc_g <- map_dfr(
   mutate(group = "girl")
 
 cardio_desc_b <- map_dfr(
-  data = df_b,
+  data = df_finalb,
   .x = quos(hs_zsys_bp, hs_zdia_bp, bp_pulse_avg),
   .f = continuous_stats
 ) %>%
@@ -326,7 +369,7 @@ cardio_desc_all %>%
 ### by sex
 
 ```{r cardio_plot_by_sex}
-cardio <- df_full %>%
+cardio <- df_final %>%
   select(h_sex, hs_zsys_bp, hs_zdia_bp, bp_pulse_avg)
 
 cardio %>%
@@ -339,7 +382,7 @@ cardio %>%
 ### by age group
 
 ```{r cardio_plot_by_agegrp}
-cardio <- df_full %>%
+cardio <- df_final %>%
   select(child_age_grp, hs_zsys_bp, hs_zdia_bp, bp_pulse_avg)
 
 cardio %>%
@@ -352,7 +395,7 @@ cardio %>%
 ### by maternal education
 
 ```{r cardio_plot_by_edum}
-cardio <- df_full %>%
+cardio <- df_final %>%
   select(h_edumc, hs_zsys_bp, hs_zdia_bp, bp_pulse_avg)
 
 cardio %>%
@@ -365,7 +408,7 @@ cardio %>%
 ### by family affluence scale
 
 ```{r cardio_plot_by_fas}
-cardio <- df_full %>%
+cardio <- df_final %>%
   select(FAS_cat, hs_zsys_bp, hs_zdia_bp, bp_pulse_avg)
 
 cardio %>%
@@ -378,7 +421,7 @@ cardio %>%
 ### by child ethnicity
 
 ```{r cardio_plot_by_ethc}
-cardio <- df_full %>%
+cardio <- df_final %>%
   select(h_ethnicity_3cat, hs_zsys_bp, hs_zdia_bp, bp_pulse_avg)
 
 cardio %>%
@@ -394,7 +437,7 @@ Unit z score
 
 ```{r anthropometrics}
 anthro_desc <- map_dfr(
-  data = df_full,
+  data = df_final,
   .x = quos(hs_zbmi_who, hs_zwaist_mets, hs_skf_sum2, hs_freefatmass_bia, hs_fatmass_bia, hs_fatprop_bia),
   .f = continuous_stats
 ) %>%
@@ -402,7 +445,7 @@ anthro_desc <- map_dfr(
   mutate(group = "total")
 
 anthro_desc_g <- map_dfr(
-  data = df_g,
+  data = df_finalg,
   .x = quos(hs_zbmi_who, hs_zwaist_mets, hs_skf_sum2, hs_freefatmass_bia, hs_fatmass_bia, hs_fatprop_bia),
   .f = continuous_stats
 ) %>%
@@ -410,7 +453,7 @@ anthro_desc_g <- map_dfr(
   mutate(group = "girl")
 
 anthro_desc_b <- map_dfr(
-  data = df_b,
+  data = df_finalb,
   .x = quos(hs_zbmi_who, hs_zwaist_mets, hs_skf_sum2, hs_freefatmass_bia, hs_fatmass_bia, hs_fatprop_bia),
   .f = continuous_stats
 ) %>%
@@ -444,7 +487,7 @@ anthro_desc_all %>%
 ### by sex
 
 ```{r anthropometrics_plot_by_sex}
-anthro <- df_full %>%
+anthro <- df_final %>%
   select(h_sex, hs_zbmi_who, hs_zwaist_mets, hs_skf_sum2, hs_freefatmass_bia, hs_fatmass_bia, hs_fatprop_bia)
 anthro %>%
   pivot_longer(cols = 2:ncol(anthro)) %>%
@@ -456,7 +499,7 @@ anthro %>%
 ### by age group
 
 ```{r anthropometrics_plot_by_agegrp}
-anthro <- df_full %>%
+anthro <- df_final %>%
   select(child_age_grp, hs_zbmi_who, hs_zwaist_mets, hs_skf_sum2, hs_freefatmass_bia, hs_fatmass_bia, hs_fatprop_bia)
 anthro %>%
   pivot_longer(cols = 2:ncol(anthro)) %>%
@@ -468,7 +511,7 @@ anthro %>%
 ### by maternal education
 
 ```{r anthropometrics_plot_by_edum}
-anthro <- df_full %>%
+anthro <- df_final %>%
   select(h_edumc, hs_zbmi_who, hs_zwaist_mets, hs_skf_sum2, hs_freefatmass_bia, hs_fatmass_bia, hs_fatprop_bia)
 anthro %>%
   pivot_longer(cols = 2:ncol(anthro)) %>%
@@ -480,7 +523,7 @@ anthro %>%
 ### by FAS
 
 ```{r anthropometrics_plot_by_fas}
-anthro <- df_full %>%
+anthro <- df_final %>%
   select(FAS_cat, hs_zbmi_who, hs_zwaist_mets, hs_skf_sum2, hs_freefatmass_bia, hs_fatmass_bia, hs_fatprop_bia)
 anthro %>%
   pivot_longer(cols = 2:ncol(anthro)) %>%
@@ -492,7 +535,7 @@ anthro %>%
 ### by child ethnicity
 
 ```{r anthropometrics_plot_by_ethc}
-anthro <- df_full %>%
+anthro <- df_final %>%
   select(h_ethnicity_3cat, hs_zbmi_who, hs_zwaist_mets, hs_skf_sum2, hs_freefatmass_bia, hs_fatmass_bia, hs_fatprop_bia)
 anthro %>%
   pivot_longer(cols = 2:ncol(anthro)) %>%
@@ -505,7 +548,7 @@ Unit mg/dL
 
 ```{r metabolic}
 metab_desc <- map_dfr(
-  data = df_full,
+  data = df_final,
   .x = quos(
     hs_hdlchol_c, hs_ldlchol_c, hs_triglyc_c, hs_totchol_c, Leptin, Adiponectin,
     Cpeptide, INSULIN, Glucose, hs_creatinine_c
@@ -516,7 +559,7 @@ metab_desc <- map_dfr(
   mutate(group = "total")
 
 metab_desc_g <- map_dfr(
-  data = df_g,
+  data = df_finalg,
   .x = quos(
     hs_hdlchol_c, hs_ldlchol_c, hs_triglyc_c, hs_totchol_c, Leptin, Adiponectin,
     Cpeptide, INSULIN, Glucose, hs_creatinine_c
@@ -527,7 +570,7 @@ metab_desc_g <- map_dfr(
   mutate(group = "girl")
 
 metab_desc_b <- map_dfr(
-  data = df_b,
+  data = df_finalb,
   .x = quos(
     hs_hdlchol_c, hs_ldlchol_c, hs_triglyc_c, hs_totchol_c, Leptin, Adiponectin,
     Cpeptide, INSULIN, Glucose, hs_creatinine_c
@@ -565,7 +608,7 @@ metab_desc_all %>%
 ### by sex
 
 ```{r metabolic_plot_by_sex}
-metab <- df_full %>%
+metab <- df_final %>%
   select(
     h_sex, hs_hdlchol_c, hs_ldlchol_c, hs_triglyc_c, hs_totchol_c, Leptin, Adiponectin,
     Cpeptide, INSULIN, Glucose, hs_creatinine_c
@@ -580,7 +623,7 @@ metab %>%
 ### by age group
 
 ```{r metabolic_plot_by_agegrp}
-metab <- df_full %>%
+metab <- df_final %>%
   select(
     child_age_grp, hs_hdlchol_c, hs_ldlchol_c, hs_triglyc_c, hs_totchol_c, Leptin, Adiponectin,
     Cpeptide, INSULIN, Glucose, hs_creatinine_c
@@ -595,7 +638,7 @@ metab %>%
 ### by maternal education
 
 ```{r metabolic_plot_by_edum}
-metab <- df_full %>%
+metab <- df_final %>%
   select(
     h_edumc, hs_hdlchol_c, hs_ldlchol_c, hs_triglyc_c, hs_totchol_c, Leptin, Adiponectin,
     Cpeptide, INSULIN, Glucose, hs_creatinine_c
@@ -610,7 +653,7 @@ metab %>%
 ### by FAS
 
 ```{r metabolic_plot_by_fas}
-metab <- df_full %>%
+metab <- df_final %>%
   select(
     FAS_cat, hs_hdlchol_c, hs_ldlchol_c, hs_triglyc_c, hs_totchol_c, Leptin, Adiponectin,
     Cpeptide, INSULIN, Glucose, hs_creatinine_c
@@ -625,7 +668,7 @@ metab %>%
 ### by child ethnicity
 
 ```{r metabolic_plot_by_ethc}
-metab <- df_full %>%
+metab <- df_final %>%
   select(
     h_ethnicity_3cat, hs_hdlchol_c, hs_ldlchol_c, hs_triglyc_c, hs_totchol_c, Leptin, Adiponectin,
     Cpeptide, INSULIN, Glucose, hs_creatinine_c
@@ -643,7 +686,7 @@ Unit pg/mL, log2 transformed, imputed and normalized
 
 ```{r immune}
 immune_desc <- map_dfr(
-  data = df_full,
+  data = df_final,
   .x = quos(CRP, IL1beta, IL6, IL8, IL10, TNFalfa),
   .f = continuous_stats
 ) %>%
@@ -651,7 +694,7 @@ immune_desc <- map_dfr(
   mutate(group = "total")
 
 immune_desc_g <- map_dfr(
-  data = df_g,
+  data = df_finalg,
   .x = quos(CRP, IL1beta, IL6, IL8, IL10, TNFalfa),
   .f = continuous_stats
 ) %>%
@@ -659,7 +702,7 @@ immune_desc_g <- map_dfr(
   mutate(group = "girl")
 
 immune_desc_b <- map_dfr(
-  data = df_b,
+  data = df_finalb,
   .x = quos(CRP, IL1beta, IL6, IL8, IL10, TNFalfa),
   .f = continuous_stats
 ) %>%
@@ -693,7 +736,7 @@ immune_desc_all %>%
 ### by sex
 
 ```{r immune_plot_by_sex}
-immune <- df_full %>%
+immune <- df_final %>%
   select(h_sex, CRP, IL1beta, IL6, IL8, IL10, TNFalfa)
 immune %>%
   pivot_longer(cols = 2:ncol(immune)) %>%
@@ -705,7 +748,7 @@ immune %>%
 ### by age group
 
 ```{r immune_plot_by_agegrp}
-immune <- df_full %>%
+immune <- df_final %>%
   select(child_age_grp, CRP, IL1beta, IL6, IL8, IL10, TNFalfa)
 immune %>%
   pivot_longer(cols = 2:ncol(immune)) %>%
@@ -717,7 +760,7 @@ immune %>%
 ### by maternal education
 
 ```{r immune_plot_by_edum}
-immune <- df_full %>%
+immune <- df_final %>%
   select(h_edumc, CRP, IL1beta, IL6, IL8, IL10, TNFalfa)
 immune %>%
   pivot_longer(cols = 2:ncol(immune)) %>%
@@ -729,7 +772,7 @@ immune %>%
 ### by FAS
 
 ```{r immune_plot_by_fas}
-immune <- df_full %>%
+immune <- df_final %>%
   select(FAS_cat, CRP, IL1beta, IL6, IL8, IL10, TNFalfa)
 immune %>%
   pivot_longer(cols = 2:ncol(immune)) %>%
@@ -741,7 +784,7 @@ immune %>%
 ### by child ethnicity
 
 ```{r immune_plot_by_ethc}
-immune <- df_full %>%
+immune <- df_final %>%
   select(h_ethnicity_3cat, CRP, IL1beta, IL6, IL8, IL10, TNFalfa)
 immune %>%
   pivot_longer(cols = 2:ncol(immune)) %>%
@@ -756,7 +799,7 @@ Cortisol not available now.
 
 ```{r cortisol}
 cort_desc <- map_dfr(
-  data = df_full,
+  data = df_final,
   .x = quos(cortisol_prod_log10),
   .f = continuous_stats
 ) %>%
@@ -764,7 +807,7 @@ cort_desc <- map_dfr(
   mutate(group = "total")
 
 cort_desc_g <- map_dfr(
-  data = df_g,
+  data = df_finalg,
   .x = quos(cortisol_prod_log10),
   .f = continuous_stats
 ) %>%
@@ -772,7 +815,7 @@ cort_desc_g <- map_dfr(
   mutate(group = "girl")
 
 cort_desc_b <- map_dfr(
-  data = df_b,
+  data = df_finalb,
   .x = quos(cortisol_prod_log10),
   .f = continuous_stats
 ) %>%
@@ -806,7 +849,7 @@ cort_desc_all %>%
 ### by sex
 
 ```{r cortisol_plot_by_sex}
-cort <- df_full %>%
+cort <- df_final %>%
   select(h_sex, cortisol_prod_log10)
 cort %>%
   pivot_longer(cols = 2:ncol(cort)) %>%
@@ -818,7 +861,7 @@ cort %>%
 ### by age group
 
 ```{r cortisol_plot_by_agegrp}
-cort <- df_full %>%
+cort <- df_final %>%
   select(child_age_grp, cortisol_prod_log10)
 cort %>%
   pivot_longer(cols = 2:ncol(cort)) %>%
@@ -830,7 +873,7 @@ cort %>%
 ### by maternal education
 
 ```{r cortisol_plot_by_edum}
-cort <- df_full %>%
+cort <- df_final %>%
   select(h_edumc, cortisol_prod_log10)
 cort %>%
   pivot_longer(cols = 2:ncol(cort)) %>%
@@ -842,7 +885,7 @@ cort %>%
 ### by FAS
 
 ```{r cortisol_plot_by_fas}
-cort <- df_full %>%
+cort <- df_final %>%
   select(FAS_cat, cortisol_prod_log10)
 cort %>%
   pivot_longer(cols = 2:ncol(cort)) %>%
@@ -854,7 +897,7 @@ cort %>%
 ### by child ethnicity
 
 ```{r cortisol_plot_by_ethc}
-cort <- df_full %>%
+cort <- df_final %>%
   select(h_ethnicity_3cat, cortisol_prod_log10)
 cort %>%
   pivot_longer(cols = 2:ncol(cort)) %>%
@@ -863,26 +906,41 @@ cort %>%
   facet_wrap(~name, scales = "free_x")
 ```
 
-# Correlation matrix
+# Descriptive analysis of outcome
+## Complete cases of exposures
+```{r}
+out_desc <- df_final %>% 
+  filter(!is.na(h_sex)) %>% 
+  select(cohort, all_of(out)) %>%
+  group_by(cohort)
 
-```{r corr_matrix_with_SES, fig.width = 15 , fig.height = 15}
-df_full %>%
-  select(
-    hs_zsys_bp, hs_zdia_bp, bp_pulse_avg,
-    hs_zbmi_who, hs_zwaist_mets, hs_skf_sum2, hs_fatprop_bia, hs_freefatmass_bia,
-    hs_hdlchol_c, hs_ldlchol_c, hs_triglyc_c, hs_totchol_c, Leptin, Adiponectin,
-    CRP, IL1beta, IL6, IL8, IL10, TNFalfa,
-    cortisol_prod_log10,
-    hs_child_age_years, FAS_cat, h_edumc, h_ethnicity_3cat
-  ) %>%
-  mutate_if(is.factor, as.numeric) %>%
-  cor(use = "pairwise.complete.obs", method = "pearson") %>%
-  ggcorrplot(
-    hc.order = TRUE,
-    type = "lower",
-    lab = TRUE
-  )
+as.data.frame(cbind(
+  "#" = colSums(!is.na(out_desc))
+)) %>% 
+  tibble::rownames_to_column(var = "Variables") %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "condensed"), full_width = T) %>% 
+  scroll_box(fixed_thead = T)
+
+out_desc_cohort <- group_split(out_desc)
+cohort <- group_keys(out_desc)
+
+outcome_desc <- as.data.frame(cbind(
+  "# SAB" = colSums(!is.na(out_desc_cohort[[1]])),
+  "# EDEN" = colSums(!is.na(out_desc_cohort[[2]])),
+  "# BIB" = colSums(!is.na(out_desc_cohort[[3]])),
+  "# RHEA" = colSums(!is.na(out_desc_cohort[[4]])),
+  "# KANC" = colSums(!is.na(out_desc_cohort[[5]])),
+  "# MOBA" = colSums(!is.na(out_desc_cohort[[6]]))
+))
+
+outcome_desc %>%
+  tibble::rownames_to_column(var = "Variables") %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "condensed"), full_width = T) %>% 
+  scroll_box(fixed_thead = T)
 ```
+
 
 ```{r output, include=FALSE, eval = F}
 # convert rmd to r file

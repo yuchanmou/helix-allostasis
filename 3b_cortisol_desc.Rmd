@@ -26,7 +26,8 @@ load("/Users/ymou/helix_project/data/analysis_data/df_full.RData")
 Sys.Date()
 ```
 
-# Percentage of LLoQ: lower than limit of quantification
+# Steroid analytes
+## Percentage of LLoQ: lower than limit of quantification
 
 ```{r lloq}
 dt_lloqcheck <- dt_final %>%
@@ -34,20 +35,21 @@ dt_lloqcheck <- dt_final %>%
   group_by(cohort)
 
 prop_missing_pervar <- as.data.frame(cbind(
-  "# LLOQ" = sort(colSums(dt_lloqcheck == "LLOQ")),
-  "% LLOQ" = round(sort(colMeans(dt_lloqcheck == "LLOQ")) * 100, 2),
-  "# nd" = sort(colSums(dt_lloqcheck == "n.d.")),
-  "% nd" = round(sort(colMeans(dt_lloqcheck == "n.d.")) * 100, 2)
+  "# LLOQ" = colSums(dt_lloqcheck == "LLOQ"),
+  "% LLOQ" = round(colMeans(dt_lloqcheck == "LLOQ") * 100, 2),
+  "# nd" = colSums(dt_lloqcheck == "n.d."),
+  "% nd" = round(colMeans(dt_lloqcheck == "n.d.") * 100, 2)
 ))
 
 prop_missing_pervar %>%
   filter(`# LLOQ` != 0 | `# nd` != 0) %>%
   tibble::rownames_to_column(var = "Variables") %>%
   kable() %>%
-  kable_styling(bootstrap_options = c("striped", "condensed"), full_width = T)
+  kable_styling(bootstrap_options = c("striped", "condensed"), full_width = T) %>% 
+  scroll_box(fixed_thead = T)
 ```
 
-# Percentage of LLoQ by cohort
+## Percentage of LLoQ by cohort
 
 ```{r lloq_cohort}
 dt_lloqcheck <- dt_final %>%
@@ -58,30 +60,65 @@ dt_lloqcheck_cohort <- group_split(dt_lloqcheck)
 cohort <- group_keys(dt_lloqcheck)
 
 prop_missing_pervar <- as.data.frame(cbind(
-  "# LLOQ-BIB" = sort(colSums(dt_lloqcheck_cohort[[1]] == "LLOQ")),
-  "% LLOQ-BIB" = round(sort(colMeans(dt_lloqcheck_cohort[[1]] == "LLOQ")) * 100, 2),
-  "# LLOQ-EDEN" = sort(colSums(dt_lloqcheck_cohort[[2]] == "LLOQ")),
-  "% LLOQ-EDEN" = round(sort(colMeans(dt_lloqcheck_cohort[[2]] == "LLOQ")) * 100, 2),
-  "# LLOQ-KAN" = sort(colSums(dt_lloqcheck_cohort[[3]] == "LLOQ")),
-  "% LLOQ-KAN" = round(sort(colMeans(dt_lloqcheck_cohort[[3]] == "LLOQ")) * 100, 2),
-  "# LLOQ-MOBA" = sort(colSums(dt_lloqcheck_cohort[[4]] == "LLOQ")),
-  "% LLOQ-MOBA" = round(sort(colMeans(dt_lloqcheck_cohort[[4]] == "LLOQ")) * 100, 2),
-  "# LLOQ-RHEA" = sort(colSums(dt_lloqcheck_cohort[[5]] == "LLOQ")),
-  "% LLOQ-RHEA" = round(sort(colMeans(dt_lloqcheck_cohort[[5]] == "LLOQ")) * 100, 2),
-  "# LLOQ-SAB" = sort(colSums(dt_lloqcheck_cohort[[6]] == "LLOQ")),
-  "% LLOQ-SAB" = round(sort(colMeans(dt_lloqcheck_cohort[[6]] == "LLOQ")) * 100, 2)
+  "# LLOQ-BIB" = colSums(dt_lloqcheck_cohort[[1]] == "LLOQ"),
+  "% LLOQ-BIB" = round(colMeans(dt_lloqcheck_cohort[[1]] == "LLOQ") * 100, 2),
+  "# LLOQ-EDEN" = colSums(dt_lloqcheck_cohort[[2]] == "LLOQ"),
+  "% LLOQ-EDEN" = round(colMeans(dt_lloqcheck_cohort[[2]] == "LLOQ") * 100, 2),
+  "# LLOQ-KAN" = colSums(dt_lloqcheck_cohort[[3]] == "LLOQ"),
+  "% LLOQ-KAN" = round(colMeans(dt_lloqcheck_cohort[[3]] == "LLOQ") * 100, 2),
+  "# LLOQ-MOBA" = colSums(dt_lloqcheck_cohort[[4]] == "LLOQ"),
+  "% LLOQ-MOBA" = round(colMeans(dt_lloqcheck_cohort[[4]] == "LLOQ") * 100, 2),
+  "# LLOQ-RHEA" = colSums(dt_lloqcheck_cohort[[5]] == "LLOQ"),
+  "% LLOQ-RHEA" = round(colMeans(dt_lloqcheck_cohort[[5]] == "LLOQ") * 100, 2),
+  "# LLOQ-SAB" = colSums(dt_lloqcheck_cohort[[6]] == "LLOQ"),
+  "% LLOQ-SAB" = round(colMeans(dt_lloqcheck_cohort[[6]] == "LLOQ") * 100, 2)
 ))
 
 prop_missing_pervar %>%
   filter(`# LLOQ-BIB` != 0 | `# LLOQ-EDEN` != 0 | `# LLOQ-KAN` != 0 | `# LLOQ-MOBA` != 0 | `# LLOQ-RHEA` != 0 | `# LLOQ-SAB` != 0) %>%
   tibble::rownames_to_column(var = "Variables") %>%
   kable() %>%
-  kable_styling(bootstrap_options = c("striped", "condensed"), full_width = T)
+  kable_styling(bootstrap_options = c("striped", "condensed"), full_width = T) %>% 
+  scroll_box(fixed_thead = T)
 ```
 
-# Cortisol production
+##  Cortisol production
 
-## Total
+### Complete cases in each cohort
+```{r}
+cortisol_prod_desc <- df_full %>% 
+  filter(!is.na(h_sex)) %>% 
+  select(cohort, cortisol_prod) %>%
+  group_by(cohort)
+
+as.data.frame(cbind(
+  "#" = colSums(!is.na(cortisol_prod_desc))
+)) %>% 
+  tibble::rownames_to_column(var = "Variables") %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "condensed"), full_width = T) %>% 
+  scroll_box(fixed_thead = T)
+
+cortisol_prod_desc_cohort <- group_split(cortisol_prod_desc)
+cohort <- group_keys(cortisol_prod_desc)
+
+corti_desc <- as.data.frame(cbind(
+  "# SAB" = colSums(!is.na(cortisol_prod_desc_cohort[[1]])),
+  "# EDEN" = colSums(!is.na(cortisol_prod_desc_cohort[[2]])),
+  "# BIB" = colSums(!is.na(cortisol_prod_desc_cohort[[3]])),
+  "# RHEA" = colSums(!is.na(cortisol_prod_desc_cohort[[4]])),
+  "# KANC" = colSums(!is.na(cortisol_prod_desc_cohort[[5]])),
+  "# MOBA" = colSums(!is.na(cortisol_prod_desc_cohort[[6]]))
+))
+
+corti_desc %>%
+  tibble::rownames_to_column(var = "Variables") %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "condensed"), full_width = T) %>% 
+  scroll_box(fixed_thead = T)
+```
+
+### Total distribution
 
 ```{r cortisol_prod_hist}
 ggplot(df_full, aes(x = cortisol_prod_log10)) +
@@ -89,7 +126,7 @@ ggplot(df_full, aes(x = cortisol_prod_log10)) +
   geom_histogram(position = "identity", alpha = 0.5)
 ```
 
-## Stratification
+### Distribution stratification
 
 ```{r cortisol_prod_hist_stratified}
 # by cohort
@@ -271,17 +308,39 @@ p_ethccau <- ggplot(df_p, aes(x = cortisol_prod_log10, fill = h_ethnicity_cauc, 
   ggtitle("By child ethnic background caucasian")
 ```
 
-### By cohort, age, SES
+#### By cohort, age, SES
 ```{r by_cohort_age_ses, fig.width = 15 , fig.height = 15}
 wrap_plots(p_cohort, p_age, p_fas, ncol = 2, nrow = 2)
 ```
 
-### By parental education
+#### By parental education
 ```{r by_education, fig.width = 15 , fig.height = 7.5}
 wrap_plots(p_edum, p_edum, ncol = 2, nrow = 1)
 ```
 
-### By ethnic backgrounds
+#### By ethnic backgrounds
 ```{r by_eth, fig.width = 15 , fig.height = 15}
 wrap_plots(p_ethp, p_ethc, p_ethc3cat, p_ethccau)
+```
+
+
+# Correlation matrix
+
+```{r corr_matrix_with_SES, fig.width = 15 , fig.height = 15}
+df_full %>%
+  select(
+    hs_zsys_bp, hs_zdia_bp, bp_pulse_avg,
+    hs_zbmi_who, hs_zwaist_mets, hs_skf_sum2, hs_fatprop_bia, hs_freefatmass_bia,
+    hs_hdlchol_c, hs_ldlchol_c, hs_triglyc_c, hs_totchol_c, Leptin, Adiponectin,
+    CRP, IL1beta, IL6, IL8, IL10, TNFalfa,
+    cortisol_prod_log10,
+    hs_child_age_years, FAS_cat, h_edumc, h_ethnicity_3cat
+  ) %>%
+  mutate_if(is.factor, as.numeric) %>%
+  cor(use = "pairwise.complete.obs", method = "pearson") %>%
+  ggcorrplot(
+    hc.order = TRUE,
+    type = "lower",
+    lab = TRUE
+  )
 ```

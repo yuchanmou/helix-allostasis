@@ -106,10 +106,6 @@ dt_final <- dt_final %>% mutate(across(HelixID, ~ str_replace(., "EDP", "EDE")))
 # 4 Duplicated samples has been removed in the dataset. Aug 1, 2023
 # check if duplicated obs exist
 dt_final[duplicated(dt_final$HelixID), ]
-
-# Action on Jul 19, 2023: delete those 8 cases
-# dt_final_temp <- dt_final %>%
-#   filter(HelixID %nin% c("KAN1292","KAN147", "KAN315", "KAN918"))
 ```
 
 ```{r steriod data creatinine}
@@ -284,6 +280,7 @@ analytes <- c("F", "20aDHF", "20bDHF", "5bDHF", "5aTHF", "5bTHF", "6OHF", "5a20a
 analytes_desc <- c("F_cp_des", "20aDHF_cp_des", "20bDHF_cp_des", "5bDHF_cp_des", "5aTHF_cp_des", "5bTHF_cp_des", "6OHF_cp_des", "5a20acortol_cp_des", "5a20bcortol_cp_des", "5b20acortol_cp_des", "5b20bcortol_cp_des")
 
 # loop didn't work...let's repeat everything
+# 11 analytes
 df_full <- lloq_imp(df_full, "F", `F_cp_des`, value = df_full$`F`)
 df_full <- lloq_imp(df_full, "20aDHF", `20aDHF_cp_des`, value = df_full$`20aDHF`)
 df_full <- lloq_imp(df_full, "20bDHF", `20bDHF_cp_des`, value = df_full$`20bDHF`)
@@ -299,8 +296,9 @@ df_full <- lloq_imp(df_full, "5b20bcortol", `5b20bcortol_cp_des`, value = df_ful
 # check if the lloq imputation works. Should be 1 at diagonal.
 table(head(df_full$`5b20bcortol`), head(df_full$`5b20bcortol_imp`))
 # complete + LLOQ/n.d should be euqual to the non-missing
+# F has 1 outlier, and is set to missing. Thus not in the current analysis. May want to impute in the future. 
 table(df_full$`F_cp_des`, useNA = "always")
-length(which(is.na(df_full$`F`)))
+length(which(is.na(df_full$`F_imp`)))
 
 # for (i in (1)) {
 #  analyte = analytes[i]
@@ -331,14 +329,21 @@ df_full <- df_full %>%
 
 # Cortisol production calculation
 df_full <- df_full %>%
-  mutate(cortisol_prod = `F_imp_norm` + `20aDHF_imp_norm` + `20bDHF_imp_norm` + `5bDHF_imp_norm` + `5aTHF_imp_norm` + `5bTHF_imp_norm` + `6OHF_imp_norm` + `5a20acortol_imp_norm` + `5a20bcortol_imp_norm` + `5b20acortol_imp_norm` + `5b20bcortol_imp_norm`)
+  mutate(cortisol_prod = `F_imp_norm` + `20aDHF_imp_norm` + `20bDHF_imp_norm` + `5bDHF_imp_norm` + `5aTHF_imp_norm` + `5bTHF_imp_norm` + `6OHF_imp_norm` + `5a20acortol_imp_norm` + `5a20bcortol_imp_norm` + `5b20acortol_imp_norm` + `5b20bcortol_imp_norm`,
+         cortisol_metab = (`20aDHF_imp_norm` + `20bDHF_imp_norm` + `5bDHF_imp_norm` + `5aTHF_imp_norm` + `5bTHF_imp_norm` + `6OHF_imp_norm` + `5a20acortol_imp_norm` + `5a20bcortol_imp_norm` + `5b20acortol_imp_norm` + `5b20bcortol_imp_norm`)/`F_imp_norm`)
 hist(df_full$cortisol_prod)
+hist(df_full$cortisol_metab)
 
 # log 10 transformation
 df_full$cortisol_prod_log10 <- log10(df_full$cortisol_prod)
 hist(df_full$cortisol_prod_log10)
 mean(df_full$cortisol_prod_log10, na.rm = T)
 sd(df_full$cortisol_prod_log10, na.rm = T)
+
+df_full$cortisol_metab_log10 <- log10(df_full$cortisol_metab)
+hist(df_full$cortisol_metab_log10)
+mean(df_full$cortisol_metab_log10, na.rm = T)
+sd(df_full$cortisol_metab_log10, na.rm = T)
 ```
 
 ## Add value labels
@@ -379,6 +384,7 @@ df_full <- df_full %>% mutate_at(c(
   "hs_mvpa", "hs_sd_wk",
   "h_age", "hs_child_age_years",
   "cortisol_prod", "cortisol_prod_log10",
+  "cortisol_metab", "cortisol_metab_log10",
   "hs_bp_pulse1", "hs_bp_pulse2", "hs_bp_pulse3", "bp_pulse_avg"
 ), as.numeric)
 

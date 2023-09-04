@@ -1,0 +1,939 @@
+---
+title: "Allostatic load score construction"
+author: "Yuchan Mou"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+---
+
+```{r env_setup, include=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+options(knitr.table.format = "html")
+```
+
+
+```{r load packages, include=FALSE, echo=FALSE, message=FALSE, warning=FALSE}
+# load pkgs
+packages <- c("dplyr", "tidyverse", "readxl", "openxlsx", "ggplot2", "gtools", "kableExtra")
+sapply(packages, library, character.only = T)
+```
+
+```{r import data, include=FALSE, echo=FALSE, message=FALSE, warning=FALSE}
+load("/Users/ymou/helix_project/data/analysis_data/df_full.RData")
+```
+
+```{r define biomarkers, include=FALSE, echo=FALSE, message=FALSE, warning=FALSE}
+# 20 biomarkers
+biomarker_all <- c(
+  "hs_zsys_bp", "hs_zdia_bp",
+  "bp_pulse_avg", "hs_zbmi_who", "hs_zwaist_mets", "hs_skf_sum2", "hs_fatprop_bia",
+  "hs_hdlchol_c", "hs_ldlchol_c", "hs_triglyc_c", "hs_totchol_c", "Leptin",
+  "Adiponectin",
+  "CRP", "IL1beta", "IL6", "IL8", "IL10", "TNFalfa",
+  "cortisol_prod_log10"
+)
+biomarker_reverse <- c("hs_hdlchol_c", "cortisol_prod_log10")
+cardio <- c("hs_zsys_bp", "hs_zdia_bp", "bp_pulse_avg")
+metab <- c(
+  "hs_zbmi_who", "hs_zwaist_mets", "hs_skf_sum2", "hs_fatprop_bia",
+  "hs_hdlchol_c", "hs_ldlchol_c", "hs_triglyc_c", "hs_totchol_c", "Leptin", "Adiponectin"
+)
+immune <- c("CRP", "IL1beta", "IL6", "IL8", "IL10", "TNFalfa")
+neuro <- c("cortisol_prod_log10")
+```
+
+```{r descriptive statistic func}
+continuous_stats <- function(data, var) {
+  data %>%
+    summarise(
+      variable = quo_name(var),
+      n = sum(!is.na({{ var }})),
+      min = min({{ var }}, na.rm = TRUE),
+      q1 = quantile({{ var }}, probs = 0.25, na.rm = TRUE),
+      median = median({{ var }}, na.rm = TRUE),
+      q3 = quantile({{ var }}, probs = 0.75, na.rm = TRUE),
+      max = max({{ var }}, na.rm = TRUE),
+      mean = mean({{ var }}, na.rm = TRUE),
+      sd = sd({{ var }}, na.rm = TRUE),
+    )
+}
+```
+
+# Traditional cut-off points
+Quantiles are created based on the values of biomarkers of total study population. The highest quantile (75%) of other biomarkers are considered 'high risk' and received a score of 1, except for HDL and cortisol. The lowest quantile (25%) of HDL scored 1, and both the lowest quantile and high quantile of cortisol scored 1. 
+
+```{r allostatic score 1 quantile based, fig.width = 15 , fig.height = 15}
+df_full_q <- df_full %>%
+  select(HelixID, h_sex, biomarker_all) %>%
+  mutate(
+    across(
+      .cols = biomarker_all,
+      n = 4,
+      .fns = ntile,
+      .names = "{col}_q"
+    )
+  ) %>%
+  select(HelixID, h_sex, ends_with("_q"))
+
+
+# 1=had risk, 0=no risk, except for HDL and cortisol.
+df_full_q <- df_full_q %>%
+  mutate(
+    hs_zsys_bp_as1 = if_else(hs_zsys_bp_q == 4, 1, 0, NA),
+    hs_zdia_bp_as1 = if_else(hs_zdia_bp_q == 4, 1, 0, NA),
+    bp_pulse_avg_as1 = if_else(bp_pulse_avg_q == 4, 1, 0, NA),
+    hs_zbmi_who_as1 = if_else(hs_zbmi_who_q == 4, 1, 0, NA),
+    hs_zwaist_mets_as1 = if_else(hs_zwaist_mets_q == 4, 1, 0, NA),
+    hs_skf_sum2_as1 = if_else(hs_skf_sum2_q == 4, 1, 0, NA),
+    hs_fatprop_bia_as1 = if_else(hs_fatprop_bia_q == 4, 1, 0, NA),
+    hdlchol_c_as1 = if_else(hs_hdlchol_c_q == 1, 1, 0, NA),
+    ldlchol_c_as1 = if_else(hs_ldlchol_c_q == 4, 1, 0, NA),
+    triglyc_c_as1 = if_else(hs_triglyc_c_q == 4, 1, 0, NA),
+    totchol_c_as1 = if_else(hs_totchol_c_q == 4, 1, 0, NA),
+    leptin_as1 = if_else(Leptin_q == 4, 1, 0, NA),
+    adiponectin_as1 = if_else(Adiponectin_q == 4, 1, 0, NA),
+    crp_as1 = if_else(CRP_q == 4, 1, 0, NA),
+    il1beta_as1 = if_else(IL1beta_q == 4, 1, 0, NA),
+    il6_as1 = if_else(IL6_q == 4, 1, 0, NA),
+    il8_as1 = if_else(IL8_q == 4, 1, 0, NA),
+    il10_as1 = if_else(IL10_q == 4, 1, 0, NA),
+    tnfalfa_as1 = if_else(TNFalfa_q == 4, 1, 0, NA),
+    cortisol_prod_log10_as1 = if_else(cortisol_prod_log10_q == 4 | cortisol_prod_log10_q == 1, 1, 0, NA)
+  )
+
+# summary score
+df_full_q <- df_full_q %>% mutate(
+  AL_1_cardio = hs_zsys_bp_as1 + hs_zdia_bp_as1 + bp_pulse_avg_as1,
+  AL_1_metab = hs_zbmi_who_as1 + hs_zwaist_mets_as1 + hs_skf_sum2_as1 + hs_fatprop_bia_as1 +
+    hdlchol_c_as1 + ldlchol_c_as1 + triglyc_c_as1 + totchol_c_as1 + leptin_as1 + adiponectin_as1,
+  AL_1_immune = crp_as1 + il1beta_as1 + il6_as1 + il8_as1 + il10_as1 + tnfalfa_as1,
+  AL_1_neuro = cortisol_prod_log10_as1,
+  AL_1_tot = AL_1_cardio + AL_1_metab + AL_1_immune + AL_1_neuro
+)
+
+# weighted average score
+df_full_q <- df_full_q %>% mutate(
+  AL_1_cardio_wavg = (hs_zsys_bp_as1 + hs_zdia_bp_as1 + bp_pulse_avg_as1) / 3,
+  AL_1_metab_wavg = (hs_zbmi_who_as1 + hs_zwaist_mets_as1 + hs_skf_sum2_as1 + hs_fatprop_bia_as1 +
+    hdlchol_c_as1 + ldlchol_c_as1 + triglyc_c_as1 + totchol_c_as1 + leptin_as1 + adiponectin_as1) / 10,
+  AL_1_immune_wavg = (crp_as1 + il1beta_as1 + il6_as1 + il8_as1 + il10_as1 + tnfalfa_as1) / 6,
+  AL_1_neuro_wavg = cortisol_prod_log10_as1,
+  AL_1_tot_wavg = AL_1_cardio_wavg + AL_1_metab_wavg + AL_1_immune_wavg + AL_1_neuro
+)
+
+df_full_q <- df_full_q %>% select(-matches('_q$|_as1$'))
+
+df_full_q_g <- df_full_q %>% filter(h_sex == "Girls")
+df_full_q_b <- df_full_q %>% filter(h_sex == "Boys")
+
+# summary score
+AL_1_desc <- map_dfr(
+  data = df_full_q,
+  .x = quos(AL_1_cardio, AL_1_metab, AL_1_immune, AL_1_neuro, AL_1_tot),
+  .f = continuous_stats
+) %>%
+  mutate(across(where(is.numeric), round, 2)) %>%
+  mutate(group = "total")
+
+AL_1_desc_g <- map_dfr(
+  data = df_full_q_g,
+  .x = quos(AL_1_cardio, AL_1_metab, AL_1_immune, AL_1_neuro, AL_1_tot),
+  .f = continuous_stats
+) %>%
+  mutate(across(where(is.numeric), round, 2)) %>%
+  mutate(group = "girl")
+
+AL_1_desc_b <- map_dfr(
+  data = df_full_q_b,
+  .x = quos(AL_1_cardio, AL_1_metab, AL_1_immune, AL_1_neuro, AL_1_tot),
+  .f = continuous_stats
+) %>%
+  mutate(across(where(is.numeric), round, 2)) %>%
+  mutate(group = "boy")
+
+# missing in the scores
+df_full_q %>%
+  select("AL_1_cardio_wavg", "AL_1_metab_wavg", "AL_1_immune_wavg", "AL_1_neuro_wavg", "AL_1_tot_wavg") %>%
+  summarise_all(~ sum(is.na(.))) %>%
+  kable(caption = "Missing in the scores") %>%
+  kable_styling(bootstrap_options = c("condensed", "responsive"), full_width = F, position = "left", font_size = 14, fixed_thead = T)
+
+AL_1_desc_all <- rbind(AL_1_desc, AL_1_desc_g, AL_1_desc_b) %>%
+  mutate(ordered(as.factor(variable), levels = c("AL_1_cardio", "AL_1_metab", "AL_1_immune", "AL_1_neuro", "AL_1_tot"))) %>%
+  arrange(match(variable, c("AL_1_cardio", "AL_1_metab", "AL_1_immune", "AL_1_neuro", "AL_1_tot")), group) %>%
+  select(-`ordered(...)`)
+
+AL_1_desc_all %>%
+  kable(
+    col.names = c(
+      "Systems",
+      "N",
+      "Min",
+      "Q1",
+      "Median",
+      "Q3",
+      "Max",
+      "Mean",
+      "Std",
+      "Group"
+    ),
+    caption = "Descriptives of allostatic load score - Traditional quantile cut method",
+    escape = F
+  ) %>%
+  column_spec(8:10, bold = T) %>%
+  kable_styling(bootstrap_options = c("condensed", "responsive"), full_width = F, position = "left", font_size = 14, fixed_thead = T) %>%
+  scroll_box(width = "100%", height = "100%")
+
+# weighted average score
+AL_1_wavg_desc <- map_dfr(
+  data = df_full_q,
+  .x = quos(AL_1_cardio_wavg, AL_1_metab_wavg, AL_1_immune_wavg, AL_1_neuro_wavg, AL_1_tot_wavg),
+  .f = continuous_stats
+) %>%
+  mutate(across(where(is.numeric), round, 2)) %>%
+  mutate(group = "total")
+
+AL_1_wavg_desc_g <- map_dfr(
+  data = df_full_q_g,
+  .x = quos(AL_1_cardio_wavg, AL_1_metab_wavg, AL_1_immune_wavg, AL_1_neuro_wavg, AL_1_tot_wavg),
+  .f = continuous_stats
+) %>%
+  mutate(across(where(is.numeric), round, 2)) %>%
+  mutate(group = "girl")
+
+AL_1_wavg_desc_b <- map_dfr(
+  data = df_full_q_b,
+  .x = quos(AL_1_cardio_wavg, AL_1_metab_wavg, AL_1_immune_wavg, AL_1_neuro_wavg, AL_1_tot_wavg),
+  .f = continuous_stats
+) %>%
+  mutate(across(where(is.numeric), round, 2)) %>%
+  mutate(group = "boy")
+
+AL_1_wavg_desc_all <- rbind(AL_1_wavg_desc, AL_1_wavg_desc_g, AL_1_wavg_desc_b) %>%
+  mutate(ordered(as.factor(variable), levels = c("AL_1_cardio_wavg", "AL_1_metab_wavg", "AL_1_immune_wavg", "AL_1_neuro_wavg", "AL_1_tot_wavg"))) %>%
+  arrange(match(variable, c("AL_1_cardio_wavg", "AL_1_metab_wavg", "AL_1_immune_wavg", "AL_1_neuro_wavg", "AL_1_tot_wavg")), group) %>%
+  select(-`ordered(...)`)
+
+AL_1_wavg_desc_all %>%
+  kable(
+    col.names = c(
+      "Systems",
+      "N",
+      "Min",
+      "Q1",
+      "Median",
+      "Q3",
+      "Max",
+      "Mean",
+      "Std",
+      "Group"
+    ),
+    caption = "Descriptives of allostatic load score - Traditional quantile cut method, weighted average",
+    escape = F
+  ) %>%
+  column_spec(8:10, bold = T) %>%
+  kable_styling(bootstrap_options = c("condensed", "responsive"), full_width = F, position = "left", font_size = 14, fixed_thead = T) %>%
+  scroll_box(width = "100%", height = "100%")
+
+# histograms
+AL_1 <- df_full_q %>%
+  select(
+    h_sex, AL_1_cardio, AL_1_metab, AL_1_immune, AL_1_neuro,
+    AL_1_cardio_wavg, AL_1_metab_wavg, AL_1_immune_wavg, AL_1_neuro_wavg
+  )
+
+AL_1 %>%
+  pivot_longer(cols = 2:ncol(AL_1)) %>%
+  ggplot(aes(x = value, fill = h_sex)) +
+  geom_histogram(position = "dodge", alpha = 0.5, bins = 5) +
+  facet_wrap(~name, scales = "free_x") +
+  theme(strip.text = element_text(size = 20), axis.text = element_text(size = 20)) +
+  labs(x = "", y = "")
+
+AL_1_tot <- df_full_q %>%
+  select(
+    h_sex, AL_1_tot, AL_1_tot_wavg
+  )
+
+AL_1_tot %>%
+  pivot_longer(cols = 2:ncol(AL_1_tot)) %>%
+  ggplot(aes(x = value, fill = h_sex)) +
+  geom_histogram(position = "dodge", alpha = 0.5, bins = 5) +
+  facet_wrap(~name, scales = "free_x") +
+  theme(strip.text = element_text(size = 20), axis.text = element_text(size = 20)) +
+  labs(x = "", y = "")
+```
+
+### Girls
+```{r allostatic score 1 quantile based girls}
+df_gq <- df_g %>%
+  select(HelixID, h_sex, biomarker_all) %>%
+  mutate(
+    across(
+      .cols = biomarker_all,
+      n = 4,
+      .fns = ntile,
+      .names = "{col}_q"
+    )
+  ) %>%
+  select(HelixID, h_sex, ends_with("_q"))
+
+# 1=had risk, 0=no risk
+df_gq <- df_gq %>%
+  mutate(
+    hs_zsys_bp_as1 = if_else(hs_zsys_bp_q == 4, 1, 0, NA),
+    hs_zdia_bp_as1 = if_else(hs_zdia_bp_q == 4, 1, 0, NA),
+    bp_pulse_avg_as1 = if_else(bp_pulse_avg_q == 4, 1, 0, NA),
+    hs_zbmi_who_as1 = if_else(hs_zbmi_who_q == 4, 1, 0, NA),
+    hs_zwaist_mets_as1 = if_else(hs_zwaist_mets_q == 4, 1, 0, NA),
+    hs_skf_sum2_as1 = if_else(hs_skf_sum2_q == 4, 1, 0, NA),
+    hs_fatprop_bia_as1 = if_else(hs_fatprop_bia_q == 4, 1, 0, NA),
+    hdlchol_c_as1 = if_else(hs_hdlchol_c_q == 1, 1, 0, NA),
+    ldlchol_c_as1 = if_else(hs_ldlchol_c_q == 4, 1, 0, NA),
+    triglyc_c_as1 = if_else(hs_triglyc_c_q == 4, 1, 0, NA),
+    totchol_c_as1 = if_else(hs_totchol_c_q == 4, 1, 0, NA),
+    leptin_as1 = if_else(Leptin_q == 4, 1, 0, NA),
+    adiponectin_as1 = if_else(Adiponectin_q == 4, 1, 0, NA),
+    crp_as1 = if_else(CRP_q == 4, 1, 0, NA),
+    il1beta_as1 = if_else(IL1beta_q == 4, 1, 0, NA),
+    il6_as1 = if_else(IL6_q == 4, 1, 0, NA),
+    il8_as1 = if_else(IL8_q == 4, 1, 0, NA),
+    il10_as1 = if_else(IL10_q == 4, 1, 0, NA),
+    tnfalfa_as1 = if_else(TNFalfa_q == 4, 1, 0, NA),
+    cortisol_prod_log10_as1 = if_else(cortisol_prod_log10_q == 4 | cortisol_prod_log10_q == 1, 1, 0, NA)
+  )
+
+# summary score
+df_gq <- df_gq %>% mutate(
+  AL_2_cardio = hs_zsys_bp_as1 + hs_zdia_bp_as1 + bp_pulse_avg_as1,
+  AL_2_metab = hs_zbmi_who_as1 + hs_zwaist_mets_as1 + hs_skf_sum2_as1 + hs_fatprop_bia_as1 +
+    hdlchol_c_as1 + ldlchol_c_as1 + triglyc_c_as1 + totchol_c_as1 + leptin_as1 + adiponectin_as1,
+  AL_2_immune = crp_as1 + il1beta_as1 + il6_as1 + il8_as1 + il10_as1 + tnfalfa_as1,
+  AL_2_neuro = cortisol_prod_log10_as1,
+  AL_2_tot = AL_2_cardio + AL_2_metab + AL_2_immune + AL_2_neuro
+)
+
+# weighted average score
+df_gq <- df_gq %>% mutate(
+  AL_2_cardio_wavg = (hs_zsys_bp_as1 + hs_zdia_bp_as1 + bp_pulse_avg_as1) / 3,
+  AL_2_metab_wavg = (hs_zbmi_who_as1 + hs_zwaist_mets_as1 + hs_skf_sum2_as1 + hs_fatprop_bia_as1 +
+    hdlchol_c_as1 + ldlchol_c_as1 + triglyc_c_as1 + totchol_c_as1 + leptin_as1 + adiponectin_as1) / 10,
+  AL_2_immune_wavg = (crp_as1 + il1beta_as1 + il6_as1 + il8_as1 + il10_as1 + tnfalfa_as1) / 6,
+  AL_2_neuro_wavg = cortisol_prod_log10_as1,
+  AL_2_tot_wavg = AL_2_cardio_wavg + AL_2_metab_wavg + AL_2_immune_wavg + AL_2_neuro_wavg
+)
+
+df_gq <- df_gq %>% select(-matches('_q$|_as1$'))
+
+AL_2_desc_gq <- map_dfr(
+  data = df_gq,
+  .x = quos(
+    AL_2_cardio, AL_2_metab, AL_2_immune, AL_2_neuro, AL_2_tot,
+    AL_2_cardio_wavg, AL_2_metab_wavg, AL_2_immune_wavg, AL_2_neuro_wavg, AL_2_tot_wavg
+  ),
+  .f = continuous_stats
+) %>%
+  mutate(across(where(is.numeric), round, 2)) %>%
+  mutate(group = "girls")
+
+AL_2_desc_gq <- AL_2_desc_gq %>%
+  mutate(ordered(as.factor(variable), levels = c("AL_2_cardio", "AL_2_metab", "AL_2_immune", "AL_2_neuro", "AL_2_tot", "AL_2_cardio_wavg", "AL_2_metab_wavg", "AL_2_immune_wavg", "AL_2_neuro_wavg", "AL_2_tot_wavg"))) %>%
+  arrange(match(variable, c("AL_2_cardio", "AL_2_metab", "AL_2_immune", "AL_2_neuro", "AL_2_tot", "AL_2_cardio_wavg", "AL_2_metab_wavg", "AL_2_immune_wavg", "AL_2_neuro_wavg", "AL_2_tot_wavg"))) %>%
+  select(-`ordered(...)`)
+
+AL_2_desc_gq %>%
+  kable(
+    col.names = c(
+      "Systems",
+      "N",
+      "Min",
+      "Q1",
+      "Median",
+      "Q3",
+      "Max",
+      "Mean",
+      "Std",
+      "Group"
+    ),
+    caption = "Descriptives of allostatic load score in girls - Traditional quantile cut method",
+    escape = F
+  ) %>%
+  column_spec(8:10, bold = T) %>%
+  kable_styling(bootstrap_options = c("condensed", "responsive"), full_width = F, position = "left", font_size = 14, fixed_thead = T) %>%
+  scroll_box(width = "100%", height = "100%")
+
+AL_2_gq <- df_gq %>%
+  select(
+    AL_2_cardio, AL_2_metab, AL_2_immune, AL_2_neuro,
+    AL_2_cardio_wavg, AL_2_metab_wavg, AL_2_immune_wavg, AL_2_neuro_wavg
+  )
+
+AL_2_gq %>%
+  pivot_longer(cols = 1:ncol(AL_2_gq)) %>%
+  ggplot(aes(x = value)) +
+  geom_histogram() +
+  facet_wrap(~name, scales = "free_x")
+
+AL_2_gq_tot <- df_gq %>%
+  select(
+    AL_2_tot, AL_2_tot_wavg
+  )
+
+AL_2_gq_tot %>%
+  pivot_longer(cols = 1:ncol(AL_2_gq_tot)) %>%
+  ggplot(aes(x = value)) +
+  geom_histogram(position = "identity", alpha = 0.5) +
+  facet_wrap(~name, scales = "free_x")
+```
+
+### Boys
+```{r allostatic score 1 quantile based boys}
+df_bq <- df_b %>%
+  select(HelixID, h_sex, biomarker_all) %>%
+  mutate(
+    across(
+      .cols = biomarker_all,
+      n = 4,
+      .fns = ntile,
+      .names = "{col}_q"
+    )
+  ) %>%
+  select(HelixID, h_sex, ends_with("_q"))
+
+
+# 1=had risk, 0=no risk
+df_bq <- df_bq %>%
+  mutate(
+    hs_zsys_bp_as1 = if_else(hs_zsys_bp_q == 4, 1, 0, NA),
+    hs_zdia_bp_as1 = if_else(hs_zdia_bp_q == 4, 1, 0, NA),
+    bp_pulse_avg_as1 = if_else(bp_pulse_avg_q == 4, 1, 0, NA),
+    hs_zbmi_who_as1 = if_else(hs_zbmi_who_q == 4, 1, 0, NA),
+    hs_zwaist_mets_as1 = if_else(hs_zwaist_mets_q == 4, 1, 0, NA),
+    hs_skf_sum2_as1 = if_else(hs_skf_sum2_q == 4, 1, 0, NA),
+    hs_fatprop_bia_as1 = if_else(hs_fatprop_bia_q == 4, 1, 0, NA),
+    hdlchol_c_as1 = if_else(hs_hdlchol_c_q == 1, 1, 0, NA),
+    ldlchol_c_as1 = if_else(hs_ldlchol_c_q == 4, 1, 0, NA),
+    triglyc_c_as1 = if_else(hs_triglyc_c_q == 4, 1, 0, NA),
+    totchol_c_as1 = if_else(hs_totchol_c_q == 4, 1, 0, NA),
+    leptin_as1 = if_else(Leptin_q == 4, 1, 0, NA),
+    adiponectin_as1 = if_else(Adiponectin_q == 4, 1, 0, NA),
+    crp_as1 = if_else(CRP_q == 4, 1, 0, NA),
+    il1beta_as1 = if_else(IL1beta_q == 4, 1, 0, NA),
+    il6_as1 = if_else(IL6_q == 4, 1, 0, NA),
+    il8_as1 = if_else(IL8_q == 4, 1, 0, NA),
+    il10_as1 = if_else(IL10_q == 4, 1, 0, NA),
+    tnfalfa_as1 = if_else(TNFalfa_q == 4, 1, 0, NA),
+    cortisol_prod_log10_as1 = if_else(cortisol_prod_log10_q == 4 | cortisol_prod_log10_q == 1, 1, 0, NA)
+  )
+
+# summary score
+df_bq <- df_bq %>% mutate(
+  AL_2_cardio = hs_zsys_bp_as1 + hs_zdia_bp_as1 + bp_pulse_avg_as1,
+  AL_2_metab = hs_zbmi_who_as1 + hs_zwaist_mets_as1 + hs_skf_sum2_as1 + hs_fatprop_bia_as1 +
+    hdlchol_c_as1 + ldlchol_c_as1 + triglyc_c_as1 + totchol_c_as1 + leptin_as1 + adiponectin_as1,
+  AL_2_immune = crp_as1 + il1beta_as1 + il6_as1 + il8_as1 + il10_as1 + tnfalfa_as1,
+  AL_2_neuro = cortisol_prod_log10_as1,
+  AL_2_tot = AL_2_cardio + AL_2_metab + AL_2_immune + AL_2_neuro
+)
+
+# weighted average score
+df_bq <- df_bq %>% mutate(
+  AL_2_cardio_wavg = (hs_zsys_bp_as1 + hs_zdia_bp_as1 + bp_pulse_avg_as1) / 3,
+  AL_2_metab_wavg = (hs_zbmi_who_as1 + hs_zwaist_mets_as1 + hs_skf_sum2_as1 + hs_fatprop_bia_as1 +
+    hdlchol_c_as1 + ldlchol_c_as1 + triglyc_c_as1 + totchol_c_as1 + leptin_as1 + adiponectin_as1) / 10,
+  AL_2_immune_wavg = (crp_as1 + il1beta_as1 + il6_as1 + il8_as1 + il10_as1 + tnfalfa_as1) / 6,
+  AL_2_neuro_wavg = cortisol_prod_log10_as1,
+  AL_2_tot_wavg = AL_2_cardio_wavg + AL_2_metab_wavg + AL_2_immune_wavg + AL_2_neuro_wavg
+)
+
+df_bq <- df_bq %>% select(-matches('_q$|_as1$'))
+
+AL_2_desc_bq <- map_dfr(
+  data = df_bq,
+  .x = quos(
+    AL_2_cardio, AL_2_metab, AL_2_immune, AL_2_neuro, AL_2_tot,
+    AL_2_cardio_wavg, AL_2_metab_wavg, AL_2_immune_wavg, AL_2_neuro_wavg, AL_2_tot_wavg
+  ),
+  .f = continuous_stats
+) %>%
+  mutate(across(where(is.numeric), round, 2)) %>%
+  mutate(group = "boys")
+
+AL_2_desc_bq <- AL_2_desc_bq %>%
+  mutate(ordered(as.factor(variable), levels = c("AL_2_cardio", "AL_2_metab", "AL_2_immune", "AL_2_neuro", "AL_2_tot", "AL_2_cardio_wavg", "AL_2_metab_wavg", "AL_2_immune_wavg", "AL_2_neuro_wavg", "AL_2_tot_wavg"))) %>%
+  arrange(match(variable, c("AL_2_cardio", "AL_2_metab", "AL_2_immune", "AL_2_neuro", "AL_2_tot", "AL_2_cardio_wavg", "AL_2_metab_wavg", "AL_2_immune_wavg", "AL_2_neuro_wavg", "AL_2_tot_wavg"))) %>%
+  select(-`ordered(...)`)
+
+AL_2_desc_bq %>%
+  kable(
+    col.names = c(
+      "Systems",
+      "N",
+      "Min",
+      "Q1",
+      "Median",
+      "Q3",
+      "Max",
+      "Mean",
+      "Std",
+      "Group"
+    ),
+    caption = "Descriptives of allostatic load score in boys - Traditional quantile cut method",
+    escape = F
+  ) %>%
+  column_spec(8:10, bold = T) %>%
+  kable_styling(bootstrap_options = c("condensed", "responsive"), full_width = F, position = "left", font_size = 14, fixed_thead = T) %>%
+  scroll_box(width = "100%", height = "100%")
+
+AL_2_bq <- df_bq %>%
+  select(
+    AL_2_cardio, AL_2_metab, AL_2_immune, AL_2_neuro,
+    AL_2_cardio_wavg, AL_2_metab_wavg, AL_2_immune_wavg, AL_2_neuro_wavg
+  )
+
+AL_2_bq %>%
+  pivot_longer(cols = 1:ncol(AL_2_bq)) %>%
+  ggplot(aes(x = value)) +
+  geom_histogram() +
+  facet_wrap(~name, scales = "free_x")
+
+AL_2_bq_tot <- df_bq %>%
+  select(
+    AL_2_tot, AL_2_tot_wavg
+  )
+
+AL_2_bq_tot %>%
+  pivot_longer(cols = 1:ncol(AL_2_bq_tot)) %>%
+  ggplot(aes(x = value)) +
+  geom_histogram(position = "identity", alpha = 0.5) +
+  facet_wrap(~name, scales = "free_x")
+```
+
+# Z score
+```{r allostatic score 2 z score, fig.width = 15 , fig.height = 15}
+df_full_z <- df_full %>%
+  select(HelixID, h_sex, biomarker_all) %>%
+  mutate(
+    across(
+      .cols = biomarker_all,
+      .fns = scale,
+      .names = "{col}_z"
+    )
+  ) %>%
+  mutate(across(ends_with("_z"), as.numeric)) %>% 
+  select(HelixID, h_sex, ends_with("_z"))
+
+# flip hdl z score
+df_full_z$hs_hdlchol_c_zflip <- ifelse(df_full_z$hs_hdlchol_c_z < 0, abs(df_full_z$hs_hdlchol_c_z),
+  df_full_z$hs_hdlchol_c_z * (-1)
+)
+
+# convert cortisol z score <0 to >0
+df_full_z$cortisol_prod_log10_zflip <- if_else(df_full_z$cortisol_prod_log10_z < 0, abs(df_full_z$cortisol_prod_log10_z),
+  df_full_z$cortisol_prod_log10_z, NA
+)
+
+# summary score
+df_full_z <- df_full_z %>% mutate(
+  AL_z1_cardio = hs_zsys_bp_z + hs_zdia_bp_z + bp_pulse_avg_z,
+  AL_z1_metab = hs_zbmi_who_z + hs_zwaist_mets_z + hs_skf_sum2_z + hs_fatprop_bia_z +
+    hs_hdlchol_c_zflip + hs_ldlchol_c_z + hs_triglyc_c_z + hs_totchol_c_z + Leptin_z + Adiponectin_z,
+  AL_z1_immune = CRP_z + IL1beta_z + IL6_z + IL8_z + IL10_z + TNFalfa_z,
+  AL_z1_neuro = cortisol_prod_log10_zflip,
+  AL_z1_tot = AL_z1_cardio + AL_z1_metab + AL_z1_immune + AL_z1_neuro
+)
+
+# weighted average score
+df_full_z <- df_full_z %>% mutate(
+  AL_z1_cardio_wavg = (hs_zsys_bp_z + hs_zdia_bp_z + bp_pulse_avg_z) / 3,
+  AL_z1_metab_wavg = (hs_zbmi_who_z + hs_zwaist_mets_z + hs_skf_sum2_z + hs_fatprop_bia_z +
+    hs_hdlchol_c_zflip + hs_ldlchol_c_z + hs_triglyc_c_z + hs_totchol_c_z + Leptin_z + Adiponectin_z) / 10,
+  AL_z1_immune_wavg = (CRP_z + IL1beta_z + IL6_z + IL8_z + IL10_z + TNFalfa_z) / 6,
+  AL_z1_neuro_wavg = cortisol_prod_log10_zflip,
+  AL_z1_tot_wavg = AL_z1_cardio_wavg + AL_z1_metab_wavg + AL_z1_immune_wavg + AL_z1_neuro_wavg
+)
+
+df_full_z <- df_full_z %>% select(-matches('_z$|_zflip$'))
+
+df_full_z_g <- df_full_z %>% filter(h_sex == "Girls")
+df_full_z_b <- df_full_z %>% filter(h_sex == "Boys")
+
+# summary score
+AL_z1_desc <- map_dfr(
+  data = df_full_z,
+  .x = quos(AL_z1_cardio, AL_z1_metab, AL_z1_immune, AL_z1_neuro, AL_z1_tot),
+  .f = continuous_stats
+) %>%
+  mutate(across(where(is.numeric), round, 2)) %>%
+  mutate(group = "total")
+
+AL_z1_desc_g <- map_dfr(
+  data = df_full_z_g,
+  .x = quos(AL_z1_cardio, AL_z1_metab, AL_z1_immune, AL_z1_neuro, AL_z1_tot),
+  .f = continuous_stats
+) %>%
+  mutate(across(where(is.numeric), round, 2)) %>%
+  mutate(group = "girl")
+
+AL_z1_desc_b <- map_dfr(
+  data = df_full_z_b,
+  .x = quos(AL_z1_cardio, AL_z1_metab, AL_z1_immune, AL_z1_neuro, AL_z1_tot),
+  .f = continuous_stats
+) %>%
+  mutate(across(where(is.numeric), round, 2)) %>%
+  mutate(group = "boy")
+
+AL_z1_desc_all <- rbind(AL_z1_desc, AL_z1_desc_g, AL_z1_desc_b) %>%
+  mutate(ordered(as.factor(variable), levels = c("AL_z1_cardio", "AL_z1_metab", "AL_z1_immune", "AL_z1_neuro", "AL_z1_tot"))) %>%
+  arrange(match(variable, c("AL_z1_cardio", "AL_z1_metab", "AL_z1_immune", "AL_z1_neuro", "AL_z1_tot")), group) %>%
+  select(-`ordered(...)`)
+
+AL_z1_desc_all %>%
+  kable(
+    col.names = c(
+      "Systems",
+      "N",
+      "Min",
+      "Q1",
+      "Median",
+      "Q3",
+      "Max",
+      "Mean",
+      "Std",
+      "Group"
+    ),
+    caption = "Descriptives of allostatic load score - z score",
+    escape = F
+  ) %>%
+  column_spec(8:10, bold = T) %>%
+  kable_styling(bootstrap_options = c("condensed", "responsive"), full_width = F, position = "left", font_size = 14, fixed_thead = T) %>%
+  scroll_box(width = "100%", height = "100%")
+
+# weighted average score
+AL_z1_wavg_desc <- map_dfr(
+  data = df_full_z,
+  .x = quos(AL_z1_cardio_wavg, AL_z1_metab_wavg, AL_z1_immune_wavg, AL_z1_neuro_wavg, AL_z1_tot_wavg),
+  .f = continuous_stats
+) %>%
+  mutate(across(where(is.numeric), round, 2)) %>%
+  mutate(group = "total")
+
+AL_z1_wavg_desc_g <- map_dfr(
+  data = df_full_z_g,
+  .x = quos(AL_z1_cardio_wavg, AL_z1_metab_wavg, AL_z1_immune_wavg, AL_z1_neuro_wavg, AL_z1_tot_wavg),
+  .f = continuous_stats
+) %>%
+  mutate(across(where(is.numeric), round, 2)) %>%
+  mutate(group = "girl")
+
+AL_z1_wavg_desc_b <- map_dfr(
+  data = df_full_z_b,
+  .x = quos(AL_z1_cardio_wavg, AL_z1_metab_wavg, AL_z1_immune_wavg, AL_z1_neuro_wavg, AL_z1_tot_wavg),
+  .f = continuous_stats
+) %>%
+  mutate(across(where(is.numeric), round, 2)) %>%
+  mutate(group = "boy")
+
+AL_z1_wavg_desc_all <- rbind(AL_z1_wavg_desc, AL_z1_wavg_desc_g, AL_z1_wavg_desc_b) %>%
+  mutate(ordered(as.factor(variable), levels = c("AL_z1_cardio_wavg", "AL_z1_metab_wavg", "AL_z1_immune_wavg", "AL_z1_neuro_wavg", "AL_z1_tot_wavg"))) %>%
+  arrange(match(variable, c("AL_z1_cardio_wavg", "AL_z1_metab_wavg", "AL_z1_immune_wavg", "AL_z1_neuro_wavg", "AL_z1_tot_wavg")), group) %>%
+  select(-`ordered(...)`)
+
+AL_z1_wavg_desc_all %>%
+  kable(
+    col.names = c(
+      "Systems",
+      "N",
+      "Min",
+      "Q1",
+      "Median",
+      "Q3",
+      "Max",
+      "Mean",
+      "Std",
+      "Group"
+    ),
+    caption = "Descriptives of allostatic load score - z score, weighted average",
+    escape = F
+  ) %>%
+  column_spec(8:10, bold = T) %>%
+  kable_styling(bootstrap_options = c("condensed", "responsive"), full_width = F, position = "left", font_size = 14, fixed_thead = T) %>%
+  scroll_box(width = "100%", height = "100%")
+
+# histograms
+AL_z1 <- df_full_z %>%
+  select(
+    h_sex, AL_z1_cardio, AL_z1_metab, AL_z1_immune, AL_z1_neuro,
+    AL_z1_cardio_wavg, AL_z1_metab_wavg, AL_z1_immune_wavg, AL_z1_neuro_wavg
+  )
+
+AL_z1 %>%
+  pivot_longer(cols = 2:ncol(AL_z1)) %>%
+  ggplot(aes(x = value, fill = h_sex)) +
+  geom_histogram(position = "identity", alpha = 0.5) +
+  facet_wrap(~name, scales = "free_x") +
+  theme(strip.text = element_text(size = 20), axis.text = element_text(size = 20)) +
+  labs(x = "", y = "")
+
+AL_z1_tot <- df_full_z %>%
+  select(
+    h_sex, AL_z1_tot, AL_z1_tot_wavg
+  )
+
+AL_z1_tot %>%
+  pivot_longer(cols = 2:ncol(AL_z1_tot)) %>%
+  ggplot(aes(x = value, fill = h_sex)) +
+  geom_histogram(position = "identity", alpha = 0.5) +
+  facet_wrap(~name, scales = "free_x") +
+  theme(strip.text = element_text(size = 20), axis.text = element_text(size = 20)) +
+  labs(x = "", y = "")
+```
+
+### Girls
+```{r allostatic score z quantile based girls}
+df_gz <- df_g %>%
+  select(HelixID, h_sex, biomarker_all) %>%
+  mutate(
+    across(
+      .cols = biomarker_all,
+      .fns = scale,
+      .names = "{col}_z"
+    )
+  ) %>% 
+  mutate(across(ends_with("_z"), as.numeric)) %>% 
+  select(HelixID, h_sex, ends_with("_z"))
+
+# flip hdl z score
+df_gz$hs_hdlchol_c_zflip <- ifelse(df_gz$hs_hdlchol_c_z < 0, abs(df_gz$hs_hdlchol_c_z),
+  df_gz$hs_hdlchol_c_z * (-1)
+)
+
+# convert cortisol z score <0 to >0
+df_gz$cortisol_prod_log10_zflip <- if_else(df_gz$cortisol_prod_log10_z < 0, abs(df_gz$cortisol_prod_log10_z), df_gz$cortisol_prod_log10_z, NA)
+
+# summary score
+df_gz <- df_gz %>% mutate(
+  AL_z2_cardio = hs_zsys_bp_z + hs_zdia_bp_z + bp_pulse_avg_z,
+  AL_z2_metab = hs_zbmi_who_z + hs_zwaist_mets_z + hs_skf_sum2_z + hs_fatprop_bia_z +
+    hs_hdlchol_c_zflip + hs_ldlchol_c_z + hs_triglyc_c_z + hs_totchol_c_z + Leptin_z + Adiponectin_z,
+  AL_z2_immune = CRP_z + IL1beta_z + IL6_z + IL8_z + IL10_z + TNFalfa_z,
+  AL_z2_neuro = cortisol_prod_log10_zflip,
+  AL_z2_tot = AL_z2_cardio + AL_z2_metab + AL_z2_immune + AL_z2_neuro
+)
+
+# weighted average score
+df_gz <- df_gz %>% mutate(
+  AL_z2_cardio_wavg = (hs_zsys_bp_z + hs_zdia_bp_z + bp_pulse_avg_z) / 3,
+  AL_z2_metab_wavg = (hs_zbmi_who_z + hs_zwaist_mets_z + hs_skf_sum2_z + hs_fatprop_bia_z +
+    hs_hdlchol_c_zflip + hs_ldlchol_c_z + hs_triglyc_c_z + hs_totchol_c_z + Leptin_z + Adiponectin_z) / 10,
+  AL_z2_immune_wavg = (CRP_z + IL1beta_z + IL6_z + IL8_z + IL10_z + TNFalfa_z) / 6,
+  AL_z2_neuro_wavg = cortisol_prod_log10_zflip,
+  AL_z2_tot_wavg = AL_z2_cardio_wavg + AL_z2_metab_wavg + AL_z2_immune_wavg + AL_z2_neuro_wavg
+)
+
+df_gz <- df_gz %>% select(-matches('_z$|_zflip$'))
+
+AL_z2_desc_gz <- map_dfr(
+  data = df_gz,
+  .x = quos(
+    AL_z2_cardio, AL_z2_metab, AL_z2_immune, AL_z2_neuro, AL_z2_tot,
+    AL_z2_cardio_wavg, AL_z2_metab_wavg, AL_z2_immune_wavg, AL_z2_neuro_wavg, AL_z2_tot_wavg
+  ),
+  .f = continuous_stats
+) %>%
+  mutate(across(where(is.numeric), round, 2)) %>%
+  mutate(group = "girls")
+
+AL_z2_desc_gz <- AL_z2_desc_gz %>%
+  mutate(ordered(as.factor(variable), levels = c("AL_z2_cardio", "AL_z2_metab", "AL_z2_immune", "AL_z2_neuro", "AL_z2_tot", "AL_z2_cardio_wavg", "AL_z2_metab_wavg", "AL_z2_immune_wavg", "AL_z2_neuro_wavg", "AL_z2_tot_wavg"))) %>%
+  arrange(match(variable, c("AL_z2_cardio", "AL_z2_metab", "AL_z2_immune", "AL_z2_neuro", "AL_z2_tot", "AL_z2_cardio_wavg", "AL_z2_metab_wavg", "AL_z2_immune_wavg", "AL_z2_neuro_wavg", "AL_z2_tot_wavg"))) %>%
+  select(-`ordered(...)`)
+
+AL_z2_desc_gz %>%
+  kable(
+    col.names = c(
+      "Systems",
+      "N",
+      "Min",
+      "Q1",
+      "Median",
+      "Q3",
+      "Max",
+      "Mean",
+      "Std",
+      "Group"
+    ),
+    caption = "Descriptives of allostatic load score in girls - z score",
+    escape = F
+  ) %>%
+  column_spec(8:10, bold = T) %>%
+  kable_styling(bootstrap_options = c("condensed", "responsive"), full_width = F, position = "left", font_size = 14, fixed_thead = T) %>%
+  scroll_box(width = "100%", height = "100%")
+
+AL_z2_gz <- df_gz %>%
+  select(
+    AL_z2_cardio, AL_z2_metab, AL_z2_immune, AL_z2_neuro,
+    AL_z2_cardio_wavg, AL_z2_metab_wavg, AL_z2_immune_wavg, AL_z2_neuro_wavg
+  )
+
+AL_z2_gz %>%
+  pivot_longer(cols = 1:ncol(AL_z2_gz)) %>%
+  ggplot(aes(x = value)) +
+  geom_histogram() +
+  facet_wrap(~name, scales = "free_x")
+
+AL_z2_gz_tot <- df_gz %>%
+  select(
+    AL_z2_tot, AL_z2_tot_wavg
+  )
+
+AL_z2_gz_tot %>%
+  pivot_longer(cols = 1:ncol(AL_z2_gz_tot)) %>%
+  ggplot(aes(x = value)) +
+  geom_histogram(position = "identity", alpha = 0.5) +
+  facet_wrap(~name, scales = "free_x")
+```
+
+### Boys
+```{r allostatic score z quantile based boys}
+df_bz <- df_b %>%
+  select(HelixID, h_sex, biomarker_all) %>%
+  mutate(
+    across(
+      .cols = biomarker_all,
+      .fns = scale,
+      .names = "{col}_z"
+    )
+  ) %>%
+  mutate(across(ends_with("_z"), as.numeric)) %>% 
+  select(HelixID, h_sex, ends_with("_z"))
+
+# flip hdl z score
+df_bz$hs_hdlchol_c_zflip <- ifelse(df_bz$hs_hdlchol_c_z < 0, abs(df_bz$hs_hdlchol_c_z),
+  df_bz$hs_hdlchol_c_z * (-1)
+)
+
+# convert cortisol z score <0 to >0
+df_bz$cortisol_prod_log10_zflip <- if_else(df_bz$cortisol_prod_log10_z < 0, abs(df_bz$cortisol_prod_log10_z), df_bz$cortisol_prod_log10_z, NA)
+
+# summary score
+df_bz <- df_bz %>% mutate(
+  AL_z2_cardio = hs_zsys_bp_z + hs_zdia_bp_z + bp_pulse_avg_z,
+  AL_z2_metab = hs_zbmi_who_z + hs_zwaist_mets_z + hs_skf_sum2_z + hs_fatprop_bia_z +
+    hs_hdlchol_c_zflip + hs_ldlchol_c_z + hs_triglyc_c_z + hs_totchol_c_z + Leptin_z + Adiponectin_z,
+  AL_z2_immune = CRP_z + IL1beta_z + IL6_z + IL8_z + IL10_z + TNFalfa_z,
+  AL_z2_neuro = cortisol_prod_log10_zflip,
+  AL_z2_tot = AL_z2_cardio + AL_z2_metab + AL_z2_immune + AL_z2_neuro
+)
+
+# weighted average score
+df_bz <- df_bz %>% mutate(
+  AL_z2_cardio_wavg = (hs_zsys_bp_z + hs_zdia_bp_z + bp_pulse_avg_z) / 3,
+  AL_z2_metab_wavg = (hs_zbmi_who_z + hs_zwaist_mets_z + hs_skf_sum2_z + hs_fatprop_bia_z +
+    hs_hdlchol_c_zflip + hs_ldlchol_c_z + hs_triglyc_c_z + hs_totchol_c_z + Leptin_z + Adiponectin_z) / 10,
+  AL_z2_immune_wavg = (CRP_z + IL1beta_z + IL6_z + IL8_z + IL10_z + TNFalfa_z) / 6,
+  AL_z2_neuro_wavg = cortisol_prod_log10_zflip,
+  AL_z2_tot_wavg = AL_z2_cardio_wavg + AL_z2_metab_wavg + AL_z2_immune_wavg + AL_z2_neuro_wavg
+)
+
+df_bz <- df_bz %>% select(-matches('_z$|_zflip$'))
+
+AL_z2_desc_bz <- map_dfr(
+  data = df_bz,
+  .x = quos(
+    AL_z2_cardio, AL_z2_metab, AL_z2_immune, AL_z2_neuro, AL_z2_tot,
+    AL_z2_cardio_wavg, AL_z2_metab_wavg, AL_z2_immune_wavg, AL_z2_neuro_wavg, AL_z2_tot_wavg
+  ),
+  .f = continuous_stats
+) %>%
+  mutate(across(where(is.numeric), round, 2)) %>%
+  mutate(group = "boys")
+
+AL_z2_desc_bz <- AL_z2_desc_bz %>%
+  mutate(ordered(as.factor(variable), levels = c("AL_z2_cardio", "AL_z2_metab", "AL_z2_immune", "AL_z2_neuro", "AL_z2_tot", "AL_z2_cardio_wavg", "AL_z2_metab_wavg", "AL_z2_immune_wavg", "AL_z2_neuro_wavg", "AL_z2_tot_wavg"))) %>%
+  arrange(match(variable, c("AL_z2_cardio", "AL_z2_metab", "AL_z2_immune", "AL_z2_neuro", "AL_z2_tot", "AL_z2_cardio_wavg", "AL_z2_metab_wavg", "AL_z2_immune_wavg", "AL_z2_neuro_wavg", "AL_z2_tot_wavg"))) %>%
+  select(-`ordered(...)`)
+
+AL_z2_desc_bz %>%
+  kable(
+    col.names = c(
+      "Systems",
+      "N",
+      "Min",
+      "Q1",
+      "Median",
+      "Q3",
+      "Max",
+      "Mean",
+      "Std",
+      "Group"
+    ),
+    caption = "Descriptives of allostatic load score in boys - z score",
+    escape = F
+  ) %>%
+  column_spec(8:10, bold = T) %>%
+  kable_styling(bootstrap_options = c("condensed", "responsive"), full_width = F, position = "left", font_size = 14, fixed_thead = T) %>%
+  scroll_box(width = "100%", height = "100%")
+
+AL_z2_bz <- df_bz %>%
+  select(
+    AL_z2_cardio, AL_z2_metab, AL_z2_immune, AL_z2_neuro,
+    AL_z2_cardio_wavg, AL_z2_metab_wavg, AL_z2_immune_wavg, AL_z2_neuro_wavg
+  )
+
+AL_z2_bz %>%
+  pivot_longer(cols = 1:ncol(AL_z2_bz)) %>%
+  ggplot(aes(x = value)) +
+  geom_histogram() +
+  facet_wrap(~name, scales = "free_x")
+
+AL_z2_bz_tot <- df_bz %>%
+  select(
+    AL_z2_tot, AL_z2_tot_wavg
+  )
+
+AL_z2_bz_tot %>%
+  pivot_longer(cols = 1:ncol(AL_z2_bz_tot)) %>%
+  ggplot(aes(x = value)) +
+  geom_histogram(position = "identity", alpha = 0.5) +
+  facet_wrap(~name, scales = "free_x")
+```
+
+
+```{r export final dataset}
+df_indsex_q <- rbind(df_gq, df_bq) %>% select(-h_sex)
+df_indsex_z <- rbind(df_gz, df_bz) %>% select(-h_sex)
+
+df_final <- df_full_q %>%
+  left_join(df_full_z, by = "HelixID") %>%
+  left_join(df_indsex_q, by = "HelixID") %>%
+  left_join(df_indsex_z, by = "HelixID") %>%
+  rename_at(
+    vars(ends_with(".x")),
+    ~ str_replace(., "\\..$", "")
+  ) %>%
+  select_at(
+    vars(-ends_with(".y"))
+  )
+
+df_final <- df_final %>% left_join(df_full, by = "HelixID") %>% 
+    rename_at(
+    vars(ends_with(".x")),
+    ~ str_replace(., "\\..$", "")
+  ) %>%
+  select_at(
+    vars(-ends_with(".y"))
+  )
+
+df_finalg <- df_final %>% filter(h_sex == "Girls")
+df_finalb <- df_final %>% filter(h_sex == "Boys")
+
+save(df_final, df_finalg, df_finalb, file = "/Users/ymou/helix_project/data/analysis_data/df_al_final.RData")
+```
+
+```{r output, include=FALSE, eval = F}
+# convert rmd to r file
+knitr::purl("allostatic_score.Rmd", documentation = 1L)
+```
