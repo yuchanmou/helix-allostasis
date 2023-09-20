@@ -1,0 +1,65 @@
+---
+title: "Analysis data manipulation"
+author: "Yuchan Mou"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r set_up, include=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+```
+
+```{r load packages, include=FALSE, echo=FALSE, message=FALSE, warning=FALSE}
+# load pkgs
+packages <- c("tidyverse")
+sapply(packages, library, character.only = T)
+```
+
+```{r import data, include=FALSE, echo=FALSE, message=FALSE, warning=FALSE}
+load("/Users/ymou/helix_project/data/analysis_data/df_al_final.RData")
+Sys.Date()
+```
+
+# Collapse factor levels
+```{r collapsefct}
+# change parity label
+df_final <- df_final %>%
+  mutate(h_parity = fct_recode(h_parity,
+    Nulliparous = "No child",
+    Primiparous = "One child",
+    Multiparous = ">=2 children"
+  ))
+
+df_final <- df_final %>%
+  mutate(
+    h_native_2cat = fct_collapse(h_native,
+      "None or one native" = c("None native", "One native"),
+      "Both native" = "Both native"
+    ),
+    hs_globalexp_2cat = fct_collapse(hs_globalexp,
+      "No" = "No",
+      "Yes" = c("Outside", "Inside", "In and outside house")
+    ),
+    h_marital_2cat = fct_collapse(h_marital,
+      "Living with the father" = "Living with the father",
+      "Other situation" = c("Living alone", "Other situation")
+    )
+  )
+
+df_final <- df_final %>%
+  mutate(
+    hs_lden_c_h = fct_collapse(hs_lden_c_h,
+      ">=65" = c("65-69.9", "70-74.9", ">75")
+    ),
+    hs_lden_c_s = fct_collapse(hs_lden_c_s,
+      ">=65" = c("65-69.9", "70-74.9", ">75")
+    )
+  )
+```
+
+```{r export final dataset}
+df_finalg <- df_final %>% filter(e3_sex == "Girls")
+df_finalb <- df_final %>% filter(e3_sex == "Boys")
+
+save(df_final, df_finalg, df_finalb, file = "/Users/ymou/helix_project/data/analysis_data/df_al_final_manipulated.RData")
+```

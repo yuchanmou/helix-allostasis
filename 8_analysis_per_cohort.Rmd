@@ -1,0 +1,732 @@
+---
+title: "Analysis"
+author: "Yuchan Mou"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+options(knitr.table.format = "html")
+```
+
+```{r load packages, include=FALSE, echo=FALSE, message=FALSE, warning=FALSE}
+# load pkgs
+packages <- c("tidyverse", "mice", "tableone", "openxlsx")
+sapply(packages, library, character.only = T)
+```
+
+```{r import data}
+load("/Users/ymou/helix_project/data/analysis_data/imp_full_ds.Rdata")
+analysis_date <- Sys.Date()
+```
+
+```{r define variables, include=FALSE, echo=FALSE, message=FALSE, warning=FALSE}
+# Exposures: air pollutants and noise level
+ap <- c(
+  "hs_no2_yr_hs_t",
+  "hs_pm25_yr_hs_t",
+  "hs_pm25abs_yr_hs_t",
+  "hs_pm10_yr_hs_t"
+)
+ap_supl <- c(
+  "hs_no2_yr_hs_h", "hs_no2_yr_hs_s", "hs_no2_yr_hs_r", "hs_no2_yr_hs_p",
+  "hs_pm25_yr_hs_h", "hs_pm25_yr_hs_s", "hs_pm25_yr_hs_r", "hs_pm25_yr_hs_p",
+  "hs_pm25abs_yr_hs_h", "hs_pm25abs_yr_hs_s", "hs_pm25abs_yr_hs_r", "hs_pm25abs_yr_hs_p",
+  "hs_pm10_yr_hs_h", "hs_pm10_yr_hs_s", "hs_pm10_yr_hs_r", "hs_pm10_yr_hs_p"
+)
+noise <- c("hs_lden_c_h", "hs_lden_c_s")
+noise_supl <- c("hs_lden_h", "hs_lden_s", "hs_lden_t")
+
+# Covariates
+cov <- c(
+  "e3_sex", "hs_mvpa", "hs_sd_wk", "hs_child_age_years",
+  "FAS_cat", "h_native_2cat", "h_ethnicity_cauc", "h_edumc", "h_edufc",
+  "hs_smk_parents", "hs_globalexp_2cat", "e3_asmokyn_p", "e3_alcpreg_yn", "h_marital_2cat", "h_age", "h_parity"
+)
+catcov <- c(
+  "e3_sex", "FAS_cat", "h_native", "h_ethnicity_cauc", "h_edumc", "h_edufc",
+  "hs_smk_parents", "e3_asmokyn_p", "e3_alcpreg_yn", "h_marital", "h_parity"
+)
+nonnormalvars <- c("hs_child_age_years", "hs_mvpa", "hs_sd_wk")
+
+# Outcomes: AL scores
+out <- c("AL_2_tot", "AL_2_tot_wavg", "AL_z2_tot", "AL_z2_tot_wavg") # scores based on boys and girls separately
+out_supl <- c("AL_1_tot", "AL_1_tot_wavg", "AL_z1_tot", "AL_z1_tot_wavg") # scores based on whole study samples, not used in the analysis
+
+# Outcomes per physiological systems
+out_ps <- c("AL_2_cardio", "AL_2_metab", "AL_2_immune", "AL_2_neuro", "AL_2_cardio_wavg", "AL_2_metab_wavg", "AL_2_immune_wavg", "AL_2_neuro_wavg")
+out_ps_z <- c("AL_z2_cardio", "AL_z2_metab", "AL_z2_immune", "AL_z2_neuro", "AL_z2_cardio_wavg", "AL_z2_metab_wavg", "AL_z2_immune_wavg", "AL_z2_neuro_wavg")
+
+
+# Models
+model <- c(
+  "e3_sex + hs_child_age_years",
+  "e3_sex + hs_child_age_years + hs_mvpa + hs_sd_wk",
+  "e3_sex + hs_child_age_years + hs_mvpa + hs_sd_wk + FAS_cat + h_native_2cat + h_edumc + h_edufc + h_marital_2cat + h_age + h_parity + e3_asmokyn_p + e3_alcpreg_yn",
+  "e3_sex + hs_child_age_years + hs_mvpa + hs_sd_wk + FAS_cat + h_native_2cat + h_edumc + h_edufc + h_marital_2cat + h_age + h_parity + e3_asmokyn_p + e3_alcpreg_yn + hs_smk_parents + hs_globalexp_2cat"
+)
+```
+
+# SAB
+```{r}
+# Apply increments
+dat_afimp_sab <- complete(imp_sab_full, action = "long", include = T) %>%
+  mutate(
+    hs_no2_yr_hs_t = hs_no2_yr_hs_t / 10,
+    hs_no2_yr_hs_h = hs_no2_yr_hs_h / 10,
+    hs_no2_yr_hs_s = hs_no2_yr_hs_s / 10,
+    hs_no2_yr_hs_r = hs_no2_yr_hs_r / 10,
+    hs_no2_yr_hs_p = hs_no2_yr_hs_p / 10,
+    hs_pm25_yr_hs_t = hs_pm25_yr_hs_t / 5,
+    hs_pm25_yr_hs_h = hs_pm25_yr_hs_h / 5,
+    hs_pm25_yr_hs_s = hs_pm25_yr_hs_s / 5,
+    hs_pm25_yr_hs_r = hs_pm25_yr_hs_r / 5,
+    hs_pm25_yr_hs_p = hs_pm25_yr_hs_p / 5,
+    hs_pm10_yr_hs_t = hs_pm10_yr_hs_t / 10,
+    hs_pm10_yr_hs_h = hs_pm10_yr_hs_h / 10,
+    hs_pm10_yr_hs_s = hs_pm10_yr_hs_s / 10,
+    hs_pm10_yr_hs_r = hs_pm10_yr_hs_r / 10,
+    hs_pm10_yr_hs_p = hs_pm10_yr_hs_p / 10
+  )
+
+dat_afimp_al_nonimp <- dat_afimp_sab %>% filter(incl_var_out == 1)
+
+imp_sab_full <- as.mids(dat_afimp_al_nonimp)
+
+rm(dat_afimp_al_nonimp, dat_afimp_sab)
+```
+
+# Air pollution total and main outcomes
+```{r}
+analysis <- "airpollution_total_mainoutcome_sab"
+
+coefs <- as.data.frame(matrix(NA, nrow = 1, ncol = 10))
+colnames(coefs) <- c("DateTime", "Outcome", "Predictor", "Model", "Beta", "cilo", "cihi", "CI", "P", "std.error")
+
+count <- 0
+for (o in out) {
+  for (d in ap) {
+    for (m in 1:length(model)) {
+      count <- count + 1
+      fit <- imp_sab_full %>%
+        mice::complete("all") %>%
+        lapply(glm, formula = paste(o, "~", d, "+", model[m], sep = ""), family = "gaussian")
+      res <- summary(pool(fit), conf.int = T)
+      # Round values
+      res <- res %>%
+        mutate_at(c("estimate", "2.5 %", "97.5 %"), round, 2) %>%
+        mutate_at(c("p.value"), round, 4)
+
+      # Save results
+      coefs[count, 1] <- gsub(" ", "_", Sys.time())
+      coefs[count, 2] <- o
+      coefs[count, 3] <- d
+      coefs[count, 4] <- m
+      coefs[count, 5] <- res$estimate[2]
+      coefs[count, 6] <- res$`2.5 %`[2]
+      coefs[count, 7] <- res$`97.5 %`[2]
+      coefs[count, 8] <- paste(res$`2.5 %`[2], ",", " ", res$`97.5 %`[2], sep = "")
+      coefs[count, 9] <- res$p.value[2]
+      coefs[count, 10] <- res$std.error[2]
+    }
+  }
+}
+
+mod_tbl <- as.data.frame(matrix(NA, nrow = 1, ncol = 18))
+colnames(mod_tbl) <- c(
+  "Outcome", "Predictor",
+  "beta_mod1", "95ci_mod1", "pvalue_mod1", "std_mod1",
+  "beta_mod2", "95ci_mod2", "pvalue_mod2", "std_mod2",
+  "beta_mod3", "95ci_mod3", "pvalue_mod3", "std_mod3",
+  "beta_mod4", "95ci_mod4", "pvalue_mod4", "std_mod4"
+)
+count <- 0
+
+
+for (o in out) {
+  for (d in ap) {
+    sep_coefs <- coefs %>%
+      filter(Outcome == o) %>%
+      filter(Predictor == d)
+    count <- count + 1
+    # Loop through each model.In this case, four models
+    mod_tbl[count, 1] <- o
+    mod_tbl[count, 2] <- d
+    mod_tbl[count, 3] <- sep_coefs$Beta[1]
+    mod_tbl[count, 4] <- sep_coefs$CI[1]
+    mod_tbl[count, 5] <- sep_coefs$P[1]
+    mod_tbl[count, 6] <- sep_coefs$std.error[1]
+    mod_tbl[count, 7] <- sep_coefs$Beta[2]
+    mod_tbl[count, 8] <- sep_coefs$CI[2]
+    mod_tbl[count, 9] <- sep_coefs$P[2]
+    mod_tbl[count, 10] <- sep_coefs$std.error[2]
+    mod_tbl[count, 11] <- sep_coefs$Beta[3]
+    mod_tbl[count, 12] <- sep_coefs$CI[3]
+    mod_tbl[count, 13] <- sep_coefs$P[3]
+    mod_tbl[count, 14] <- sep_coefs$std.error[3]
+    mod_tbl[count, 15] <- sep_coefs$Beta[4]
+    mod_tbl[count, 16] <- sep_coefs$CI[4]
+    mod_tbl[count, 17] <- sep_coefs$P[4]
+    mod_tbl[count, 18] <- sep_coefs$std.error[4]
+  }
+}
+
+
+write.xlsx(mod_tbl, file = paste("/Users/ymou/helix_project/results/", analysis, analysis_date, ".xlsx", sep = ""), rowNames = FALSE, colNames = TRUE)
+
+```
+
+# EDEN
+```{r}
+# Apply increments
+dat_afimp_ede <- complete(imp_ede_full, action = "long", include = T) %>%
+  mutate(
+    hs_no2_yr_hs_t = hs_no2_yr_hs_t / 10,
+    hs_no2_yr_hs_h = hs_no2_yr_hs_h / 10,
+    hs_no2_yr_hs_s = hs_no2_yr_hs_s / 10,
+    hs_no2_yr_hs_r = hs_no2_yr_hs_r / 10,
+    hs_no2_yr_hs_p = hs_no2_yr_hs_p / 10,
+    hs_pm25_yr_hs_t = hs_pm25_yr_hs_t / 5,
+    hs_pm25_yr_hs_h = hs_pm25_yr_hs_h / 5,
+    hs_pm25_yr_hs_s = hs_pm25_yr_hs_s / 5,
+    hs_pm25_yr_hs_r = hs_pm25_yr_hs_r / 5,
+    hs_pm25_yr_hs_p = hs_pm25_yr_hs_p / 5
+  ) %>% 
+  mutate(
+    FAS_cat = fct_collapse(FAS_cat,
+      "Middle" = c("Low", "Middle"))
+  )
+
+dat_afimp_al_nonimp <- dat_afimp_ede %>% filter(incl_var_out == 1)
+
+imp_ede_full <- as.mids(dat_afimp_al_nonimp)
+
+rm(dat_afimp_al_nonimp, dat_afimp_ede)
+```
+
+# Air pollution total and main outcomes
+```{r}
+analysis <- "airpollution_total_mainoutcome_ede"
+
+coefs <- as.data.frame(matrix(NA, nrow = 1, ncol = 10))
+colnames(coefs) <- c("DateTime", "Outcome", "Predictor", "Model", "Beta", "cilo", "cihi", "CI", "P", "std.error")
+
+count <- 0
+for (o in out) {
+  for (d in ap[c(1,2)]) {
+    for (m in 1:length(model)) {
+      count <- count + 1
+      fit <- imp_ede_full %>%
+        mice::complete("all") %>%
+        lapply(glm, formula = paste(o, "~", d, "+", model[m], sep = ""), family = "gaussian")
+      res <- summary(pool(fit), conf.int = T)
+      # Round values
+      res <- res %>%
+        mutate_at(c("estimate", "2.5 %", "97.5 %"), round, 2) %>%
+        mutate_at(c("p.value"), round, 4)
+
+      # Save results
+      coefs[count, 1] <- gsub(" ", "_", Sys.time())
+      coefs[count, 2] <- o
+      coefs[count, 3] <- d
+      coefs[count, 4] <- m
+      coefs[count, 5] <- res$estimate[2]
+      coefs[count, 6] <- res$`2.5 %`[2]
+      coefs[count, 7] <- res$`97.5 %`[2]
+      coefs[count, 8] <- paste(res$`2.5 %`[2], ",", " ", res$`97.5 %`[2], sep = "")
+      coefs[count, 9] <- res$p.value[2]
+      coefs[count, 10] <- res$std.error[2]
+    }
+  }
+}
+
+mod_tbl <- as.data.frame(matrix(NA, nrow = 1, ncol = 18))
+colnames(mod_tbl) <- c(
+  "Outcome", "Predictor",
+  "beta_mod1", "95ci_mod1", "pvalue_mod1", "std_mod1",
+  "beta_mod2", "95ci_mod2", "pvalue_mod2", "std_mod2",
+  "beta_mod3", "95ci_mod3", "pvalue_mod3", "std_mod3",
+  "beta_mod4", "95ci_mod4", "pvalue_mod4", "std_mod4"
+)
+count <- 0
+
+
+for (o in out) {
+  for (d in ap[c(1,2)]) {
+    sep_coefs <- coefs %>%
+      filter(Outcome == o) %>%
+      filter(Predictor == d)
+    count <- count + 1
+    # Loop through each model.In this case, four models
+    mod_tbl[count, 1] <- o
+    mod_tbl[count, 2] <- d
+    mod_tbl[count, 3] <- sep_coefs$Beta[1]
+    mod_tbl[count, 4] <- sep_coefs$CI[1]
+    mod_tbl[count, 5] <- sep_coefs$P[1]
+    mod_tbl[count, 6] <- sep_coefs$std.error[1]
+    mod_tbl[count, 7] <- sep_coefs$Beta[2]
+    mod_tbl[count, 8] <- sep_coefs$CI[2]
+    mod_tbl[count, 9] <- sep_coefs$P[2]
+    mod_tbl[count, 10] <- sep_coefs$std.error[2]
+    mod_tbl[count, 11] <- sep_coefs$Beta[3]
+    mod_tbl[count, 12] <- sep_coefs$CI[3]
+    mod_tbl[count, 13] <- sep_coefs$P[3]
+    mod_tbl[count, 14] <- sep_coefs$std.error[3]
+    mod_tbl[count, 15] <- sep_coefs$Beta[4]
+    mod_tbl[count, 16] <- sep_coefs$CI[4]
+    mod_tbl[count, 17] <- sep_coefs$P[4]
+    mod_tbl[count, 18] <- sep_coefs$std.error[4]
+  }
+}
+
+
+write.xlsx(mod_tbl, file = paste("/Users/ymou/helix_project/results/", analysis, analysis_date, ".xlsx", sep = ""), rowNames = FALSE, colNames = TRUE)
+
+```
+
+
+# BIB
+```{r}
+# Apply increments
+dat_afimp_bib <- complete(imp_bib_full, action = "long", include = T) %>%
+  mutate(
+    hs_no2_yr_hs_t = hs_no2_yr_hs_t / 10,
+    hs_no2_yr_hs_h = hs_no2_yr_hs_h / 10,
+    hs_no2_yr_hs_s = hs_no2_yr_hs_s / 10,
+    hs_no2_yr_hs_r = hs_no2_yr_hs_r / 10,
+    hs_no2_yr_hs_p = hs_no2_yr_hs_p / 10,
+    hs_pm25_yr_hs_t = hs_pm25_yr_hs_t / 5,
+    hs_pm25_yr_hs_h = hs_pm25_yr_hs_h / 5,
+    hs_pm25_yr_hs_s = hs_pm25_yr_hs_s / 5,
+    hs_pm25_yr_hs_r = hs_pm25_yr_hs_r / 5,
+    hs_pm25_yr_hs_p = hs_pm25_yr_hs_p / 5,
+    hs_pm10_yr_hs_t = hs_pm10_yr_hs_t / 10,
+    hs_pm10_yr_hs_h = hs_pm10_yr_hs_h / 10,
+    hs_pm10_yr_hs_s = hs_pm10_yr_hs_s / 10,
+    hs_pm10_yr_hs_r = hs_pm10_yr_hs_r / 10,
+    hs_pm10_yr_hs_p = hs_pm10_yr_hs_p / 10
+  )
+
+dat_afimp_al_nonimp <- dat_afimp_bib %>% filter(incl_var_out == 1)
+
+imp_bib_full <- as.mids(dat_afimp_al_nonimp)
+
+rm(dat_afimp_al_nonimp, dat_afimp_sab)
+```
+
+# Air pollution total and main outcomes
+```{r}
+analysis <- "airpollution_total_mainoutcome_bib"
+
+coefs <- as.data.frame(matrix(NA, nrow = 1, ncol = 10))
+colnames(coefs) <- c("DateTime", "Outcome", "Predictor", "Model", "Beta", "cilo", "cihi", "CI", "P", "std.error")
+
+count <- 0
+for (o in out) {
+  for (d in ap) {
+    for (m in 1:length(model)) {
+      count <- count + 1
+      fit <- imp_bib_full %>%
+        mice::complete("all") %>%
+        lapply(glm, formula = paste(o, "~", d, "+", model[m], " + h_ethnicity_cauc", sep = ""), family = "gaussian")
+      res <- summary(pool(fit), conf.int = T)
+      # Round values
+      res <- res %>%
+        mutate_at(c("estimate", "2.5 %", "97.5 %"), round, 2) %>%
+        mutate_at(c("p.value"), round, 4)
+
+      # Save results
+      coefs[count, 1] <- gsub(" ", "_", Sys.time())
+      coefs[count, 2] <- o
+      coefs[count, 3] <- d
+      coefs[count, 4] <- m
+      coefs[count, 5] <- res$estimate[2]
+      coefs[count, 6] <- res$`2.5 %`[2]
+      coefs[count, 7] <- res$`97.5 %`[2]
+      coefs[count, 8] <- paste(res$`2.5 %`[2], ",", " ", res$`97.5 %`[2], sep = "")
+      coefs[count, 9] <- res$p.value[2]
+      coefs[count, 10] <- res$std.error[2]
+    }
+  }
+}
+
+mod_tbl <- as.data.frame(matrix(NA, nrow = 1, ncol = 18))
+colnames(mod_tbl) <- c(
+  "Outcome", "Predictor",
+  "beta_mod1", "95ci_mod1", "pvalue_mod1", "std_mod1",
+  "beta_mod2", "95ci_mod2", "pvalue_mod2", "std_mod2",
+  "beta_mod3", "95ci_mod3", "pvalue_mod3", "std_mod3",
+  "beta_mod4", "95ci_mod4", "pvalue_mod4", "std_mod4"
+)
+count <- 0
+
+
+for (o in out) {
+  for (d in ap) {
+    sep_coefs <- coefs %>%
+      filter(Outcome == o) %>%
+      filter(Predictor == d)
+    count <- count + 1
+    # Loop through each model.In this case, four models
+    mod_tbl[count, 1] <- o
+    mod_tbl[count, 2] <- d
+    mod_tbl[count, 3] <- sep_coefs$Beta[1]
+    mod_tbl[count, 4] <- sep_coefs$CI[1]
+    mod_tbl[count, 5] <- sep_coefs$P[1]
+    mod_tbl[count, 6] <- sep_coefs$std.error[1]
+    mod_tbl[count, 7] <- sep_coefs$Beta[2]
+    mod_tbl[count, 8] <- sep_coefs$CI[2]
+    mod_tbl[count, 9] <- sep_coefs$P[2]
+    mod_tbl[count, 10] <- sep_coefs$std.error[2]
+    mod_tbl[count, 11] <- sep_coefs$Beta[3]
+    mod_tbl[count, 12] <- sep_coefs$CI[3]
+    mod_tbl[count, 13] <- sep_coefs$P[3]
+    mod_tbl[count, 14] <- sep_coefs$std.error[3]
+    mod_tbl[count, 15] <- sep_coefs$Beta[4]
+    mod_tbl[count, 16] <- sep_coefs$CI[4]
+    mod_tbl[count, 17] <- sep_coefs$P[4]
+    mod_tbl[count, 18] <- sep_coefs$std.error[4]
+  }
+}
+
+
+write.xlsx(mod_tbl, file = paste("/Users/ymou/helix_project/results/", analysis, analysis_date, ".xlsx", sep = ""), rowNames = FALSE, colNames = TRUE)
+
+```
+
+
+# RHEA
+```{r}
+# Apply increments
+dat_afimp_rhea <- complete(imp_rhea_full, action = "long", include = T) %>%
+  mutate(
+    hs_no2_yr_hs_t = hs_no2_yr_hs_t / 10,
+    hs_no2_yr_hs_h = hs_no2_yr_hs_h / 10,
+    hs_no2_yr_hs_s = hs_no2_yr_hs_s / 10,
+    hs_no2_yr_hs_r = hs_no2_yr_hs_r / 10,
+    hs_no2_yr_hs_p = hs_no2_yr_hs_p / 10,
+    hs_pm25_yr_hs_t = hs_pm25_yr_hs_t / 5,
+    hs_pm25_yr_hs_h = hs_pm25_yr_hs_h / 5,
+    hs_pm25_yr_hs_s = hs_pm25_yr_hs_s / 5,
+    hs_pm25_yr_hs_r = hs_pm25_yr_hs_r / 5,
+    hs_pm25_yr_hs_p = hs_pm25_yr_hs_p / 5,
+    hs_pm10_yr_hs_t = hs_pm10_yr_hs_t / 10,
+    hs_pm10_yr_hs_h = hs_pm10_yr_hs_h / 10,
+    hs_pm10_yr_hs_s = hs_pm10_yr_hs_s / 10,
+    hs_pm10_yr_hs_r = hs_pm10_yr_hs_r / 10,
+    hs_pm10_yr_hs_p = hs_pm10_yr_hs_p / 10
+  )
+
+dat_afimp_al_nonimp <- dat_afimp_rhea %>% filter(incl_var_out == 1)
+
+imp_rhea_full <- as.mids(dat_afimp_al_nonimp)
+
+rm(dat_afimp_al_nonimp, dat_afimp_sab)
+```
+
+# Air pollution total and main outcomes
+```{r}
+analysis <- "airpollution_total_mainoutcome_rhea"
+
+coefs <- as.data.frame(matrix(NA, nrow = 1, ncol = 10))
+colnames(coefs) <- c("DateTime", "Outcome", "Predictor", "Model", "Beta", "cilo", "cihi", "CI", "P", "std.error")
+
+count <- 0
+for (o in out) {
+  for (d in ap[c(1,2,4)]) {
+    for (m in 1:length(model)) {
+      count <- count + 1
+      fit <- imp_rhea_full %>%
+        mice::complete("all") %>%
+        lapply(glm, formula = paste(o, "~", d, "+", model[m], sep = ""), family = "gaussian")
+      res <- summary(pool(fit), conf.int = T)
+      # Round values
+      res <- res %>%
+        mutate_at(c("estimate", "2.5 %", "97.5 %"), round, 2) %>%
+        mutate_at(c("p.value"), round, 4)
+
+      # Save results
+      coefs[count, 1] <- gsub(" ", "_", Sys.time())
+      coefs[count, 2] <- o
+      coefs[count, 3] <- d
+      coefs[count, 4] <- m
+      coefs[count, 5] <- res$estimate[2]
+      coefs[count, 6] <- res$`2.5 %`[2]
+      coefs[count, 7] <- res$`97.5 %`[2]
+      coefs[count, 8] <- paste(res$`2.5 %`[2], ",", " ", res$`97.5 %`[2], sep = "")
+      coefs[count, 9] <- res$p.value[2]
+      coefs[count, 10] <- res$std.error[2]
+    }
+  }
+}
+
+mod_tbl <- as.data.frame(matrix(NA, nrow = 1, ncol = 18))
+colnames(mod_tbl) <- c(
+  "Outcome", "Predictor",
+  "beta_mod1", "95ci_mod1", "pvalue_mod1", "std_mod1",
+  "beta_mod2", "95ci_mod2", "pvalue_mod2", "std_mod2",
+  "beta_mod3", "95ci_mod3", "pvalue_mod3", "std_mod3",
+  "beta_mod4", "95ci_mod4", "pvalue_mod4", "std_mod4"
+)
+count <- 0
+
+
+for (o in out) {
+  for (d in ap[c(1,2,4)]) {
+    sep_coefs <- coefs %>%
+      filter(Outcome == o) %>%
+      filter(Predictor == d)
+    count <- count + 1
+    # Loop through each model.In this case, four models
+    mod_tbl[count, 1] <- o
+    mod_tbl[count, 2] <- d
+    mod_tbl[count, 3] <- sep_coefs$Beta[1]
+    mod_tbl[count, 4] <- sep_coefs$CI[1]
+    mod_tbl[count, 5] <- sep_coefs$P[1]
+    mod_tbl[count, 6] <- sep_coefs$std.error[1]
+    mod_tbl[count, 7] <- sep_coefs$Beta[2]
+    mod_tbl[count, 8] <- sep_coefs$CI[2]
+    mod_tbl[count, 9] <- sep_coefs$P[2]
+    mod_tbl[count, 10] <- sep_coefs$std.error[2]
+    mod_tbl[count, 11] <- sep_coefs$Beta[3]
+    mod_tbl[count, 12] <- sep_coefs$CI[3]
+    mod_tbl[count, 13] <- sep_coefs$P[3]
+    mod_tbl[count, 14] <- sep_coefs$std.error[3]
+    mod_tbl[count, 15] <- sep_coefs$Beta[4]
+    mod_tbl[count, 16] <- sep_coefs$CI[4]
+    mod_tbl[count, 17] <- sep_coefs$P[4]
+    mod_tbl[count, 18] <- sep_coefs$std.error[4]
+  }
+}
+
+
+write.xlsx(mod_tbl, file = paste("/Users/ymou/helix_project/results/", analysis, analysis_date, ".xlsx", sep = ""), rowNames = FALSE, colNames = TRUE)
+
+```
+
+
+# KANC
+```{r}
+# Apply increments
+dat_afimp_kanc <- complete(imp_kanc_full, action = "long", include = T) %>%
+  mutate(
+    hs_no2_yr_hs_t = hs_no2_yr_hs_t / 10,
+    hs_no2_yr_hs_h = hs_no2_yr_hs_h / 10,
+    hs_no2_yr_hs_s = hs_no2_yr_hs_s / 10,
+    hs_no2_yr_hs_r = hs_no2_yr_hs_r / 10,
+    hs_no2_yr_hs_p = hs_no2_yr_hs_p / 10,
+    hs_pm25_yr_hs_t = hs_pm25_yr_hs_t / 5,
+    hs_pm25_yr_hs_h = hs_pm25_yr_hs_h / 5,
+    hs_pm25_yr_hs_s = hs_pm25_yr_hs_s / 5,
+    hs_pm25_yr_hs_r = hs_pm25_yr_hs_r / 5,
+    hs_pm25_yr_hs_p = hs_pm25_yr_hs_p / 5,
+    hs_pm10_yr_hs_t = hs_pm10_yr_hs_t / 10,
+    hs_pm10_yr_hs_h = hs_pm10_yr_hs_h / 10,
+    hs_pm10_yr_hs_s = hs_pm10_yr_hs_s / 10,
+    hs_pm10_yr_hs_r = hs_pm10_yr_hs_r / 10,
+    hs_pm10_yr_hs_p = hs_pm10_yr_hs_p / 10
+  )
+
+dat_afimp_al_nonimp <- dat_afimp_kanc %>% filter(incl_var_out == 1)
+
+imp_kanc_full <- as.mids(dat_afimp_al_nonimp)
+
+rm(dat_afimp_al_nonimp, dat_afimp_sab)
+```
+
+# Air pollution total and main outcomes
+```{r}
+analysis <- "airpollution_total_mainoutcome_kanc"
+
+coefs <- as.data.frame(matrix(NA, nrow = 1, ncol = 10))
+colnames(coefs) <- c("DateTime", "Outcome", "Predictor", "Model", "Beta", "cilo", "cihi", "CI", "P", "std.error")
+
+count <- 0
+for (o in out) {
+  for (d in ap) {
+    for (m in 1:length(model)) {
+      count <- count + 1
+      fit <- imp_kanc_full %>%
+        mice::complete("all") %>%
+        lapply(glm, formula = paste(o, "~", d, "+", model[m], sep = ""), family = "gaussian")
+      res <- summary(pool(fit), conf.int = T)
+      # Round values
+      res <- res %>%
+        mutate_at(c("estimate", "2.5 %", "97.5 %"), round, 2) %>%
+        mutate_at(c("p.value"), round, 4)
+
+      # Save results
+      coefs[count, 1] <- gsub(" ", "_", Sys.time())
+      coefs[count, 2] <- o
+      coefs[count, 3] <- d
+      coefs[count, 4] <- m
+      coefs[count, 5] <- res$estimate[2]
+      coefs[count, 6] <- res$`2.5 %`[2]
+      coefs[count, 7] <- res$`97.5 %`[2]
+      coefs[count, 8] <- paste(res$`2.5 %`[2], ",", " ", res$`97.5 %`[2], sep = "")
+      coefs[count, 9] <- res$p.value[2]
+      coefs[count, 10] <- res$std.error[2]
+    }
+  }
+}
+
+mod_tbl <- as.data.frame(matrix(NA, nrow = 1, ncol = 18))
+colnames(mod_tbl) <- c(
+  "Outcome", "Predictor",
+  "beta_mod1", "95ci_mod1", "pvalue_mod1", "std_mod1",
+  "beta_mod2", "95ci_mod2", "pvalue_mod2", "std_mod2",
+  "beta_mod3", "95ci_mod3", "pvalue_mod3", "std_mod3",
+  "beta_mod4", "95ci_mod4", "pvalue_mod4", "std_mod4"
+)
+count <- 0
+
+
+for (o in out) {
+  for (d in ap) {
+    sep_coefs <- coefs %>%
+      filter(Outcome == o) %>%
+      filter(Predictor == d)
+    count <- count + 1
+    # Loop through each model.In this case, four models
+    mod_tbl[count, 1] <- o
+    mod_tbl[count, 2] <- d
+    mod_tbl[count, 3] <- sep_coefs$Beta[1]
+    mod_tbl[count, 4] <- sep_coefs$CI[1]
+    mod_tbl[count, 5] <- sep_coefs$P[1]
+    mod_tbl[count, 6] <- sep_coefs$std.error[1]
+    mod_tbl[count, 7] <- sep_coefs$Beta[2]
+    mod_tbl[count, 8] <- sep_coefs$CI[2]
+    mod_tbl[count, 9] <- sep_coefs$P[2]
+    mod_tbl[count, 10] <- sep_coefs$std.error[2]
+    mod_tbl[count, 11] <- sep_coefs$Beta[3]
+    mod_tbl[count, 12] <- sep_coefs$CI[3]
+    mod_tbl[count, 13] <- sep_coefs$P[3]
+    mod_tbl[count, 14] <- sep_coefs$std.error[3]
+    mod_tbl[count, 15] <- sep_coefs$Beta[4]
+    mod_tbl[count, 16] <- sep_coefs$CI[4]
+    mod_tbl[count, 17] <- sep_coefs$P[4]
+    mod_tbl[count, 18] <- sep_coefs$std.error[4]
+  }
+}
+
+
+write.xlsx(mod_tbl, file = paste("/Users/ymou/helix_project/results/", analysis, analysis_date, ".xlsx", sep = ""), rowNames = FALSE, colNames = TRUE)
+
+```
+
+
+# MOBA
+```{r}
+# Apply increments
+dat_afimp_moba <- complete(imp_moba_full, action = "long", include = T) %>%
+  mutate(
+    hs_no2_yr_hs_t = hs_no2_yr_hs_t / 10,
+    hs_no2_yr_hs_h = hs_no2_yr_hs_h / 10,
+    hs_no2_yr_hs_s = hs_no2_yr_hs_s / 10,
+    hs_no2_yr_hs_r = hs_no2_yr_hs_r / 10,
+    hs_no2_yr_hs_p = hs_no2_yr_hs_p / 10,
+    hs_pm25_yr_hs_t = hs_pm25_yr_hs_t / 5,
+    hs_pm25_yr_hs_h = hs_pm25_yr_hs_h / 5,
+    hs_pm25_yr_hs_s = hs_pm25_yr_hs_s / 5,
+    hs_pm25_yr_hs_r = hs_pm25_yr_hs_r / 5,
+    hs_pm25_yr_hs_p = hs_pm25_yr_hs_p / 5,
+    hs_pm10_yr_hs_t = hs_pm10_yr_hs_t / 10,
+    hs_pm10_yr_hs_h = hs_pm10_yr_hs_h / 10,
+    hs_pm10_yr_hs_s = hs_pm10_yr_hs_s / 10,
+    hs_pm10_yr_hs_r = hs_pm10_yr_hs_r / 10,
+    hs_pm10_yr_hs_p = hs_pm10_yr_hs_p / 10
+  ) %>% 
+  mutate(
+    h_edufc = fct_collapse(h_edufc,
+      "Middle" = c("Low", "Middle")),
+    h_edumc = fct_collapse(h_edumc,
+      "Middle" = c("Low", "Middle")),
+  )
+
+dat_afimp_al_nonimp <- dat_afimp_moba %>% filter(incl_var_out == 1)
+
+imp_moba_full <- as.mids(dat_afimp_al_nonimp)
+
+rm(dat_afimp_al_nonimp, dat_afimp_sab)
+```
+
+# Air pollution total and main outcomes
+```{r}
+analysis <- "airpollution_total_mainoutcome_moba"
+
+coefs <- as.data.frame(matrix(NA, nrow = 1, ncol = 10))
+colnames(coefs) <- c("DateTime", "Outcome", "Predictor", "Model", "Beta", "cilo", "cihi", "CI", "P", "std.error")
+
+count <- 0
+for (o in out) {
+  for (d in ap) {
+    for (m in 1:length(model)) {
+      count <- count + 1
+      fit <- imp_moba_full %>%
+        mice::complete("all") %>%
+        lapply(glm, formula = paste(o, "~", d, "+", model[m], " + h_ethnicity_cauc", sep = ""), family = "gaussian")
+      res <- summary(pool(fit), conf.int = T)
+      # Round values
+      res <- res %>%
+        mutate_at(c("estimate", "2.5 %", "97.5 %"), round, 2) %>%
+        mutate_at(c("p.value"), round, 4)
+
+      # Save results
+      coefs[count, 1] <- gsub(" ", "_", Sys.time())
+      coefs[count, 2] <- o
+      coefs[count, 3] <- d
+      coefs[count, 4] <- m
+      coefs[count, 5] <- res$estimate[2]
+      coefs[count, 6] <- res$`2.5 %`[2]
+      coefs[count, 7] <- res$`97.5 %`[2]
+      coefs[count, 8] <- paste(res$`2.5 %`[2], ",", " ", res$`97.5 %`[2], sep = "")
+      coefs[count, 9] <- res$p.value[2]
+      coefs[count, 10] <- res$std.error[2]
+    }
+  }
+}
+
+mod_tbl <- as.data.frame(matrix(NA, nrow = 1, ncol = 18))
+colnames(mod_tbl) <- c(
+  "Outcome", "Predictor",
+  "beta_mod1", "95ci_mod1", "pvalue_mod1", "std_mod1",
+  "beta_mod2", "95ci_mod2", "pvalue_mod2", "std_mod2",
+  "beta_mod3", "95ci_mod3", "pvalue_mod3", "std_mod3",
+  "beta_mod4", "95ci_mod4", "pvalue_mod4", "std_mod4"
+)
+count <- 0
+
+
+for (o in out) {
+  for (d in ap) {
+    sep_coefs <- coefs %>%
+      filter(Outcome == o) %>%
+      filter(Predictor == d)
+    count <- count + 1
+    # Loop through each model.In this case, four models
+    mod_tbl[count, 1] <- o
+    mod_tbl[count, 2] <- d
+    mod_tbl[count, 3] <- sep_coefs$Beta[1]
+    mod_tbl[count, 4] <- sep_coefs$CI[1]
+    mod_tbl[count, 5] <- sep_coefs$P[1]
+    mod_tbl[count, 6] <- sep_coefs$std.error[1]
+    mod_tbl[count, 7] <- sep_coefs$Beta[2]
+    mod_tbl[count, 8] <- sep_coefs$CI[2]
+    mod_tbl[count, 9] <- sep_coefs$P[2]
+    mod_tbl[count, 10] <- sep_coefs$std.error[2]
+    mod_tbl[count, 11] <- sep_coefs$Beta[3]
+    mod_tbl[count, 12] <- sep_coefs$CI[3]
+    mod_tbl[count, 13] <- sep_coefs$P[3]
+    mod_tbl[count, 14] <- sep_coefs$std.error[3]
+    mod_tbl[count, 15] <- sep_coefs$Beta[4]
+    mod_tbl[count, 16] <- sep_coefs$CI[4]
+    mod_tbl[count, 17] <- sep_coefs$P[4]
+    mod_tbl[count, 18] <- sep_coefs$std.error[4]
+  }
+}
+
+
+write.xlsx(mod_tbl, file = paste("/Users/ymou/helix_project/results/", analysis, analysis_date, ".xlsx", sep = ""), rowNames = FALSE, colNames = TRUE)
+
+```

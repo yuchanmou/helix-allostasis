@@ -30,10 +30,10 @@ Sys.Date()
 ```
 
 ```{r define variables, include=FALSE, echo=FALSE, message=FALSE, warning=FALSE}
-expo <- c("hs_no2_yr_hs_t", "hs_no2_yr_hs_h", "hs_no2_yr_hs_s", 
-          "hs_pm25_yr_hs_t", "hs_pm25_yr_hs_h", "hs_pm25_yr_hs_s", 
-          "hs_pm25abs_yr_hs_t", "hs_pm25abs_yr_hs_h", "hs_pm25abs_yr_hs_s",
-          "hs_pm10_yr_hs_t", "hs_pm10_yr_hs_h", "hs_pm10_yr_hs_s",
+expo <- c("hs_no2_yr_hs_t", "hs_no2_yr_hs_h", "hs_no2_yr_hs_s", "hs_no2_yr_hs_r", "hs_no2_yr_hs_p",
+          "hs_pm25_yr_hs_t", "hs_pm25_yr_hs_h", "hs_pm25_yr_hs_s", "hs_pm25_yr_hs_r", "hs_pm25_yr_hs_p",
+          "hs_pm25abs_yr_hs_t", "hs_pm25abs_yr_hs_h", "hs_pm25abs_yr_hs_s", "hs_pm25abs_yr_hs_r", "hs_pm25abs_yr_hs_p",
+          "hs_pm10_yr_hs_t", "hs_pm10_yr_hs_h", "hs_pm10_yr_hs_s", "hs_pm10_yr_hs_r", "hs_pm10_yr_hs_p",
           "hs_lden_c_h", "hs_lden_c_s", "hs_lden_t")
 
 cov <- c("e3_sex", "hs_mvpa", "hs_sd_wk", "hs_child_age_years",# child characteristics
@@ -137,7 +137,7 @@ df_plot %>%
 
 ### - Lden
 
-```{r lden, fig.width = 10 , fig.height = 10}
+```{r lden, fig.width = 13 , fig.height = 13}
 df_plot <- df_final %>%
   select(starts_with(c("hs_lden")), "cohort") %>%
   as.data.frame()
@@ -147,12 +147,26 @@ par(mfrow = c(4, 4))
 plot_all(df_plot)
 
 # separate by cohort
-df_plot %>%
-  pivot_longer(cols = 1:ncol(df_plot) - 1) %>%
+df_plot_continuous <- df_plot %>% 
+  select(-c("hs_lden_c_h", "hs_lden_c_s")) 
+df_plot_continuous %>%
+  pivot_longer(cols = 1:ncol(df_plot_continuous) - 1) %>%
   ggplot(aes(x = value, fill = cohort)) +
   geom_histogram(position = "identity", alpha = 0.5) +
   facet_wrap(~name, scales = "free_x") +
   ggtitle("By cohort")
+
+p1 <- df_final %>%
+  ggplot(aes(x = hs_lden_c_h, fill = cohort)) +
+  geom_bar(position = "dodge") +
+  ggtitle("Lden Home by cohort")
+
+p2 <- df_final %>%
+  ggplot(aes(x = hs_lden_c_s, fill = cohort)) +
+  geom_bar(position = "dodge") +
+  ggtitle("Lden Home by cohort")
+
+wrap_plots(p1, p2, ncol = 2, nrow = 1)
 ```
 
 ### - Covariates
@@ -1083,9 +1097,24 @@ outcome_desc %>%
   kable_classic(full_width = F, html_font = "Cambria")
 ```
 
+## Distribution by cohort
+```{r}
+p1 <- df_final %>%
+  ggplot(aes(x = AL_2_tot, fill = cohort)) +
+  geom_bar(position = "dodge") +
+  ggtitle("Cut-off based AL score by cohort")
+
+p2 <- df_final %>%
+  ggplot(aes(x = AL_z2_tot, fill = cohort, color = cohort)) +
+  geom_histogram(position = "identity", alpha = 0.5) +
+  ggtitle("Z-score based AL score by cohort")
+
+wrap_plots(p1, p2, ncol = 1, nrow = 2)
+```
+
 # Correlation matrix
 
-```{r corr_matrix_with_SES, fig.width = 15 , fig.height = 15}
+```{r corr_matrix_with_SES, fig.width = 18 , fig.height = 18}
 df_final %>%
   select(
     expo, cov, out
@@ -1099,6 +1128,7 @@ df_final %>%
   )
 ```
 
+Correlation between noise level at home and at school, categorical variable
 ```{r corr_cat}
 library(polycor)
 
@@ -1110,5 +1140,5 @@ polychor(df_final$hs_lden_c_h, df_final$hs_lden_c_s, ML = T, std.err = T)
 
 ```{r output, include=FALSE, eval = F}
 # convert rmd to r file
-knitr::purl("3a_descriptive_analysis.Rmd", documentation = 1L)
+knitr::purl("3a_descriptive_analysis_all_raw_data.Rmd", documentation = 1L)
 ```

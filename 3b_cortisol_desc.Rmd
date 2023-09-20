@@ -17,7 +17,7 @@ options(knitr.table.format = "html")
 
 ```{r load packages, include=FALSE, echo=FALSE, message=FALSE, warning=FALSE}
 # load pkgs
-packages <- c("dplyr", "tidyverse", "readxl", "openxlsx", "ggplot2", "gtools", "kableExtra", "patchwork")
+packages <- c("dplyr", "tidyverse", "readxl", "openxlsx", "ggplot2", "gtools", "kableExtra", "patchwork", "ggcorrplot")
 sapply(packages, library, character.only = T)
 ```
 
@@ -87,7 +87,7 @@ prop_missing_pervar %>%
 ### Complete cases in each cohort
 ```{r}
 cortisol_prod_desc <- df_full %>% 
-  filter(!is.na(h_sex)) %>% 
+  filter(!is.na(e3_sex)) %>% 
   select(cohort, cortisol_prod) %>%
   group_by(cohort)
 
@@ -147,18 +147,18 @@ p_cohort <- df_full %>%
 
 # calculate mean value by sex
 mean_sex <- df_full %>%
-  filter(!is.na(h_sex)) %>%
-  select(cortisol_prod_log10, h_sex) %>%
-  group_by(h_sex) %>%
+  filter(!is.na(e3_sex)) %>%
+  select(cortisol_prod_log10, e3_sex) %>%
+  group_by(e3_sex) %>%
   summarise_all(mean, na.rm = TRUE)
 
-df_p <- df_full %>% filter(!is.na(h_sex))
+df_p <- df_full %>% filter(!is.na(e3_sex))
 
-p_sex <- ggplot(df_p, aes(x = cortisol_prod_log10, fill = h_sex, color = h_sex)) +
+p_sex <- ggplot(df_p, aes(x = cortisol_prod_log10, fill = e3_sex, color = e3_sex)) +
   # geom_density(alpha=0.3)+
   geom_histogram(position = "identity", alpha = 0.5) +
   geom_vline(
-    data = mean_sex, aes(xintercept = cortisol_prod_log10, color = h_sex),
+    data = mean_sex, aes(xintercept = cortisol_prod_log10, color = e3_sex),
     linetype = "dashed"
   ) +
   ggtitle("By sex")

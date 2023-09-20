@@ -1,7 +1,7 @@
 ---
 title: "Dataset prep: Air pollution, noise level and allostatic load"
 author: "Yuchan Mou"
-date: "2023-04"
+date: "2023-09-08"
 output: html_document
 editor_options: 
   chunk_output_type: console
@@ -20,7 +20,7 @@ sapply(packages, library, character.only = T)
 
 # Import data
 ```{r import data}
-df <- read_excel("/Users/ymou/helix_project/data/HELIX_AP_132_request_updated21jul.2023.xlsx")
+df <- read_excel("/Users/ymou/helix_project/data/HELIX_AP_132_request_updated19sep.2023.xlsx")
 # proteome data
 load("/Users/ymou/helix_project/data/proteome_subcohort_v5.Rdata")
 # steriod data
@@ -146,8 +146,8 @@ dim(dt_protassay)
 colnames(dt_protassay)
 
 dt_prot <- as.data.frame(t(dt_protassay))
-SampleID <- row.names.data.frame(dt_prot)
-dt_prot <- dt_prot %>% mutate(SampleID, .before = Adiponectin)
+dt_prot$SampleID <- row.names.data.frame(dt_prot)
+dt_prot <- dt_prot %>% relocate(SampleID, .before = Adiponectin)
 
 # extract annotated data
 dt_annot <- phenoData(proteome_subcohort)
@@ -160,7 +160,7 @@ df_prot <- full_join(dt_assaypheno, dt_prot, by = "SampleID")
 # General daatset
 ```{r general dataset feature}
 # basic info
-dim(df) # 1301 participants, 119 vars
+dim(df) # 1301 participants, 127 vars
 varname <- as_tibble(tbl_vars(df))
 
 # set null, unable to complete (pulse) into NA
@@ -226,7 +226,8 @@ df_full <- df_full %>%
 # c("CRP", "IL1beta", "IL6", "IL8", "IL10", "TNFalfa"), ~ inflam_conv(.))
 
 
-# urine creatinine 88.4 uM = 1 mg/dL. https://www.lsbio.com/assaykitdocuments/K207_Datasheet.pdf
+# urine creatinine uM to ng/mL
+# 88.4 uM = 1 mg/dL. https://www.lsbio.com/assaykitdocuments/K207_Datasheet.pdf
 # 1 mg/dL = 10 ug/mL (microgram per milliliter)
 # 1 ug/mL = 1000 ng/mL, multiply by 1000
 # unit conversion reference: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3718461/
@@ -247,8 +248,10 @@ df_full <- df_full %>%
 # LLOQ: lower than limit of quantification
 # n.d.: not detected
 # outlier: outlier - HAVE NOT DONE ANYTHING WITH OUTLIER VALUE YET
-bare_to_quo <- function(x, var){
-  x %>% select(!!var) %>% head(1)
+bare_to_quo <- function(x, var) {
+  x %>%
+    select(!!var) %>%
+    head(1)
 }
 
 lloq_imp <- function(data, var, var_des, value = data$var) {
@@ -258,9 +261,9 @@ lloq_imp <- function(data, var, var_des, value = data$var) {
       across(
         .cols = {{ var }},
         ~ ifelse({{ var_des }} == "LLOQ", as.numeric(lloq) / sqrt(2),
-                 ifelse({{ var_des }} == "n.d.", as.numeric(lloq) / sqrt(2),
-                        ifelse({{ var_des }} == "complete", value, NA)
-                 )
+          ifelse({{ var_des }} == "n.d.", as.numeric(lloq) / sqrt(2),
+            ifelse({{ var_des }} == "complete", value, NA)
+          )
         ),
         .names = "{col}_imp"
       )
@@ -296,7 +299,7 @@ df_full <- lloq_imp(df_full, "5b20bcortol", `5b20bcortol_cp_des`, value = df_ful
 # check if the lloq imputation works. Should be 1 at diagonal.
 table(head(df_full$`5b20bcortol`), head(df_full$`5b20bcortol_imp`))
 # complete + LLOQ/n.d should be euqual to the non-missing
-# F has 1 outlier, and is set to missing. Thus not in the current analysis. May want to impute in the future. 
+# F has 1 outlier, and is set to missing. Thus not in the current analysis. May want to impute in the future.
 table(df_full$`F_cp_des`, useNA = "always")
 length(which(is.na(df_full$`F_imp`)))
 
@@ -329,8 +332,10 @@ df_full <- df_full %>%
 
 # Cortisol production calculation
 df_full <- df_full %>%
-  mutate(cortisol_prod = `F_imp_norm` + `20aDHF_imp_norm` + `20bDHF_imp_norm` + `5bDHF_imp_norm` + `5aTHF_imp_norm` + `5bTHF_imp_norm` + `6OHF_imp_norm` + `5a20acortol_imp_norm` + `5a20bcortol_imp_norm` + `5b20acortol_imp_norm` + `5b20bcortol_imp_norm`,
-         cortisol_metab = (`20aDHF_imp_norm` + `20bDHF_imp_norm` + `5bDHF_imp_norm` + `5aTHF_imp_norm` + `5bTHF_imp_norm` + `6OHF_imp_norm` + `5a20acortol_imp_norm` + `5a20bcortol_imp_norm` + `5b20acortol_imp_norm` + `5b20bcortol_imp_norm`)/`F_imp_norm`)
+  mutate(
+    cortisol_prod = `F_imp_norm` + `20aDHF_imp_norm` + `20bDHF_imp_norm` + `5bDHF_imp_norm` + `5aTHF_imp_norm` + `5bTHF_imp_norm` + `6OHF_imp_norm` + `5a20acortol_imp_norm` + `5a20bcortol_imp_norm` + `5b20acortol_imp_norm` + `5b20bcortol_imp_norm`,
+    cortisol_metab = (`20aDHF_imp_norm` + `20bDHF_imp_norm` + `5bDHF_imp_norm` + `5aTHF_imp_norm` + `5bTHF_imp_norm` + `6OHF_imp_norm` + `5a20acortol_imp_norm` + `5a20bcortol_imp_norm` + `5b20acortol_imp_norm` + `5b20bcortol_imp_norm`) / `F_imp_norm`
+  )
 hist(df_full$cortisol_prod)
 hist(df_full$cortisol_metab)
 
@@ -349,36 +354,44 @@ sd(df_full$cortisol_metab_log10, na.rm = T)
 ## Add value labels
 ```{r add value labels}
 df_full$e3_asmokyn_p <- if_else(df_full$e3_asmokyn_p == "no", 0, 1, NA)
+df_full$e3_sex <- if_else(df_full$e3_sex == "male", 1, 2, NA)
+
+df_full <- df_full %>% mutate_at(c("hs_lden_c_h", "hs_lden_c_s"), as.numeric)
 
 df_full <- df_full %>% set_value_labels(
   FAS_cat = c(Low = 1, Middle = 2, High = 3),
   h_native = c("None native" = 0, "One native" = 1, "Both native" = 2),
   h_edumc = c(Low = 1, Middle = 2, High = 3),
   h_edufc = c(Low = 1, Middle = 2, High = 3),
-  h_sex = c(Boys = 1, Girls = 2),
+  e3_sex = c(Boys = 1, Girls = 2),
   hs_smk_parents = c(Neither = 1, One = 2, Both = 3),
   hs_globalexp = c(No = 1, Outside = 2, Inside = 3, "In and outside house" = 4),
   e3_asmokyn_p = c(No = 0, Yes = 1),
   e3_alcpreg_yn = c(No = 0, Yes = 1),
   h_marital = c("Living alone" = 1, "Living with the father" = 2, "Other situation" = 3),
-  h_parity = c("No child" = 0, "One child" = 1, ">=2 children" = 2)
+  h_parity = c("No child" = 0, "One child" = 1, ">=2 children" = 2),
+  # lden labels
+  # 1: <55; 2:55-59.9; 3: 60-64.9; 4: 65-69.9; 5: 70-74.9; 6: >75 dB(A)
+  hs_lden_c_h = c("<55" = 1, "55-59.9" = 2, "60-64.9" = 3, "65-69.9" = 4, "70-74.9" = 5, ">75" = 6),
+  hs_lden_c_s = c("<55" = 1, "55-59.9" = 2, "60-64.9" = 3, "65-69.9" = 4, "70-74.9" = 5, ">75" = 6)
 )
 ```
 
 ## Change variable class
 ```{r var class conversion}
 df_full <- df_full %>% mutate_at(c(
-  "h_sex", "cohort",
+  "e3_sex", "cohort",
   "FAS_cat", "h_native", "h_ethnicity_c", "h_ethnicity_3cat", "h_ethnicity_cauc", "h_edumc", "h_edufc",
-  "hs_smk_parents", "hs_globalexp", "e3_asmokyn_p", "e3_alcpreg_yn", "h_marital", "h_parity"
+  "hs_smk_parents", "hs_globalexp", "e3_asmokyn_p", "e3_alcpreg_yn", "h_marital", "h_parity",
+  "hs_lden_c_h", "hs_lden_c_s"
 ), as_factor)
 
 df_full <- df_full %>% mutate_at(c(
-  "hs_no2_dy_hs_t", "hs_no2_wk_hs_t", "hs_no2_yr_hs_t", "hs_no2_yr_hs_h", "hs_no2_yr_hs_s",
-  "hs_pm25_dy_hs_t", "hs_pm25_wk_hs_t", "hs_pm25_yr_hs_t", "hs_pm25_yr_hs_h", "hs_pm25_yr_hs_s",
-  "hs_pm25abs_dy_hs_t", "hs_pm25abs_wk_hs_t", "hs_pm25abs_yr_hs_t", "hs_pm25abs_yr_hs_h", "hs_pm25abs_yr_hs_s",
-  "hs_pm10_dy_hs_t", "hs_pm10_wk_hs_t", "hs_pm10_yr_hs_t", "hs_pm10_yr_hs_h", "hs_pm10_yr_hs_s",
-  "hs_lden_c_h", "hs_lden_c_s", "hs_lden_h", "hs_lden_s",
+  "hs_no2_dy_hs_t", "hs_no2_wk_hs_t", "hs_no2_yr_hs_t", "hs_no2_yr_hs_h", "hs_no2_yr_hs_s", "hs_no2_yr_hs_r", "hs_no2_yr_hs_p",
+  "hs_pm25_dy_hs_t", "hs_pm25_wk_hs_t", "hs_pm25_yr_hs_t", "hs_pm25_yr_hs_h", "hs_pm25_yr_hs_s", "hs_pm25_yr_hs_r", "hs_pm25_yr_hs_p",
+  "hs_pm25abs_dy_hs_t", "hs_pm25abs_wk_hs_t", "hs_pm25abs_yr_hs_t", "hs_pm25abs_yr_hs_h", "hs_pm25abs_yr_hs_s", "hs_pm25abs_yr_hs_r", "hs_pm25abs_yr_hs_p",
+  "hs_pm10_dy_hs_t", "hs_pm10_wk_hs_t", "hs_pm10_yr_hs_t", "hs_pm10_yr_hs_h", "hs_pm10_yr_hs_s", "hs_pm10_yr_hs_r", "hs_pm10_yr_hs_p",
+  "hs_lden_h", "hs_lden_s",
   "hs_lden_p", "hs_lden_r", "hs_lden_t",
   "FAS_score",
   "hs_mvpa", "hs_sd_wk",
@@ -398,15 +411,15 @@ df_full$child_age_grp <- cut(df_full$hs_child_age_years,
 
 # Dataset stratified by sex
 ```{r}
-df_g <- df_full %>% filter(h_sex == "Girls")
-df_b <- df_full %>% filter(h_sex == "Boys")
+df_g <- df_full %>% filter(e3_sex == "Girls")
+df_b <- df_full %>% filter(e3_sex == "Boys")
 ```
 
 ```{r export dataset}
 save(df_full, df_g, df_b, dt_final, file = "/Users/ymou/helix_project/data/analysis_data/df_full.RData")
 ```
 
-```{r output, include=FALSE}
+```{r output, include=FALSE, eval=F}
 # convert rmd to r file
-knitr::purl("dataset_prep.Rmd", documentation = 1L)
+knitr::purl("1_dataset_prep.Rmd", documentation = 1L)
 ```

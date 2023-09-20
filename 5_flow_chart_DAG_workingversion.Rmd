@@ -1,0 +1,165 @@
+---
+title: 'Flow chart: Air pollution, noise level and allostatic load'
+author: "Yuchan Mou"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    toc: true
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r set_up, include=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+```
+
+```{r load packages, include=FALSE, echo=FALSE, message=FALSE, warning=FALSE}
+# load pkgs
+packages <- c("tidyverse", "Gmisc", "grid", "ggplot2", "glue")
+sapply(packages, library, character.only = T)
+```
+
+```{r import data, include=FALSE, echo=FALSE, message=FALSE, warning=FALSE}
+load("/Users/ymou/helix_project/data/analysis_data/df_al_final.RData")
+Sys.Date()
+```
+
+# Flow chart - AL not imputed
+```{r flowchart, fig.width = 10 , fig.height = 10}
+grid.newpage()
+# set parameters
+midx <- 0.5
+x1 <- 0.1
+x2 <- 0.26
+x3 <- 0.42
+x4 <- 0.58
+x5 <- 0.74
+x6 <- 0.90
+width <- 0.15
+gp <- gpar(fill = "lightgrey")
+
+# create boxes
+(org_cohort <- boxGrob(glue("Mother and child pairs in the HELIX subcohort",
+                           "n = {pop}",
+                           pop = nrow(df_final),
+                           .sep = "\n"),
+                      x=midx, y=.9, box_gp = gp, width = 0.4))
+
+(SAB <- boxGrob(str_glue('SAB (n = {pop})\nNO2: n = {hs_no2_yr_hs_t}\nPM2.5: n = {hs_pm25_yr_hs_t}\nPM2.5abs: n= {hs_pm25abs_yr_hs_t}\nPM10: n = {hs_pm10_yr_hs_t}\nLden: n = {hs_lden_c_h}', 
+                        pop = length(which(df_final$cohort == 'SAB')),
+                        hs_no2_yr_hs_t = nrow(df_final %>% filter(cohort == 'SAB') %>% filter(!is.na(hs_no2_yr_hs_t))),
+                        hs_pm25_yr_hs_t = nrow(df_final %>% filter(cohort == 'SAB') %>% filter(!is.na(hs_pm25_yr_hs_t))),
+                        hs_pm25abs_yr_hs_t =  nrow(df_final %>% filter(cohort == 'SAB') %>% filter(!is.na(hs_pm25abs_yr_hs_t))),
+                        hs_pm10_yr_hs_t =  nrow(df_final %>% filter(cohort == 'SAB') %>% filter(!is.na(hs_pm10_yr_hs_t))),
+                        hs_lden_c_h =  nrow(df_final %>% filter(cohort == 'SAB') %>% filter(!is.na(hs_lden_c_h)))),
+               x = x1, y=.7, box_gp = gp, width = width, just = "left"))
+
+# missing patterns are the same across air pollutants
+# for lden, home sample sizes are larger than school
+# min sample size = lden_school, max sample size = no2
+(SAB_1 <- boxGrob(str_glue('With all biomarkers\n n = {min} ~ {max}',
+                           min = nrow(df_final %>% filter(cohort == 'SAB') %>% filter(!is.na(hs_lden_c_s) & !is.na(AL_1_tot))),
+                           max = nrow(df_final %>% filter(cohort == 'SAB') %>% filter(!is.na(hs_no2_yr_hs_t) & !is.na(AL_1_tot)))),
+                  x = x1, y=.5, box_gp = gp, width = width))
+
+connectGrob(org_cohort, SAB, type = "N", "l")
+connectGrob(SAB, SAB_1, type = "N", "l")
+
+(EDEN <- boxGrob(str_glue('EDEN (n = {pop})\nNO2: n = {hs_no2_yr_hs_t}\nPM2.5: n = {hs_pm25_yr_hs_t}\nPM2.5abs: n= {hs_pm25abs_yr_hs_t}\nPM10: n = {hs_pm10_yr_hs_t}\nLden: n = {hs_lden_c_h}', 
+                        pop = length(which(df_final$cohort == 'EDEN')),
+                        hs_no2_yr_hs_t = nrow(df_final %>% filter(cohort == 'EDEN') %>% filter(!is.na(hs_no2_yr_hs_t))),
+                        hs_pm25_yr_hs_t = nrow(df_final %>% filter(cohort == 'EDEN') %>% filter(!is.na(hs_pm25_yr_hs_t))),
+                        hs_pm25abs_yr_hs_t =  nrow(df_final %>% filter(cohort == 'EDEN') %>% filter(!is.na(hs_pm25abs_yr_hs_t))),
+                        hs_pm10_yr_hs_t =  nrow(df_final %>% filter(cohort == 'EDEN') %>% filter(!is.na(hs_pm10_yr_hs_t))),
+                        hs_lden_c_h =  nrow(df_final %>% filter(cohort == 'EDEN') %>% filter(!is.na(hs_lden_c_h)))),
+                 x = x2, y=.7, box_gp = gp, width = width, just = "left"))
+
+(EDEN_1 <- boxGrob(str_glue('With all biomarkers\n n = {min} ~ {max}',
+                           min = nrow(df_final %>% filter(cohort == 'EDEN') %>% filter(!is.na(hs_lden_c_s) & !is.na(AL_1_tot))),
+                           max = nrow(df_final %>% filter(cohort == 'EDEN') %>% filter(!is.na(hs_no2_yr_hs_t) & !is.na(AL_1_tot)))),
+                  x = x2, y=.5, box_gp = gp, width = width))
+
+connectGrob(org_cohort, EDEN, type = "N", "l")
+connectGrob(EDEN, EDEN_1, type = "N", "l")
+
+
+(BIB <- boxGrob(str_glue('BIB (n = {pop})\nNO2: n = {hs_no2_yr_hs_t}\nPM2.5: n = {hs_pm25_yr_hs_t}\nPM2.5abs: n= {hs_pm25abs_yr_hs_t}\nPM10: n = {hs_pm10_yr_hs_t}\nLden: n = {hs_lden_c_h}', 
+                        pop = length(which(df_final$cohort == 'BIB')),
+                        hs_no2_yr_hs_t = nrow(df_final %>% filter(cohort == 'BIB') %>% filter(!is.na(hs_no2_yr_hs_t))),
+                        hs_pm25_yr_hs_t = nrow(df_final %>% filter(cohort == 'BIB') %>% filter(!is.na(hs_pm25_yr_hs_t))),
+                        hs_pm25abs_yr_hs_t =  nrow(df_final %>% filter(cohort == 'BIB') %>% filter(!is.na(hs_pm25abs_yr_hs_t))),
+                        hs_pm10_yr_hs_t =  nrow(df_final %>% filter(cohort == 'BIB') %>% filter(!is.na(hs_pm10_yr_hs_t))),
+                        hs_lden_c_h =  nrow(df_final %>% filter(cohort == 'BIB') %>% filter(!is.na(hs_lden_c_h)))),
+               x = x3, y=.7, box_gp = gp, width = width, just = "left"))
+
+(BIB_1 <- boxGrob(str_glue('With all biomarkers\n n = {min} ~ {max}',
+                           min = nrow(df_final %>% filter(cohort == 'BIB') %>% filter(!is.na(hs_lden_c_s) & !is.na(AL_1_tot))),
+                           max = nrow(df_final %>% filter(cohort == 'BIB') %>% filter(!is.na(hs_no2_yr_hs_t) & !is.na(AL_1_tot)))),
+                  x = x3, y=.5, box_gp = gp, width = width))
+
+connectGrob(org_cohort, BIB, type = "N", "l")
+connectGrob(BIB, BIB_1, type = "N", "l")
+
+(RHEA <- boxGrob(str_glue('RHEA (n = {pop})\nNO2: n = {hs_no2_yr_hs_t}\nPM2.5: n = {hs_pm25_yr_hs_t}\nPM2.5abs: n= {hs_pm25abs_yr_hs_t}\nPM10: n = {hs_pm10_yr_hs_t}\nLden: n = {hs_lden_c_h}', 
+                        pop = length(which(df_final$cohort == 'RHEA')),
+                        hs_no2_yr_hs_t = nrow(df_final %>% filter(cohort == 'RHEA') %>% filter(!is.na(hs_no2_yr_hs_t))),
+                        hs_pm25_yr_hs_t = nrow(df_final %>% filter(cohort == 'RHEA') %>% filter(!is.na(hs_pm25_yr_hs_t))),
+                        hs_pm25abs_yr_hs_t =  nrow(df_final %>% filter(cohort == 'RHEA') %>% filter(!is.na(hs_pm25abs_yr_hs_t))),
+                        hs_pm10_yr_hs_t =  nrow(df_final %>% filter(cohort == 'RHEA') %>% filter(!is.na(hs_pm10_yr_hs_t))),
+                        hs_lden_c_h =  nrow(df_final %>% filter(cohort == 'RHEA') %>% filter(!is.na(hs_lden_c_h)))),
+                x = x4, y=.7, box_gp = gp, width = width, just = "left"))
+
+(RHEA_1 <- boxGrob(str_glue('With all biomarkers\n n = {min} ~ {max}',
+                           min = nrow(df_final %>% filter(cohort == 'RHEA') %>% filter(!is.na(hs_lden_c_s) & !is.na(AL_1_tot))),
+                           max = nrow(df_final %>% filter(cohort == 'RHEA') %>% filter(!is.na(hs_no2_yr_hs_t) & !is.na(AL_1_tot)))),
+                  x = x4, y=.5, box_gp = gp, width = width))
+
+connectGrob(org_cohort, RHEA, type = "N", "l")
+connectGrob(RHEA, RHEA_1, type = "N", "l")
+
+(KANC <- boxGrob(str_glue('KANC (n = {pop})\nNO2: n = {hs_no2_yr_hs_t}\nPM2.5: n = {hs_pm25_yr_hs_t}\nPM2.5abs: n= {hs_pm25abs_yr_hs_t}\nPM10: n = {hs_pm10_yr_hs_t}\nLden: n = {hs_lden_c_h}', 
+                        pop = length(which(df_final$cohort == 'KANC')),
+                        hs_no2_yr_hs_t = nrow(df_final %>% filter(cohort == 'KANC') %>% filter(!is.na(hs_no2_yr_hs_t))),
+                        hs_pm25_yr_hs_t = nrow(df_final %>% filter(cohort == 'KANC') %>% filter(!is.na(hs_pm25_yr_hs_t))),
+                        hs_pm25abs_yr_hs_t =  nrow(df_final %>% filter(cohort == 'KANC') %>% filter(!is.na(hs_pm25abs_yr_hs_t))),
+                        hs_pm10_yr_hs_t =  nrow(df_final %>% filter(cohort == 'KANC') %>% filter(!is.na(hs_pm10_yr_hs_t))),
+                        hs_lden_c_h =  nrow(df_final %>% filter(cohort == 'KANC') %>% filter(!is.na(hs_lden_c_h)))),
+                x = x5, y=.7, box_gp = gp, width = width, just = "left"))
+
+(KANC_1 <- boxGrob(str_glue('With all biomarkers\n n = {min} ~ {max}',
+                           min = nrow(df_final %>% filter(cohort == 'KANC') %>% filter(!is.na(hs_lden_c_s) & !is.na(AL_1_tot))),
+                           max = nrow(df_final %>% filter(cohort == 'KANC') %>% filter(!is.na(hs_no2_yr_hs_t) & !is.na(AL_1_tot)))),
+                  x = x5, y=.5, box_gp = gp, width = width))
+
+connectGrob(org_cohort, KANC, type = "N", "l")
+connectGrob(KANC, KANC_1, type = "N", "l")
+
+
+(MOBA <- boxGrob(str_glue('MOBA (n = {pop})\nNO2: n = {hs_no2_yr_hs_t}\nPM2.5: n = {hs_pm25_yr_hs_t}\nPM2.5abs: n= {hs_pm25abs_yr_hs_t}\nPM10: n = {hs_pm10_yr_hs_t}\nLden: n = {hs_lden_c_h}', 
+                        pop = length(which(df_final$cohort == 'MOBA')),
+                        hs_no2_yr_hs_t = nrow(df_final %>% filter(cohort == 'MOBA') %>% filter(!is.na(hs_no2_yr_hs_t))),
+                        hs_pm25_yr_hs_t = nrow(df_final %>% filter(cohort == 'MOBA') %>% filter(!is.na(hs_pm25_yr_hs_t))),
+                        hs_pm25abs_yr_hs_t =  nrow(df_final %>% filter(cohort == 'MOBA') %>% filter(!is.na(hs_pm25abs_yr_hs_t))),
+                        hs_pm10_yr_hs_t =  nrow(df_final %>% filter(cohort == 'MOBA') %>% filter(!is.na(hs_pm10_yr_hs_t))),
+                        hs_lden_c_h =  nrow(df_final %>% filter(cohort == 'MOBA') %>% filter(!is.na(hs_lden_c_h)))),
+                x = x6, y=.7, box_gp = gp, width = width, just = "left"))
+
+(MOBA_1 <- boxGrob(str_glue('With all biomarkers\n n = {min} ~ {max}',
+                           min = nrow(df_final %>% filter(cohort == 'MOBA') %>% filter(!is.na(hs_lden_c_s) & !is.na(AL_1_tot))),
+                           max = nrow(df_final %>% filter(cohort == 'MOBA') %>% filter(!is.na(hs_no2_yr_hs_t) & !is.na(AL_1_tot)))),
+                  x = x6, y=.5, box_gp = gp, width = width))
+
+connectGrob(org_cohort, MOBA, type = "N", "l")
+connectGrob(MOBA, MOBA_1, type = "N", "l")
+
+
+# total study sample
+(tot <- boxGrob(str_glue('Total study sample\n n = {min} ~ {max}',
+                           min = nrow(df_final %>% filter(!is.na(hs_lden_c_s) & !is.na(AL_1_tot))),
+                           max = nrow(df_final %>% filter(!is.na(hs_no2_yr_hs_t) & !is.na(AL_1_tot)))),
+                  x = midx, y=.3, box_gp = gp, width = width))
+
+connectGrob(SAB_1, tot, type = "N", "l")
+connectGrob(MOBA_1, tot, type = "N", "l")
+```
+
