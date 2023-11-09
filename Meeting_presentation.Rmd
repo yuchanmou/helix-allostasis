@@ -21,13 +21,13 @@ knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
 
 ```{r load pkg, include=FALSE, echo=FALSE, message=FALSE, warning=FALSE}
 # load pkgs
-packages <- c("dplyr", "tidyverse", "readxl", "openxlsx", "ggplot2", "gtools", "kableExtra", "DT", "xaringan", "ggcorrplot") 
+packages <- c("dplyr", "tidyverse", "readxl", "openxlsx", "scales", "ggplot2", "gtools", "kableExtra", "DT", "xaringan", "ggcorrplot") 
 sapply(packages, library, character.only = T)
 ```
 
 ```{r, include=FALSE, cache=FALSE}
-knitr::read_chunk('descriptive_analysis.R')
-knitr::read_chunk('allostatic_score.R')
+knitr::read_chunk('/Users/ymou/helix_project/code/helix-allostasis/3a_descriptive_analysis_all_raw_data.R')
+knitr::read_chunk('/Users/ymou/helix_project/code/helix-allostasis/2_allostatic_score.R')
 ```
 
 ```{r table, include=FALSE}
@@ -46,54 +46,71 @@ corticosteroids <- read_excel("/Users/ymou/helix_project/data/AL_biomarkers.xlsx
 
 ---
 ## Biomarkers included in the allostatic load index
+
 ```{r}
-al %>% 
-  select(-include_may11) %>% 
+al %>%
+  filter(includeinscore_oct_18 == "Yes") %>% 
+  select(-c("includeinscore_oct_18", `Overview of biomarker function`, `Relationship with stress response/allostatic load theory`, "remarks", "referecnes")) %>% 
   kable() %>% 
   kable_styling(bootstrap_options = c("condensed", "responsive"), full_width = T, position = "left", font_size = 14, fixed_thead = T) %>% 
-  row_spec(which(al$Biomarkers %in% c("Cardiovascular", "Metabolic", "Immune/Inflammatory", "Neuroendocrine")), color = "black", background = "#bdbdbd") %>% 
+  #row_spec(which(al$Biomarkers %in% c("Cardiovascular", "Metabolic", "Immune/Inflammatory", "Neuroendocrine")), color = "black", background = "#bdbdbd") %>% 
   scroll_box(width = "100%", height = "80%")
 ```
 
 ---
 ## Overview of distribution of biomarkers
-```{r import data, include=FALSE, echo=FALSE, message=FALSE, warning=FALSE}
+```{r import data3, include=FALSE, echo=FALSE, message=FALSE, warning=FALSE}
 ```
 
 ```{r descriptive statistic func, echo=FALSE}
 ```
+
 - Cardiovascular biomarkers - blood pressure
-```{r cardio_plot}
+
+```{r cardio_plot_by_cohort, out.width="60%", fig.align = "center"}
 ```
 
 ---
 - Cardiovascular biomarkers - anthropometric measures
-```{r anthropometrics_plot}
+
+```{r anthropometrics_plot_by_cohort, fig.align = "center"}
 ```
 
 ---
 - Metabolic biomarkers
-```{r metabolic_plot}
+
+```{r metabolic_plot_by_cohort, fig.align = "center"}
 ```
 
 ---
 - Inflammatory biomarkers
-```{r immune_plot}
+
+```{r immune_plot_by_cohort, fig.align = "center"}
 ```
 
 ---
 ## Overview of allostatic load score
 - Traditional score: sum of quartiles
+```{r import data2, include=FALSE, echo=FALSE, message=FALSE, warning=FALSE}
+```
+
+```{r define biomarkers, include=FALSE, echo=FALSE, message=FALSE, warning=FALSE}
+```
+
+```{r AL score calc function, include=FALSE, echo=FALSE, message=FALSE, warning=FALSE}
+```
 
 .pull-left[ 
 - Grils
-```{r, allostatic score 1 quantile based girls, echo=FALSE, results='hide', fig.show='hold'}
+
+```{r, allostatic score 1 quantile based girls, echo=FALSE, results='hide', fig.show='hold', fig.align = "center", out.width = "60%"}
 ```
 ]
 
 .pull-right[ 
 - Boys
-```{r, allostatic score 1 quantile based boys, echo=FALSE, results='hide', fig.show='hold'}
+
+```{r, allostatic score 1 quantile based boys, echo=FALSE, results='hide', fig.show='hold', fig.align = "center", out.width = "60%"}
 ```
 ]
 
@@ -102,18 +119,21 @@ al %>%
 
 .pull-left[ 
 - Grils
-```{r, allostatic score z quantile based girls, echo=FALSE, results='hide', fig.show='hold'}
+
+```{r, allostatic score z quantile based girls, echo=FALSE, results='hide', fig.show='hold', fig.align = "center", out.width = "70%"}
 ```
 ]
 
 .pull-right[ 
 - Boys
-```{r, allostatic score z quantile based boys, echo=FALSE, results='hide', fig.show='hold'}
+
+```{r, allostatic score z quantile based boys, echo=FALSE, results='hide', fig.show='hold', fig.align = "center", out.width = "70%"}
 ```
 ]
 
 ---
 ## Steroid profile - Urine sample
+
 ```{r}
 steroid %>% kable() %>% 
   kable_styling(bootstrap_options = c("condensed", "responsive"), full_width = F, position = "left", font_size = 14, fixed_thead = T) %>% 

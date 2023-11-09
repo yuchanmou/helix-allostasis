@@ -29,6 +29,16 @@ load("/Users/ymou/helix_project/data/analysis_data/df_al_final.RData")
 Sys.Date()
 ```
 
+```{r define variables, include=FALSE, echo=FALSE, message=FALSE, warning=FALSE}
+out <- c("AL_2_tot", "AL_2_tot_wavg", "AL_z2_tot", "AL_z2_tot_wavg")
+
+cardio <- c("hs_zsys_bp", "hs_zdia_bp", "bp_pulse_sd")
+metab <- c("hs_zbmi_who", "hs_zwaist_mets", "hs_skf_sum2", "hs_fatprop_bia",
+           "hs_hdlchol_c", "hs_non_hdl_c", "hs_triglyc_c", "Leptin", "Adiponectin")
+immune <- c("CRP", "IL1beta", "IL6", "IL8", "IL10", "TNFalfa")
+neuro <- c("cortisol_prod_log10")
+```
+
 
 # Descriptive analysis of missing in biomarkers
 

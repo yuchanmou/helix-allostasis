@@ -24,27 +24,34 @@ packages <- c(
 sapply(packages, library, character.only = T)
 ```
 
-```{r import data, include=FALSE, echo=FALSE, message=FALSE, warning=FALSE}
+```{r import data3, include=FALSE, echo=FALSE, message=FALSE, warning=FALSE}
 load("/Users/ymou/helix_project/data/analysis_data/df_al_final.RData")
 Sys.Date()
 ```
 
 ```{r define variables, include=FALSE, echo=FALSE, message=FALSE, warning=FALSE}
-expo <- c("hs_no2_yr_hs_t", "hs_no2_yr_hs_h", "hs_no2_yr_hs_s", "hs_no2_yr_hs_r", "hs_no2_yr_hs_p",
-          "hs_pm25_yr_hs_t", "hs_pm25_yr_hs_h", "hs_pm25_yr_hs_s", "hs_pm25_yr_hs_r", "hs_pm25_yr_hs_p",
-          "hs_pm25abs_yr_hs_t", "hs_pm25abs_yr_hs_h", "hs_pm25abs_yr_hs_s", "hs_pm25abs_yr_hs_r", "hs_pm25abs_yr_hs_p",
-          "hs_pm10_yr_hs_t", "hs_pm10_yr_hs_h", "hs_pm10_yr_hs_s", "hs_pm10_yr_hs_r", "hs_pm10_yr_hs_p",
-          "hs_lden_c_h", "hs_lden_c_s", "hs_lden_t")
+expo <- c(
+  "hs_no2_yr_hs_t", "hs_no2_yr_hs_h", "hs_no2_yr_hs_s", "hs_no2_yr_hs_r", "hs_no2_yr_hs_p",
+  "hs_pm25_yr_hs_t", "hs_pm25_yr_hs_h", "hs_pm25_yr_hs_s", "hs_pm25_yr_hs_r", "hs_pm25_yr_hs_p",
+  "hs_pm25abs_yr_hs_t", "hs_pm25abs_yr_hs_h", "hs_pm25abs_yr_hs_s", "hs_pm25abs_yr_hs_r", "hs_pm25abs_yr_hs_p",
+  "hs_pm10_yr_hs_t", "hs_pm10_yr_hs_h", "hs_pm10_yr_hs_s", "hs_pm10_yr_hs_r", "hs_pm10_yr_hs_p",
+  "hs_lden_c_h", "hs_lden_c_s", "hs_lden_t"
+)
 
-cov <- c("e3_sex", "hs_mvpa", "hs_sd_wk", "hs_child_age_years",# child characteristics
-         "FAS_cat", "h_native", "h_ethnicity_cauc", "h_edumc", "h_edufc",
-         "hs_smk_parents", "e3_asmokyn_p", "e3_alcpreg_yn", "h_marital", "h_age", "h_parity")
+cov <- c(
+  "e3_sex", "hs_mvpa", "hs_sd_wk", "hs_child_age_years", # child characteristics
+  "FAS_cat", "h_native", "h_ethnicity_cauc", "h_edumc", "h_edufc",
+  "hs_smk_parents", "hs_globalexp", "e3_asmokyn_p", "e3_alcpreg_yn", "h_marital", "h_age", "h_parity"
+)
 
-out <- c("AL_1_tot", "AL_1_tot_wavg", "AL_2_tot", "AL_2_tot_wavg", "AL_z1_tot", "AL_z1_tot_wavg", "AL_z2_tot", "AL_z2_tot_wavg")
+out <- c("AL_2_tot", "AL_2_tot_wavg", "AL_z2_tot", "AL_z2_tot_wavg") # sex-specific scores
+# "AL_1_tot", "AL_1_tot_wavg", "AL_z1_tot", "AL_z1_tot_wavg": score based on whole sample
 
-cardio <- c("hs_zsys_bp", "hs_zdia_bp", "bp_pulse_avg")
-metab <- c("hs_zbmi_who", "hs_zwaist_mets", "hs_skf_sum2", "hs_fatprop_bia",
-           "hs_hdlchol_c", "hs_ldlchol_c", "hs_triglyc_c", "hs_totchol_c", "Leptin", "Adiponectin")
+cardio <- c("hs_zsys_bp", "hs_zdia_bp", "bp_pulse_sd")
+metab <- c(
+  "hs_zbmi_who", "hs_zwaist_mets", "hs_skf_sum2", "hs_fatprop_bia",
+  "hs_hdlchol_c", "hs_non_hdl_c", "hs_triglyc_c", "Leptin", "Adiponectin"
+) # "hs_ldlchol_c", "hs_totchol_c"
 immune <- c("CRP", "IL1beta", "IL6", "IL8", "IL10", "TNFalfa")
 neuro <- c("cortisol_prod_log10")
 ```
@@ -147,8 +154,8 @@ par(mfrow = c(4, 4))
 plot_all(df_plot)
 
 # separate by cohort
-df_plot_continuous <- df_plot %>% 
-  select(-c("hs_lden_c_h", "hs_lden_c_s")) 
+df_plot_continuous <- df_plot %>%
+  select(-c("hs_lden_c_h", "hs_lden_c_s"))
 df_plot_continuous %>%
   pivot_longer(cols = 1:ncol(df_plot_continuous) - 1) %>%
   ggplot(aes(x = value, fill = cohort)) +
@@ -219,18 +226,19 @@ wrap_plots(p1, p2, p3, p4, p5, ncol = 2, nrow = 3)
 ```
 
 ## 2. Complete cases of exposures
+
 ```{r complete_expo}
-expo_desc <- df_final %>% 
-  filter(!is.na(e3_sex)) %>% 
+expo_desc <- df_final %>%
+  filter(!is.na(e3_sex)) %>%
   select(cohort, all_of(expo)) %>%
   group_by(cohort)
 
 as.data.frame(cbind(
   "#" = colSums(!is.na(expo_desc))
-)) %>% 
+)) %>%
   tibble::rownames_to_column(var = "Variables") %>%
   kable() %>%
-  kable_styling(bootstrap_options = c("striped", "condensed"), full_width = T) %>% 
+  kable_styling(bootstrap_options = c("striped", "condensed"), full_width = T) %>%
   scroll_box(fixed_thead = T)
 
 expo_desc_cohort <- group_split(expo_desc)
@@ -248,7 +256,7 @@ exposure_desc <- as.data.frame(cbind(
 exposure_desc %>%
   tibble::rownames_to_column(var = "Variables") %>%
   kable() %>%
-  kable_styling(bootstrap_options = c("striped", "condensed"), full_width = T) %>% 
+  kable_styling(bootstrap_options = c("striped", "condensed"), full_width = T) %>%
   scroll_box(fixed_thead = T)
 ```
 
@@ -283,7 +291,7 @@ for (i in 1:nrow(cohort)) {
 }
 
 kable(prop_missing) %>%
-  kable_styling(bootstrap_options = c("striped", "hover", "responsive"), full_width = F) %>% 
+  kable_styling(bootstrap_options = c("striped", "hover", "responsive"), full_width = F) %>%
   kable_classic(full_width = F, html_font = "Cambria")
 
 prop_missing_pervar <- as.data.frame(cbind(
@@ -302,10 +310,10 @@ prop_missing_pervar <- as.data.frame(cbind(
 ))
 
 prop_missing_pervar %>%
-  filter(row_number() <= n()-1) %>% # remove last row: cohort
+  filter(row_number() <= n() - 1) %>% # remove last row: cohort
   tibble::rownames_to_column(var = "Variables") %>%
   kable() %>%
-  kable_styling(bootstrap_options = c("striped", "condensed"), full_width = T, fixed_thead = T) %>% 
+  kable_styling(bootstrap_options = c("striped", "condensed"), full_width = T, fixed_thead = T) %>%
   kable_classic(full_width = F, html_font = "Cambria")
 
 # write.table(tbl_missing, file = 'proportion of missings_1y.txt', sep = ',', quote = F, row.names = F)
@@ -341,6 +349,7 @@ continuous_stats <- function(data, var) {
 ## Cardiovascular biomarkers
 
 ### Missing percentage
+
 ```{r missing cardio}
 daf_impcheck <- df_final %>%
   select(cardio, cohort) %>%
@@ -369,7 +378,7 @@ prop_missing_pervar <- as.data.frame(cbind(
 prop_missing_pervar %>%
   tibble::rownames_to_column(var = "Variables") %>%
   kable() %>%
-  kable_styling(bootstrap_options = c("striped", "condensed"), full_width = T, fixed_thead = T) %>% 
+  kable_styling(bootstrap_options = c("striped", "condensed"), full_width = T, fixed_thead = T) %>%
   kable_classic(full_width = F, html_font = "Cambria")
 ```
 
@@ -425,11 +434,11 @@ cardio_desc_all %>%
 ### by sex
 
 ```{r cardio_plot_by_sex}
-cardio <- df_final %>%
+cardio_df <- df_final %>%
   select(e3_sex, hs_zsys_bp, hs_zdia_bp, bp_pulse_avg)
 
-cardio %>%
-  pivot_longer(cols = 2:ncol(cardio)) %>%
+cardio_df %>%
+  pivot_longer(cols = 2:ncol(cardio_df)) %>%
   ggplot(aes(x = value, fill = e3_sex)) +
   geom_histogram(position = "identity", alpha = 0.5) +
   facet_wrap(~name, scales = "free_x")
@@ -438,12 +447,25 @@ cardio %>%
 ### by age group
 
 ```{r cardio_plot_by_agegrp}
-cardio <- df_final %>%
+cardio_df <- df_final %>%
   select(child_age_grp, hs_zsys_bp, hs_zdia_bp, bp_pulse_avg)
 
-cardio %>%
-  pivot_longer(cols = 2:ncol(cardio)) %>%
+cardio_df %>%
+  pivot_longer(cols = 2:ncol(cardio_df)) %>%
   ggplot(aes(x = value, fill = child_age_grp)) +
+  geom_histogram(position = "identity", alpha = 0.5) +
+  facet_wrap(~name, scales = "free_x")
+```
+
+### by cohort
+
+```{r cardio_plot_by_cohort}
+cardio_df <- df_final %>%
+  select(cohort, hs_zsys_bp, hs_zdia_bp, bp_pulse_sd)
+
+cardio_df %>%
+  pivot_longer(cols = 2:ncol(cardio_df)) %>%
+  ggplot(aes(x = value, fill = cohort)) +
   geom_histogram(position = "identity", alpha = 0.5) +
   facet_wrap(~name, scales = "free_x")
 ```
@@ -451,24 +473,24 @@ cardio %>%
 ### by maternal education
 
 ```{r cardio_plot_by_edum}
-cardio <- df_final %>%
+cardio_df <- df_final %>%
   select(h_edumc, hs_zsys_bp, hs_zdia_bp, bp_pulse_avg)
 
-cardio %>%
-  pivot_longer(cols = 2:ncol(cardio)) %>%
+cardio_df %>%
+  pivot_longer(cols = 2:ncol(cardio_df)) %>%
   ggplot(aes(x = value, fill = h_edumc)) +
   geom_histogram(position = "identity", alpha = 0.5) +
   facet_wrap(~name, scales = "free_x")
 ```
 
-### by family affluence scale
+### by FAS (family affluent scale)
 
 ```{r cardio_plot_by_fas}
-cardio <- df_final %>%
+cardio_df <- df_final %>%
   select(FAS_cat, hs_zsys_bp, hs_zdia_bp, bp_pulse_avg)
 
-cardio %>%
-  pivot_longer(cols = 2:ncol(cardio)) %>%
+cardio_df %>%
+  pivot_longer(cols = 2:ncol(cardio_df)) %>%
   ggplot(aes(x = value, fill = FAS_cat)) +
   geom_histogram(position = "identity", alpha = 0.5) +
   facet_wrap(~name, scales = "free_x")
@@ -477,11 +499,11 @@ cardio %>%
 ### by child ethnicity
 
 ```{r cardio_plot_by_ethc}
-cardio <- df_final %>%
+cardio_df <- df_final %>%
   select(h_ethnicity_3cat, hs_zsys_bp, hs_zdia_bp, bp_pulse_avg)
 
-cardio %>%
-  pivot_longer(cols = 2:ncol(cardio)) %>%
+cardio_df %>%
+  pivot_longer(cols = 2:ncol(cardio_df)) %>%
   ggplot(aes(x = value, fill = h_ethnicity_3cat)) +
   geom_histogram(position = "identity", alpha = 0.5) +
   facet_wrap(~name, scales = "free_x")
@@ -492,6 +514,7 @@ cardio %>%
 Unit z score
 
 ### Missing percentage
+
 ```{r missing metab}
 daf_impcheck <- df_final %>%
   select(metab, cohort) %>%
@@ -518,12 +541,14 @@ prop_missing_pervar <- as.data.frame(cbind(
 ))
 
 prop_missing_pervar %>%
-  filter(row_number() <= n()-1) %>% # remove last row: cohort
+  filter(row_number() <= n() - 1) %>% # remove last row: cohort
   tibble::rownames_to_column(var = "Variables") %>%
   kable() %>%
-  kable_styling(bootstrap_options = c("striped", "condensed"), full_width = T, fixed_thead = T) %>% 
+  kable_styling(bootstrap_options = c("striped", "condensed"), full_width = T, fixed_thead = T) %>%
   kable_classic(full_width = F, html_font = "Cambria")
 ```
+
+### Anthrpometrics
 
 ```{r anthropometrics}
 anthro_desc <- map_dfr(
@@ -574,61 +599,73 @@ anthro_desc_all %>%
   scroll_box(width = "100%", height = "300px")
 ```
 
-### by sex
+#### by sex
 
 ```{r anthropometrics_plot_by_sex}
-anthro <- df_final %>%
+anthro_df <- df_final %>%
   select(e3_sex, hs_zbmi_who, hs_zwaist_mets, hs_skf_sum2, hs_freefatmass_bia, hs_fatmass_bia, hs_fatprop_bia)
-anthro %>%
-  pivot_longer(cols = 2:ncol(anthro)) %>%
+anthro_df %>%
+  pivot_longer(cols = 2:ncol(anthro_df)) %>%
   ggplot(aes(x = value, fill = e3_sex)) +
   geom_histogram(position = "identity", alpha = 0.5) +
   facet_wrap(~name, scales = "free_x")
 ```
 
-### by age group
+#### by age group
 
 ```{r anthropometrics_plot_by_agegrp}
-anthro <- df_final %>%
+anthro_df <- df_final %>%
   select(child_age_grp, hs_zbmi_who, hs_zwaist_mets, hs_skf_sum2, hs_freefatmass_bia, hs_fatmass_bia, hs_fatprop_bia)
-anthro %>%
-  pivot_longer(cols = 2:ncol(anthro)) %>%
+anthro_df %>%
+  pivot_longer(cols = 2:ncol(anthro_df)) %>%
   ggplot(aes(x = value, fill = child_age_grp)) +
   geom_histogram(position = "identity", alpha = 0.5) +
   facet_wrap(~name, scales = "free_x")
 ```
 
-### by maternal education
+#### by cohort
+
+```{r anthropometrics_plot_by_cohort}
+anthro_df <- df_final %>%
+  select(cohort, hs_zbmi_who, hs_zwaist_mets, hs_skf_sum2, hs_freefatmass_bia, hs_fatmass_bia, hs_fatprop_bia)
+anthro_df %>%
+  pivot_longer(cols = 2:ncol(anthro_df)) %>%
+  ggplot(aes(x = value, fill = cohort)) +
+  geom_histogram(position = "identity", alpha = 0.5) +
+  facet_wrap(~name, scales = "free_x")
+```
+
+#### by maternal education
 
 ```{r anthropometrics_plot_by_edum}
-anthro <- df_final %>%
+anthro_df <- df_final %>%
   select(h_edumc, hs_zbmi_who, hs_zwaist_mets, hs_skf_sum2, hs_freefatmass_bia, hs_fatmass_bia, hs_fatprop_bia)
-anthro %>%
-  pivot_longer(cols = 2:ncol(anthro)) %>%
+anthro_df %>%
+  pivot_longer(cols = 2:ncol(anthro_df)) %>%
   ggplot(aes(x = value, fill = h_edumc)) +
   geom_histogram(position = "identity", alpha = 0.5) +
   facet_wrap(~name, scales = "free_x")
 ```
 
-### by FAS
+#### by FAS
 
 ```{r anthropometrics_plot_by_fas}
-anthro <- df_final %>%
+anthro_df <- df_final %>%
   select(FAS_cat, hs_zbmi_who, hs_zwaist_mets, hs_skf_sum2, hs_freefatmass_bia, hs_fatmass_bia, hs_fatprop_bia)
-anthro %>%
-  pivot_longer(cols = 2:ncol(anthro)) %>%
+anthro_df %>%
+  pivot_longer(cols = 2:ncol(anthro_df)) %>%
   ggplot(aes(x = value, fill = FAS_cat)) +
   geom_histogram(position = "identity", alpha = 0.5) +
   facet_wrap(~name, scales = "free_x")
 ```
 
-### by child ethnicity
+#### by child ethnicity
 
 ```{r anthropometrics_plot_by_ethc}
-anthro <- df_final %>%
+anthro_df <- df_final %>%
   select(h_ethnicity_3cat, hs_zbmi_who, hs_zwaist_mets, hs_skf_sum2, hs_freefatmass_bia, hs_fatmass_bia, hs_fatprop_bia)
-anthro %>%
-  pivot_longer(cols = 2:ncol(anthro)) %>%
+anthro_df %>%
+  pivot_longer(cols = 2:ncol(anthro_df)) %>%
   ggplot(aes(x = value, fill = h_ethnicity_3cat)) +
   geom_histogram(position = "identity", alpha = 0.5) +
   facet_wrap(~name, scales = "free_x")
@@ -641,7 +678,7 @@ metab_desc <- map_dfr(
   data = df_final,
   .x = quos(
     hs_hdlchol_c, hs_ldlchol_c, hs_triglyc_c, hs_totchol_c, Leptin, Adiponectin,
-    Cpeptide, INSULIN, Glucose, hs_creatinine_c
+    CRP, INSULIN, Glucose, hs_creatinine_c
   ),
   .f = continuous_stats
 ) %>%
@@ -652,7 +689,7 @@ metab_desc_g <- map_dfr(
   data = df_finalg,
   .x = quos(
     hs_hdlchol_c, hs_ldlchol_c, hs_triglyc_c, hs_totchol_c, Leptin, Adiponectin,
-    Cpeptide, INSULIN, Glucose, hs_creatinine_c
+    CRP, INSULIN, Glucose, hs_creatinine_c
   ),
   .f = continuous_stats
 ) %>%
@@ -663,7 +700,7 @@ metab_desc_b <- map_dfr(
   data = df_finalb,
   .x = quos(
     hs_hdlchol_c, hs_ldlchol_c, hs_triglyc_c, hs_totchol_c, Leptin, Adiponectin,
-    Cpeptide, INSULIN, Glucose, hs_creatinine_c
+    CRP, INSULIN, Glucose, hs_creatinine_c
   ),
   .f = continuous_stats
 ) %>%
@@ -695,76 +732,88 @@ metab_desc_all %>%
   scroll_box(width = "100%", height = "300px")
 ```
 
-### by sex
+### Metabolic biomarkers
+
+#### by sex
 
 ```{r metabolic_plot_by_sex}
-metab <- df_final %>%
+metab_df <- df_final %>%
   select(
-    e3_sex, hs_hdlchol_c, hs_ldlchol_c, hs_triglyc_c, hs_totchol_c, Leptin, Adiponectin,
-    Cpeptide, INSULIN, Glucose, hs_creatinine_c
+    e3_sex, hs_hdlchol_c, hs_non_hdl_c, hs_totchol_c, hs_ldlchol_c, hs_triglyc_c, Leptin, Adiponectin,
+    CRP, INSULIN, Glucose, hs_creatinine_c
   )
-metab %>%
-  pivot_longer(cols = 2:ncol(metab)) %>%
+metab_df %>%
+  pivot_longer(cols = 2:ncol(metab_df)) %>%
   ggplot(aes(x = value, fill = e3_sex)) +
   geom_histogram(position = "identity", alpha = 0.5) +
   facet_wrap(~name, scales = "free_x")
 ```
 
-### by age group
+#### by age group
 
 ```{r metabolic_plot_by_agegrp}
-metab <- df_final %>%
+metab_df <- df_final %>%
   select(
-    child_age_grp, hs_hdlchol_c, hs_ldlchol_c, hs_triglyc_c, hs_totchol_c, Leptin, Adiponectin,
-    Cpeptide, INSULIN, Glucose, hs_creatinine_c
+    child_age_grp, hs_hdlchol_c, hs_non_hdl_c, hs_totchol_c, hs_ldlchol_c, hs_triglyc_c, Leptin, Adiponectin, CRP, INSULIN, Glucose, hs_creatinine_c
   )
-metab %>%
-  pivot_longer(cols = 2:ncol(metab)) %>%
+metab_df %>%
+  pivot_longer(cols = 2:ncol(metab_df)) %>%
   ggplot(aes(x = value, fill = child_age_grp)) +
   geom_histogram(position = "identity", alpha = 0.5) +
   facet_wrap(~name, scales = "free_x")
 ```
 
-### by maternal education
+#### by cohort
+
+```{r metabolic_plot_by_cohort}
+metab_df <- df_final %>%
+  select(
+    cohort, hs_hdlchol_c, hs_non_hdl_c, hs_totchol_c, hs_ldlchol_c, hs_triglyc_c, Leptin, Adiponectin, CRP, INSULIN, Glucose, hs_creatinine_c
+  )
+metab_df %>%
+  pivot_longer(cols = 2:ncol(metab_df)) %>%
+  ggplot(aes(x = value, fill = cohort)) +
+  geom_histogram(position = "identity", alpha = 0.5) +
+  facet_wrap(~name, scales = "free_x")
+```
+
+#### by maternal education
 
 ```{r metabolic_plot_by_edum}
-metab <- df_final %>%
+metab_df <- df_final %>%
   select(
-    h_edumc, hs_hdlchol_c, hs_ldlchol_c, hs_triglyc_c, hs_totchol_c, Leptin, Adiponectin,
-    Cpeptide, INSULIN, Glucose, hs_creatinine_c
+    h_edumc, hs_hdlchol_c, hs_non_hdl_c, hs_totchol_c, hs_ldlchol_c, hs_triglyc_c, Leptin, Adiponectin, CRP, INSULIN, Glucose, hs_creatinine_c
   )
-metab %>%
-  pivot_longer(cols = 2:ncol(metab)) %>%
+metab_df %>%
+  pivot_longer(cols = 2:ncol(metab_df)) %>%
   ggplot(aes(x = value, fill = h_edumc)) +
   geom_histogram(position = "identity", alpha = 0.5) +
   facet_wrap(~name, scales = "free_x")
 ```
 
-### by FAS
+#### by FAS
 
 ```{r metabolic_plot_by_fas}
-metab <- df_final %>%
+metab_df <- df_final %>%
   select(
-    FAS_cat, hs_hdlchol_c, hs_ldlchol_c, hs_triglyc_c, hs_totchol_c, Leptin, Adiponectin,
-    Cpeptide, INSULIN, Glucose, hs_creatinine_c
+    FAS_cat, hs_hdlchol_c, hs_non_hdl_c, hs_totchol_c, hs_ldlchol_c, hs_triglyc_c, Leptin, Adiponectin, CRP, INSULIN, Glucose, hs_creatinine_c
   )
-metab %>%
-  pivot_longer(cols = 2:ncol(metab)) %>%
+metab_df %>%
+  pivot_longer(cols = 2:ncol(metab_df)) %>%
   ggplot(aes(x = value, fill = FAS_cat)) +
   geom_histogram(position = "identity", alpha = 0.5) +
   facet_wrap(~name, scales = "free_x")
 ```
 
-### by child ethnicity
+#### by child ethnicity
 
 ```{r metabolic_plot_by_ethc}
-metab <- df_final %>%
+metab_df <- df_final %>%
   select(
-    h_ethnicity_3cat, hs_hdlchol_c, hs_ldlchol_c, hs_triglyc_c, hs_totchol_c, Leptin, Adiponectin,
-    Cpeptide, INSULIN, Glucose, hs_creatinine_c
+    h_ethnicity_3cat, hs_hdlchol_c, hs_non_hdl_c, hs_totchol_c, hs_ldlchol_c, hs_triglyc_c, Leptin, Adiponectin, CRP, INSULIN, Glucose, hs_creatinine_c
   )
-metab %>%
-  pivot_longer(cols = 2:ncol(metab)) %>%
+metab_df %>%
+  pivot_longer(cols = 2:ncol(metab_df)) %>%
   ggplot(aes(x = value, fill = h_ethnicity_3cat)) +
   geom_histogram(position = "identity", alpha = 0.5) +
   facet_wrap(~name, scales = "free_x")
@@ -775,6 +824,7 @@ metab %>%
 Unit pg/mL, log2 transformed, imputed and normalized
 
 ### Missing percentage
+
 ```{r missing immune}
 daf_impcheck <- df_final %>%
   select(immune, cohort) %>%
@@ -801,10 +851,10 @@ prop_missing_pervar <- as.data.frame(cbind(
 ))
 
 prop_missing_pervar %>%
-  filter(row_number() <= n()-1) %>% # remove last row: cohort
+  filter(row_number() <= n() - 1) %>% # remove last row: cohort
   tibble::rownames_to_column(var = "Variables") %>%
   kable() %>%
-  kable_styling(bootstrap_options = c("striped", "condensed"), full_width = T, fixed_thead = T) %>% 
+  kable_styling(bootstrap_options = c("striped", "condensed"), full_width = T, fixed_thead = T) %>%
   kable_classic(full_width = F, html_font = "Cambria")
 ```
 
@@ -860,10 +910,10 @@ immune_desc_all %>%
 ### by sex
 
 ```{r immune_plot_by_sex}
-immune <- df_final %>%
+immune_df <- df_final %>%
   select(e3_sex, CRP, IL1beta, IL6, IL8, IL10, TNFalfa)
-immune %>%
-  pivot_longer(cols = 2:ncol(immune)) %>%
+immune_df %>%
+  pivot_longer(cols = 2:ncol(immune_df)) %>%
   ggplot(aes(x = value, fill = e3_sex)) +
   geom_histogram(position = "identity", alpha = 0.5) +
   facet_wrap(~name, scales = "free_x")
@@ -872,11 +922,23 @@ immune %>%
 ### by age group
 
 ```{r immune_plot_by_agegrp}
-immune <- df_final %>%
+immune_df <- df_final %>%
   select(child_age_grp, CRP, IL1beta, IL6, IL8, IL10, TNFalfa)
-immune %>%
-  pivot_longer(cols = 2:ncol(immune)) %>%
+immune_df %>%
+  pivot_longer(cols = 2:ncol(immune_df)) %>%
   ggplot(aes(x = value, fill = child_age_grp)) +
+  geom_histogram(position = "identity", alpha = 0.5) +
+  facet_wrap(~name, scales = "free_x")
+```
+
+### by cohort
+
+```{r immune_plot_by_cohort}
+immune_df <- df_final %>%
+  select(cohort, CRP, IL1beta, IL6, IL8, IL10, TNFalfa)
+immune_df %>%
+  pivot_longer(cols = 2:ncol(immune_df)) %>%
+  ggplot(aes(x = value, fill = cohort)) +
   geom_histogram(position = "identity", alpha = 0.5) +
   facet_wrap(~name, scales = "free_x")
 ```
@@ -884,10 +946,10 @@ immune %>%
 ### by maternal education
 
 ```{r immune_plot_by_edum}
-immune <- df_final %>%
+immune_df <- df_final %>%
   select(h_edumc, CRP, IL1beta, IL6, IL8, IL10, TNFalfa)
-immune %>%
-  pivot_longer(cols = 2:ncol(immune)) %>%
+immune_df %>%
+  pivot_longer(cols = 2:ncol(immune_df)) %>%
   ggplot(aes(x = value, fill = h_edumc)) +
   geom_histogram(position = "identity", alpha = 0.5) +
   facet_wrap(~name, scales = "free_x")
@@ -896,10 +958,10 @@ immune %>%
 ### by FAS
 
 ```{r immune_plot_by_fas}
-immune <- df_final %>%
+immune_df <- df_final %>%
   select(FAS_cat, CRP, IL1beta, IL6, IL8, IL10, TNFalfa)
-immune %>%
-  pivot_longer(cols = 2:ncol(immune)) %>%
+immune_df %>%
+  pivot_longer(cols = 2:ncol(immune_df)) %>%
   ggplot(aes(x = value, fill = FAS_cat)) +
   geom_histogram(position = "identity", alpha = 0.5) +
   facet_wrap(~name, scales = "free_x")
@@ -908,10 +970,10 @@ immune %>%
 ### by child ethnicity
 
 ```{r immune_plot_by_ethc}
-immune <- df_final %>%
+immune_df <- df_final %>%
   select(h_ethnicity_3cat, CRP, IL1beta, IL6, IL8, IL10, TNFalfa)
-immune %>%
-  pivot_longer(cols = 2:ncol(immune)) %>%
+immune_df %>%
+  pivot_longer(cols = 2:ncol(immune_df)) %>%
   ggplot(aes(x = value, fill = h_ethnicity_3cat)) +
   geom_histogram(position = "identity", alpha = 0.5) +
   facet_wrap(~name, scales = "free_x")
@@ -920,6 +982,7 @@ immune %>%
 ## Neuroendocrine biomarkers
 
 ### Missing percentage
+
 ```{r missing neuro}
 daf_impcheck <- df_final %>%
   select(neuro, cohort) %>%
@@ -946,10 +1009,10 @@ prop_missing_pervar <- as.data.frame(cbind(
 ))
 
 prop_missing_pervar %>%
-  filter(row_number() <= n()-1) %>% # remove last row: cohort
+  filter(row_number() <= n() - 1) %>% # remove last row: cohort
   tibble::rownames_to_column(var = "Variables") %>%
   kable() %>%
-  kable_styling(bootstrap_options = c("striped", "condensed"), full_width = T, fixed_thead = T) %>% 
+  kable_styling(bootstrap_options = c("striped", "condensed"), full_width = T, fixed_thead = T) %>%
   kable_classic(full_width = F, html_font = "Cambria")
 ```
 
@@ -1026,6 +1089,18 @@ cort %>%
   facet_wrap(~name, scales = "free_x")
 ```
 
+### by cohort
+
+```{r cortisol_plot_by_cohort}
+cort <- df_final %>%
+  select(cohort, cortisol_prod_log10)
+cort %>%
+  pivot_longer(cols = 2:ncol(cort)) %>%
+  ggplot(aes(x = value, fill = cohort)) +
+  geom_histogram(position = "identity", alpha = 0.5) +
+  facet_wrap(~name, scales = "free_x")
+```
+
 ### by maternal education
 
 ```{r cortisol_plot_by_edum}
@@ -1062,20 +1137,22 @@ cort %>%
   facet_wrap(~name, scales = "free_x")
 ```
 
-# Descriptive analysis of outcome
+# Allostatic load scores
+
 ## Complete cases of outcomes
+
 ```{r complete_outcome}
-out_desc <- df_final %>% 
-  filter(!is.na(e3_sex)) %>% 
+out_desc <- df_final %>%
+  filter(!is.na(e3_sex)) %>%
   select(cohort, all_of(out)) %>%
   group_by(cohort)
 
 as.data.frame(cbind(
   "#" = colSums(!is.na(out_desc))
-)) %>% 
+)) %>%
   tibble::rownames_to_column(var = "Variables") %>%
   kable() %>%
-  kable_styling(bootstrap_options = c("striped", "condensed"), full_width = T, fixed_thead = T) %>% 
+  kable_styling(bootstrap_options = c("striped", "condensed"), full_width = T, fixed_thead = T) %>%
   kable_classic(full_width = F, html_font = "Cambria")
 
 out_desc_cohort <- group_split(out_desc)
@@ -1093,11 +1170,12 @@ outcome_desc <- as.data.frame(cbind(
 outcome_desc %>%
   tibble::rownames_to_column(var = "Variables") %>%
   kable() %>%
-  kable_styling(bootstrap_options = c("striped", "condensed"), full_width = T, fixed_thead = T) %>% 
+  kable_styling(bootstrap_options = c("striped", "condensed"), full_width = T, fixed_thead = T) %>%
   kable_classic(full_width = F, html_font = "Cambria")
 ```
 
 ## Distribution by cohort
+
 ```{r}
 p1 <- df_final %>%
   ggplot(aes(x = AL_2_tot, fill = cohort)) +
@@ -1112,7 +1190,39 @@ p2 <- df_final %>%
 wrap_plots(p1, p2, ncol = 1, nrow = 2)
 ```
 
+### Mean (SD) Table
+```{r}
+mean_sd <- list(
+  mean = ~mean(.x, na.rm = T),
+  sd = ~sd(.x, na.rm = T)
+)
+  
+# Total score
+AL_desc <- df_final %>%
+  select(cohort, AL_2_tot, AL_z2_tot) %>% 
+  group_by(cohort) %>% 
+  summarise(across(c(AL_2_tot, AL_z2_tot), mean_sd)) %>% 
+  mutate_at(2:5, round, 1) %>% 
+  mutate(
+    countAL = paste(AL_2_tot_mean, " (", AL_2_tot_sd, ")", sep = ""),
+    continuousAL = paste(AL_z2_tot_mean, " (", AL_z2_tot_sd, ")", sep = "")
+  ) %>% 
+  select(cohort, countAL, continuousAL) %>% 
+  t()
+
+
+AL_desc %>%
+  kable(
+    caption = "Descriptives of allostatic load score by cohort",
+    escape = F
+  ) %>%
+  kable_styling(bootstrap_options = c("condensed", "responsive"), full_width = F, position = "left", font_size = 14, fixed_thead = T) %>%
+  scroll_box(width = "100%", height = "100%")
+```
+
 # Correlation matrix
+
+## Air pollutants, noise level, covariates and allostatic load score
 
 ```{r corr_matrix_with_SES, fig.width = 18 , fig.height = 18}
 df_final %>%
@@ -1128,17 +1238,60 @@ df_final %>%
   )
 ```
 
-Correlation between noise level at home and at school, categorical variable
-```{r corr_cat}
+## Correlations among allostatic load score
+
+```{r corr_al, fig.width=10, fig.height=10}
+df_final %>%
+  select(all_of(out)) %>%
+  mutate_if(is.factor, as.numeric) %>%
+  cor(use = "pairwise.complete.obs", method = "pearson") %>%
+  ggcorrplot(
+    hc.order = TRUE,
+    type = "lower",
+    lab = TRUE
+  )
+```
+
+## Correlation between biomarkers
+
+```{r corr_biomarkers, fig.width=10, fig.height=10}
+df_final %>%
+  select(all_of(cardio), all_of(metab), all_of(immune), all_of(neuro)) %>%
+  mutate_if(is.factor, as.numeric) %>%
+  cor(use = "pairwise.complete.obs", method = "pearson") %>%
+  ggcorrplot(
+    hc.order = TRUE,
+    type = "lower",
+    lab = TRUE
+  )
+
+ggsave("/Users/ymou/helix_project/results/corr_biomarker.png", width = 10, height = 10, units = "in", dpi = 300)
+```
+
+Biomarkers with correlation estimates higher than 0.8 will be inspected IL-6 and IL-1b are highly correlated. BMI and weight circumferences are highly correlated.
+
+```{r}
+df_final %>%
+  select(cohort, IL1beta, IL6, hs_zbmi_who, hs_zwaist_mets) %>%
+  group_by(cohort) %>%
+  summarise(
+    IL_cor = cor(IL1beta, IL6, use = "complete.obs"),
+    anthropometric_cor = cor(hs_zbmi_who, hs_zwaist_mets, use = "complete.obs")
+  )
+```
+
+## Correlation between noise level at home and at school, categorical variable
+
+```{r corr_noise_cat}
 library(polycor)
 
 table(df_final$hs_lden_c_h, df_final$hs_lden_c_s)
 
-#calculate polychoric correlation
+# calculate polychoric correlation
 polychor(df_final$hs_lden_c_h, df_final$hs_lden_c_s, ML = T, std.err = T)
 ```
 
 ```{r output, include=FALSE, eval = F}
 # convert rmd to r file
-knitr::purl("3a_descriptive_analysis_all_raw_data.Rmd", documentation = 1L)
+knitr::purl("/Users/ymou/helix_project/code/helix-allostasis/3a_descriptive_analysis_all_raw_data.Rmd", documentation = 1L)
 ```

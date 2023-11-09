@@ -44,23 +44,34 @@ cov <- c(
 )
 
 out <- c("AL_2_tot", "AL_z2_tot")
-out_supl <- c("AL_1_tot", "AL_1_cardio", "AL_1_metab", "AL_1_immune", "AL_1_neuro",
-              "AL_1_tot_wavg", "AL_1_cardio_wavg", "AL_1_metab_wavg", "AL_1_immune_wavg", "AL_1_neuro_wavg",
+out_supl <- c(
               "AL_2_cardio", "AL_2_metab", "AL_2_immune", "AL_2_neuro",
               "AL_2_tot_wavg", "AL_2_cardio_wavg", "AL_2_metab_wavg", "AL_2_immune_wavg", "AL_2_neuro_wavg",
-              "AL_z1_tot", "AL_z1_cardio", "AL_z1_metab", "AL_z1_immune", "AL_z1_neuro",
-              "AL_z1_tot_wavg", "AL_z1_cardio_wavg", "AL_z1_metab_wavg", "AL_z1_immune_wavg", "AL_z1_neuro_wavg",
               "AL_z2_cardio", "AL_z2_metab", "AL_z2_immune", "AL_z2_neuro",
               "AL_z2_tot_wavg", "AL_z2_cardio_wavg", "AL_z2_metab_wavg", "AL_z2_immune_wavg", "AL_z2_neuro_wavg")
+#"AL_1_tot", "AL_1_cardio", "AL_1_metab", "AL_1_immune", "AL_1_neuro",
+#"AL_1_tot_wavg", "AL_1_cardio_wavg", "AL_1_metab_wavg", "AL_1_immune_wavg", "AL_1_neuro_wavg",
+#"AL_z1_tot", "AL_z1_cardio", "AL_z1_metab", "AL_z1_immune", "AL_z1_neuro",
+#"AL_z1_tot_wavg", "AL_z1_cardio_wavg", "AL_z1_metab_wavg", "AL_z1_immune_wavg", "AL_z1_neuro_wavg",
 
+# 19 biomarkers included in the main AL score
+# for imputation
 biomarker_all <- c(
-  "hs_zsys_bp", "hs_zdia_bp",
-  "bp_pulse_avg", "hs_zbmi_who", "hs_zwaist_mets", "hs_skf_sum2", "hs_fatprop_bia",
-  "hs_hdlchol_c", "hs_ldlchol_c", "hs_triglyc_c", "hs_totchol_c", "Leptin",
+  "hs_zsys_bp", "hs_zdia_bp", "bp_pulse_sd",
+  "hs_zbmi_who", "hs_zwaist_mets", "hs_skf_sum2", "hs_fatprop_bia",
+  "hs_hdlchol_c", "hs_non_hdl_c", "hs_triglyc_c", "Leptin",
   "Adiponectin",
   "CRP", "IL1beta", "IL6", "IL8", "IL10", "TNFalfa",
   "cortisol_prod_log10"
 )
+
+cardio <- c("hs_zsys_bp", "hs_zdia_bp", "bp_pulse_sd") # 3 biomarkers
+metab <- c(
+  "hs_zbmi_who", "hs_zwaist_mets", "hs_skf_sum2", "hs_fatprop_bia",
+  "hs_hdlchol_c", "hs_non_hdl_c", "hs_triglyc_c", "Leptin", "Adiponectin"
+) # 9 biomarkers
+immune <- c("CRP", "IL1beta", "IL6", "IL8", "IL10", "TNFalfa") # 6 biomarkers
+neuro <- c("cortisol_prod_log10") # 1 biomarkers
 ```
 
 ```{r proportion plot for convergence check}
@@ -190,7 +201,7 @@ for (i in 1:6) {
       incl_var_ap = ifelse(!is.na(hs_no2_yr_hs_t) & !is.na(hs_pm25_yr_hs_t), 1, 0), # only these two are complete in every cohort
       incl_var_ap_all = ifelse(!is.na(hs_no2_yr_hs_t) & !is.na(hs_pm25_yr_hs_t) & !is.na(hs_pm25abs_yr_hs_t) & !is.na(hs_pm10_yr_hs_t), 1, 0),
       incl_var_noise = ifelse(!is.na(hs_lden_c_h) & !is.na(hs_lden_c_s), 1, 0),
-      incl_var_out = ifelse(!is.na(AL_1_tot), 1, 0), # calculated AL score based on 100% biomarkers available
+      incl_var_out = ifelse(!is.na(AL_2_tot), 1, 0), # calculated AL score based on 100% biomarkers available
       incl_var_bio = ifelse(na_bio <= 2, 1, 0) # >90% biomarkers available are included
     )
 }
@@ -201,7 +212,8 @@ for (i in 1:6) {
 df_cohort_1 <- list()
 df_cohort_imp <- list()
 for (i in 1:6) {
-  df_cohort_1[[i]] <- subset(df_cohort[[i]], select = c("HelixID", ap, ap_supl, noise, noise_supl, cov, out, out_supl, biomarker_all, "incl_var_ap", "incl_var_ap_all", "incl_var_noise", "incl_var_out", "incl_var_bio", "cohort"))
+  df_cohort_1[[i]] <- df_cohort[[i]] %>% 
+    select(all_of(c("HelixID", ap, ap_supl, noise, noise_supl, cov, out, out_supl, biomarker_all, "incl_var_ap", "incl_var_ap_all", "incl_var_noise", "incl_var_out", "incl_var_bio", "cohort")), matches("_z$|_as1$")) 
   # complete NO2, PM2.5 with complete AL score or with 90% biomarkers available
   df_cohort_imp[[i]] <- subset(df_cohort_1[[i]], incl_var_ap == 1 & (incl_var_out == 1 | incl_var_bio == 1))
   if (length(df_cohort_1) == 6) {
@@ -213,11 +225,11 @@ for (i in 1:6) {
 
 # Imputation
 RHEA has missing PM2.5abs
-ap_supl, noise, noise_supl, out_supl were not included in the imputation. They will be merged into the dataset after imputation. 
+ap_supl, noise, noise_supl, out_supl, individual biomarker cutoff score and individual biomarker z score were not included in the imputation. They will be merged into the dataset after imputation. 
 
 ## SAB
 ```{r}
-sab <- df_cohort_imp[[1]] %>% select(-all_of(c(ap_supl, noise, noise_supl, out_supl)))
+sab <- df_cohort_imp[[1]] %>% select(-all_of(c(ap_supl, noise, noise_supl, out_supl)), matches("_z$|_as1$"))
 
 inlist <- c("hs_no2_yr_hs_t", "hs_pm25_yr_hs_t", `cov`[-c(7)], out)
 
@@ -245,7 +257,7 @@ EDEN has no data on PM2.5abs and PM10, and noise h/s.
 ede <- df_cohort_imp[[2]] %>% select(-all_of(c(
   "hs_pm25abs_yr_hs_t",
   "hs_pm10_yr_hs_t", ap_supl, noise, noise_supl, out_supl
-)))
+)), matches("_z$|_as1$"))
 
 inlist <- c("hs_no2_yr_hs_t", "hs_pm25_yr_hs_t", "hs_pm25abs_yr_hs_t", "hs_pm10_yr_hs_t", `cov`[-c(5, 7)], out)
 
@@ -268,7 +280,7 @@ propplot(imp_ede, strip.text = element_text(size = 14))
 
 ## BIB
 ```{r}
-bib <- df_cohort_imp[[3]] %>% select(-all_of(c(ap_supl, noise, noise_supl, out_supl)))
+bib <- df_cohort_imp[[3]] %>% select(-all_of(c(ap_supl, noise, noise_supl, out_supl)), matches("_z$|_as1$"))
 
 inlist <- c("hs_no2_yr_hs_t", "hs_pm25_yr_hs_t", "hs_pm25abs_yr_hs_t", "hs_pm10_yr_hs_t", cov, out)
 
@@ -291,7 +303,7 @@ propplot(imp_bib, strip.text = element_text(size = 14))
 ## RHEA
 RHEA has no data on PM2.5abs.
 ```{r}
-rhea <- df_cohort_imp[[4]] %>% select(-all_of(c("hs_pm25abs_yr_hs_t", ap_supl, noise, noise_supl, out_supl)))
+rhea <- df_cohort_imp[[4]] %>% select(-all_of(c("hs_pm25abs_yr_hs_t", ap_supl, noise, noise_supl, out_supl)), matches("_z$|_as1$"))
 
 inlist <- c("hs_no2_yr_hs_t", "hs_pm25_yr_hs_t", cov[-c(5, 7)], out)
 # all air pollutants corrs >0.8
@@ -316,7 +328,7 @@ propplot(imp_rhea, strip.text = element_text(size = 14))
 
 ## KANC
 ```{r}
-kanc <- df_cohort_imp[[5]] %>% select(-all_of(c(ap_supl, noise, noise_supl, out_supl)))
+kanc <- df_cohort_imp[[5]] %>% select(-all_of(c(ap_supl, noise, noise_supl, out_supl)), matches("_z$|_as1$"))
 
 inlist <- c("hs_no2_yr_hs_t", "hs_pm25_yr_hs_t", "hs_pm25abs_yr_hs_t", "hs_pm10_yr_hs_t", cov[-c(7)], out)
 
@@ -338,7 +350,7 @@ propplot(imp_kanc, strip.text = element_text(size = 14))
 
 ## MOBA
 ```{r}
-moba <- df_cohort_imp[[6]] %>% select(-all_of(c(ap_supl, noise, noise_supl, out_supl)))
+moba <- df_cohort_imp[[6]] %>% select(-all_of(c(ap_supl, noise, noise_supl, out_supl)), matches("_z$|_as1$"))
 
 inlist <- c("hs_no2_yr_hs_t", "hs_pm25_yr_hs_t", "hs_pm25abs_yr_hs_t", "hs_pm10_yr_hs_t", cov[-c(8, 9)], out)
 
@@ -365,14 +377,14 @@ imp_sab_l <- complete(imp_sab, "long", include = T)
 imp_sab_l <- imp_sab_l %>% 
   mutate(AL_2_tot = ifelse(imp_sab_l$incl_var_out == 1, AL_2_tot, NA),
          AL_z2_tot = ifelse(imp_sab_l$incl_var_out == 1, AL_z2_tot, NA))
-sab_supl <- df_cohort_imp[[1]] %>% select(all_of(c("HelixID", ap_supl, noise, noise_supl, out_supl)))
+sab_supl <- df_cohort_imp[[1]] %>% select(all_of(c("HelixID", ap_supl, noise, noise_supl, out_supl)), matches("_z$|_as1$"))
 imp_sab_full <- left_join(imp_sab_l, sab_supl, by = "HelixID") %>% as.mids()
 
 imp_ede_l <- complete(imp_ede, "long", include = T)
 imp_ede_l <- imp_ede_l %>% 
   mutate(AL_2_tot = ifelse(imp_ede_l$incl_var_out == 1, AL_2_tot, NA),
          AL_z2_tot = ifelse(imp_ede_l$incl_var_out == 1, AL_z2_tot, NA))
-ede_supl <- df_cohort_imp[[2]] %>% select(all_of(c("HelixID", "hs_pm25abs_yr_hs_t","hs_pm10_yr_hs_t", ap_supl, noise, noise_supl, out_supl)))
+ede_supl <- df_cohort_imp[[2]] %>% select(all_of(c("HelixID", "hs_pm25abs_yr_hs_t","hs_pm10_yr_hs_t", ap_supl, noise, noise_supl, out_supl)), matches("_z$|_as1$"))
 imp_ede_full <- left_join(imp_ede_l, ede_supl, by = "HelixID") %>%
   relocate("hs_pm25abs_yr_hs_t", "hs_pm10_yr_hs_t", .after = "hs_pm25_yr_hs_t") %>%
   as.mids()
@@ -381,14 +393,14 @@ imp_bib_l <- complete(imp_bib, "long", include = T)
 imp_bib_l <- imp_bib_l %>% 
   mutate(AL_2_tot = ifelse(imp_bib_l$incl_var_out == 1, AL_2_tot, NA),
          AL_z2_tot = ifelse(imp_bib_l$incl_var_out == 1, AL_z2_tot, NA))
-bib_supl <- df_cohort_imp[[3]] %>% select(all_of(c("HelixID", ap_supl, noise, noise_supl, out_supl)))
+bib_supl <- df_cohort_imp[[3]] %>% select(all_of(c("HelixID", ap_supl, noise, noise_supl, out_supl)), matches("_z$|_as1$"))
 imp_bib_full <- left_join(imp_bib_l, bib_supl, by = "HelixID") %>% as.mids()
 
 imp_rhea_l <- complete(imp_rhea, "long", include = T)
 imp_rhea_l <- imp_rhea_l %>% 
   mutate(AL_2_tot = ifelse(imp_rhea_l$incl_var_out == 1, AL_2_tot, NA),
          AL_z2_tot = ifelse(imp_rhea_l$incl_var_out == 1, AL_z2_tot, NA))
-rhea_supl <- df_cohort_imp[[4]] %>% select(all_of(c("HelixID", "hs_pm25abs_yr_hs_t", ap_supl, noise, noise_supl, out_supl)))
+rhea_supl <- df_cohort_imp[[4]] %>% select(all_of(c("HelixID", "hs_pm25abs_yr_hs_t", ap_supl, noise, noise_supl, out_supl)), matches("_z$|_as1$"))
 imp_rhea_full <- left_join(imp_rhea_l, rhea_supl, by = "HelixID") %>%
   relocate("hs_pm25abs_yr_hs_t", .after = "hs_pm25_yr_hs_t") %>%
   as.mids()
@@ -397,14 +409,14 @@ imp_kanc_l <- complete(imp_kanc, "long", include = T)
 imp_kanc_l <- imp_kanc_l %>% 
   mutate(AL_2_tot = ifelse(imp_kanc_l$incl_var_out == 1, AL_2_tot, NA),
          AL_z2_tot = ifelse(imp_kanc_l$incl_var_out == 1, AL_z2_tot, NA))
-kanc_supl <- df_cohort_imp[[5]] %>% select(all_of(c("HelixID", ap_supl, noise, noise_supl, out_supl)))
+kanc_supl <- df_cohort_imp[[5]] %>% select(all_of(c("HelixID", ap_supl, noise, noise_supl, out_supl)), matches("_z$|_as1$"))
 imp_kanc_full <- left_join(imp_kanc_l, kanc_supl, by = "HelixID") %>% as.mids()
 
 imp_moba_l <- complete(imp_moba, "long", include = T)
 imp_moba_l <- imp_moba_l %>% 
   mutate(AL_2_tot = ifelse(imp_moba_l$incl_var_out == 1, AL_2_tot, NA),
          AL_z2_tot = ifelse(imp_moba_l$incl_var_out == 1, AL_z2_tot, NA))
-moba_supl <- df_cohort_imp[[6]] %>% select(all_of(c("HelixID", ap_supl, noise, noise_supl, out_supl)))
+moba_supl <- df_cohort_imp[[6]] %>% select(all_of(c("HelixID", ap_supl, noise, noise_supl, out_supl)), matches("_z$|_as1$"))
 imp_moba_full <- left_join(imp_moba_l, moba_supl, by = "HelixID") %>% as.mids()
 
 # test run

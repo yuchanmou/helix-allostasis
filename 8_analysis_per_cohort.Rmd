@@ -106,40 +106,70 @@ colnames(coefs) <- c("DateTime", "Outcome", "Predictor", "Model", "Beta", "cilo"
 
 count <- 0
 for (o in out) {
-  for (d in ap) {
-    for (m in 1:length(model)) {
-      count <- count + 1
-      fit <- imp_sab_full %>%
-        mice::complete("all") %>%
-        lapply(glm, formula = paste(o, "~", d, "+", model[m], sep = ""), family = "gaussian")
-      res <- summary(pool(fit), conf.int = T)
-      # Round values
-      res <- res %>%
-        mutate_at(c("estimate", "2.5 %", "97.5 %"), round, 2) %>%
-        mutate_at(c("p.value"), round, 4)
+  if (o %in% c("AL_2_tot")) {
+    for (d in ap) {
+      for (m in 1:length(model)) {
+        count <- count + 1
+        fit <- imp_sab_full %>%
+          mice::complete("all") %>%
+          lapply(glm.nb, formula = paste(o, "~", d, "+", model[m], sep = ""), link = "log")
+        res <- summary(pool(fit), conf.int = T)
+        # Round values
+        res <- res %>%
+          mutate_at(c("estimate", "2.5 %", "97.5 %"), round, 2) %>%
+          mutate_at(c("p.value"), round, 4)
 
-      # Save results
-      coefs[count, 1] <- gsub(" ", "_", Sys.time())
-      coefs[count, 2] <- o
-      coefs[count, 3] <- d
-      coefs[count, 4] <- m
-      coefs[count, 5] <- res$estimate[2]
-      coefs[count, 6] <- res$`2.5 %`[2]
-      coefs[count, 7] <- res$`97.5 %`[2]
-      coefs[count, 8] <- paste(res$`2.5 %`[2], ",", " ", res$`97.5 %`[2], sep = "")
-      coefs[count, 9] <- res$p.value[2]
-      coefs[count, 10] <- res$std.error[2]
+        # Save results
+        coefs[count, 1] <- gsub(" ", "_", Sys.time())
+        coefs[count, 2] <- o
+        coefs[count, 3] <- d
+        coefs[count, 4] <- m
+        coefs[count, 5] <- res$estimate[2]
+        coefs[count, 6] <- res$`2.5 %`[2]
+        coefs[count, 7] <- res$`97.5 %`[2]
+        coefs[count, 8] <- paste(res$`2.5 %`[2], ",", " ", res$`97.5 %`[2], sep = "")
+        coefs[count, 9] <- res$p.value[2]
+        coefs[count, 10] <- res$std.error[2]
+      }
+    }
+  } else {
+    for (d in ap) {
+      for (m in 1:length(model)) {
+        count <- count + 1
+        fit <- imp_sab_full %>%
+          mice::complete("all") %>%
+          lapply(glm, formula = paste(o, "~", d, "+", model[m], sep = ""), family = "gaussian")
+        res <- summary(pool(fit), conf.int = T)
+        # Round values
+        res <- res %>%
+          mutate_at(c("estimate", "2.5 %", "97.5 %"), round, 2) %>%
+          mutate_at(c("p.value"), round, 4)
+
+        # Save results
+        coefs[count, 1] <- gsub(" ", "_", Sys.time())
+        coefs[count, 2] <- o
+        coefs[count, 3] <- d
+        coefs[count, 4] <- m
+        coefs[count, 5] <- res$estimate[2]
+        coefs[count, 6] <- res$`2.5 %`[2]
+        coefs[count, 7] <- res$`97.5 %`[2]
+        coefs[count, 8] <- paste(res$`2.5 %`[2], ",", " ", res$`97.5 %`[2], sep = "")
+        coefs[count, 9] <- res$p.value[2]
+        coefs[count, 10] <- res$std.error[2]
+      }
     }
   }
 }
 
-mod_tbl <- as.data.frame(matrix(NA, nrow = 1, ncol = 18))
+
+mod_tbl <- as.data.frame(matrix(NA, nrow = 1, ncol = 20))
 colnames(mod_tbl) <- c(
   "Outcome", "Predictor",
   "beta_mod1", "95ci_mod1", "pvalue_mod1", "std_mod1",
   "beta_mod2", "95ci_mod2", "pvalue_mod2", "std_mod2",
   "beta_mod3", "95ci_mod3", "pvalue_mod3", "std_mod3",
-  "beta_mod4", "95ci_mod4", "pvalue_mod4", "std_mod4"
+  "beta_mod4", "95ci_mod4", "pvalue_mod4", "std_mod4",
+  "cilo_mod4", "cihi_mod4"
 )
 count <- 0
 
@@ -169,12 +199,21 @@ for (o in out) {
     mod_tbl[count, 16] <- sep_coefs$CI[4]
     mod_tbl[count, 17] <- sep_coefs$P[4]
     mod_tbl[count, 18] <- sep_coefs$std.error[4]
+    mod_tbl[count, 19] <- sep_coefs$cilo[4]
+    mod_tbl[count, 20] <- sep_coefs$cihi[4]
   }
 }
 
+mod_tbl <- mod_tbl %>%
+  mutate(
+    exp_beta_mod4 = case_when(Outcome == "AL_2_tot" ~ exp(beta_mod4)),
+    exp_cilo_mod4 = case_when(Outcome == "AL_2_tot" ~ exp(cilo_mod4)),
+    exp_cihi_mod4 = case_when(Outcome == "AL_2_tot" ~ exp(cihi_mod4))
+  ) %>%
+  mutate_at(c("exp_beta_mod4", "exp_cilo_mod4", "exp_cihi_mod4"), round, 2) %>%
+  mutate(exp_ci_mod4 = paste(format(exp_cilo_mod4, drop0Trailing = F), ", ", format(exp_cihi_mod4, drop0Trailing = F), sep = ""))
 
 write.xlsx(mod_tbl, file = paste("/Users/ymou/helix_project/results/", analysis, analysis_date, ".xlsx", sep = ""), rowNames = FALSE, colNames = TRUE)
-
 ```
 
 # EDEN
@@ -192,10 +231,11 @@ dat_afimp_ede <- complete(imp_ede_full, action = "long", include = T) %>%
     hs_pm25_yr_hs_s = hs_pm25_yr_hs_s / 5,
     hs_pm25_yr_hs_r = hs_pm25_yr_hs_r / 5,
     hs_pm25_yr_hs_p = hs_pm25_yr_hs_p / 5
-  ) %>% 
+  ) %>%
   mutate(
     FAS_cat = fct_collapse(FAS_cat,
-      "Middle" = c("Low", "Middle"))
+      "Middle" = c("Low", "Middle")
+    )
   )
 
 dat_afimp_al_nonimp <- dat_afimp_ede %>% filter(incl_var_out == 1)
@@ -214,46 +254,76 @@ colnames(coefs) <- c("DateTime", "Outcome", "Predictor", "Model", "Beta", "cilo"
 
 count <- 0
 for (o in out) {
-  for (d in ap[c(1,2)]) {
-    for (m in 1:length(model)) {
-      count <- count + 1
-      fit <- imp_ede_full %>%
-        mice::complete("all") %>%
-        lapply(glm, formula = paste(o, "~", d, "+", model[m], sep = ""), family = "gaussian")
-      res <- summary(pool(fit), conf.int = T)
-      # Round values
-      res <- res %>%
-        mutate_at(c("estimate", "2.5 %", "97.5 %"), round, 2) %>%
-        mutate_at(c("p.value"), round, 4)
+  if (o %in% c("AL_2_tot")) {
+    for (d in ap[c(1, 2)]) {
+      for (m in 1:length(model)) {
+        count <- count + 1
+        fit <- imp_ede_full %>%
+          mice::complete("all") %>%
+          lapply(glm.nb, formula = paste(o, "~", d, "+", model[m], sep = ""), link = "log")
+        res <- summary(pool(fit), conf.int = T)
+        # Round values
+        res <- res %>%
+          mutate_at(c("estimate", "2.5 %", "97.5 %"), round, 2) %>%
+          mutate_at(c("p.value"), round, 4)
 
-      # Save results
-      coefs[count, 1] <- gsub(" ", "_", Sys.time())
-      coefs[count, 2] <- o
-      coefs[count, 3] <- d
-      coefs[count, 4] <- m
-      coefs[count, 5] <- res$estimate[2]
-      coefs[count, 6] <- res$`2.5 %`[2]
-      coefs[count, 7] <- res$`97.5 %`[2]
-      coefs[count, 8] <- paste(res$`2.5 %`[2], ",", " ", res$`97.5 %`[2], sep = "")
-      coefs[count, 9] <- res$p.value[2]
-      coefs[count, 10] <- res$std.error[2]
+        # Save results
+        coefs[count, 1] <- gsub(" ", "_", Sys.time())
+        coefs[count, 2] <- o
+        coefs[count, 3] <- d
+        coefs[count, 4] <- m
+        coefs[count, 5] <- res$estimate[2]
+        coefs[count, 6] <- res$`2.5 %`[2]
+        coefs[count, 7] <- res$`97.5 %`[2]
+        coefs[count, 8] <- paste(res$`2.5 %`[2], ",", " ", res$`97.5 %`[2], sep = "")
+        coefs[count, 9] <- res$p.value[2]
+        coefs[count, 10] <- res$std.error[2]
+      }
+    }
+  } else {
+    for (d in ap[c(1, 2)]) {
+      for (m in 1:length(model)) {
+        count <- count + 1
+        fit <- imp_ede_full %>%
+          mice::complete("all") %>%
+          lapply(glm, formula = paste(o, "~", d, "+", model[m], sep = ""), family = "gaussian")
+        res <- summary(pool(fit), conf.int = T)
+        # Round values
+        res <- res %>%
+          mutate_at(c("estimate", "2.5 %", "97.5 %"), round, 2) %>%
+          mutate_at(c("p.value"), round, 4)
+
+        # Save results
+        coefs[count, 1] <- gsub(" ", "_", Sys.time())
+        coefs[count, 2] <- o
+        coefs[count, 3] <- d
+        coefs[count, 4] <- m
+        coefs[count, 5] <- res$estimate[2]
+        coefs[count, 6] <- res$`2.5 %`[2]
+        coefs[count, 7] <- res$`97.5 %`[2]
+        coefs[count, 8] <- paste(res$`2.5 %`[2], ",", " ", res$`97.5 %`[2], sep = "")
+        coefs[count, 9] <- res$p.value[2]
+        coefs[count, 10] <- res$std.error[2]
+      }
     }
   }
 }
 
-mod_tbl <- as.data.frame(matrix(NA, nrow = 1, ncol = 18))
+
+mod_tbl <- as.data.frame(matrix(NA, nrow = 1, ncol = 20))
 colnames(mod_tbl) <- c(
   "Outcome", "Predictor",
   "beta_mod1", "95ci_mod1", "pvalue_mod1", "std_mod1",
   "beta_mod2", "95ci_mod2", "pvalue_mod2", "std_mod2",
   "beta_mod3", "95ci_mod3", "pvalue_mod3", "std_mod3",
-  "beta_mod4", "95ci_mod4", "pvalue_mod4", "std_mod4"
+  "beta_mod4", "95ci_mod4", "pvalue_mod4", "std_mod4",
+  "cilo_mod4", "cihi_mod4"
 )
 count <- 0
 
 
 for (o in out) {
-  for (d in ap[c(1,2)]) {
+  for (d in ap[c(1, 2)]) {
     sep_coefs <- coefs %>%
       filter(Outcome == o) %>%
       filter(Predictor == d)
@@ -277,12 +347,21 @@ for (o in out) {
     mod_tbl[count, 16] <- sep_coefs$CI[4]
     mod_tbl[count, 17] <- sep_coefs$P[4]
     mod_tbl[count, 18] <- sep_coefs$std.error[4]
+    mod_tbl[count, 19] <- sep_coefs$cilo[4]
+    mod_tbl[count, 20] <- sep_coefs$cihi[4]
   }
 }
 
+mod_tbl <- mod_tbl %>%
+  mutate(
+    exp_beta_mod4 = case_when(Outcome == "AL_2_tot" ~ exp(beta_mod4)),
+    exp_cilo_mod4 = case_when(Outcome == "AL_2_tot" ~ exp(cilo_mod4)),
+    exp_cihi_mod4 = case_when(Outcome == "AL_2_tot" ~ exp(cihi_mod4))
+  ) %>%
+  mutate_at(c("exp_beta_mod4", "exp_cilo_mod4", "exp_cihi_mod4"), round, 2) %>%
+  mutate(exp_ci_mod4 = paste(format(exp_cilo_mod4, drop0Trailing = F), ", ", format(exp_cihi_mod4, drop0Trailing = F), sep = ""))
 
 write.xlsx(mod_tbl, file = paste("/Users/ymou/helix_project/results/", analysis, analysis_date, ".xlsx", sep = ""), rowNames = FALSE, colNames = TRUE)
-
 ```
 
 
@@ -312,7 +391,7 @@ dat_afimp_al_nonimp <- dat_afimp_bib %>% filter(incl_var_out == 1)
 
 imp_bib_full <- as.mids(dat_afimp_al_nonimp)
 
-rm(dat_afimp_al_nonimp, dat_afimp_sab)
+rm(dat_afimp_al_nonimp, dat_afimp_bib)
 ```
 
 # Air pollution total and main outcomes
@@ -324,40 +403,70 @@ colnames(coefs) <- c("DateTime", "Outcome", "Predictor", "Model", "Beta", "cilo"
 
 count <- 0
 for (o in out) {
-  for (d in ap) {
-    for (m in 1:length(model)) {
-      count <- count + 1
-      fit <- imp_bib_full %>%
-        mice::complete("all") %>%
-        lapply(glm, formula = paste(o, "~", d, "+", model[m], " + h_ethnicity_cauc", sep = ""), family = "gaussian")
-      res <- summary(pool(fit), conf.int = T)
-      # Round values
-      res <- res %>%
-        mutate_at(c("estimate", "2.5 %", "97.5 %"), round, 2) %>%
-        mutate_at(c("p.value"), round, 4)
+  if (o %in% c("AL_2_tot")) {
+    for (d in ap) {
+      for (m in 1:length(model)) {
+        count <- count + 1
+        fit <- imp_bib_full %>%
+          mice::complete("all") %>%
+          lapply(glm.nb, formula = paste(o, "~", d, "+", model[m], sep = ""), link = "log")
+        res <- summary(pool(fit), conf.int = T)
+        # Round values
+        res <- res %>%
+          mutate_at(c("estimate", "2.5 %", "97.5 %"), round, 2) %>%
+          mutate_at(c("p.value"), round, 4)
 
-      # Save results
-      coefs[count, 1] <- gsub(" ", "_", Sys.time())
-      coefs[count, 2] <- o
-      coefs[count, 3] <- d
-      coefs[count, 4] <- m
-      coefs[count, 5] <- res$estimate[2]
-      coefs[count, 6] <- res$`2.5 %`[2]
-      coefs[count, 7] <- res$`97.5 %`[2]
-      coefs[count, 8] <- paste(res$`2.5 %`[2], ",", " ", res$`97.5 %`[2], sep = "")
-      coefs[count, 9] <- res$p.value[2]
-      coefs[count, 10] <- res$std.error[2]
+        # Save results
+        coefs[count, 1] <- gsub(" ", "_", Sys.time())
+        coefs[count, 2] <- o
+        coefs[count, 3] <- d
+        coefs[count, 4] <- m
+        coefs[count, 5] <- res$estimate[2]
+        coefs[count, 6] <- res$`2.5 %`[2]
+        coefs[count, 7] <- res$`97.5 %`[2]
+        coefs[count, 8] <- paste(res$`2.5 %`[2], ",", " ", res$`97.5 %`[2], sep = "")
+        coefs[count, 9] <- res$p.value[2]
+        coefs[count, 10] <- res$std.error[2]
+      }
+    }
+  } else {
+    for (d in ap) {
+      for (m in 1:length(model)) {
+        count <- count + 1
+        fit <- imp_bib_full %>%
+          mice::complete("all") %>%
+          lapply(glm, formula = paste(o, "~", d, "+", model[m], sep = ""), family = "gaussian")
+        res <- summary(pool(fit), conf.int = T)
+        # Round values
+        res <- res %>%
+          mutate_at(c("estimate", "2.5 %", "97.5 %"), round, 2) %>%
+          mutate_at(c("p.value"), round, 4)
+
+        # Save results
+        coefs[count, 1] <- gsub(" ", "_", Sys.time())
+        coefs[count, 2] <- o
+        coefs[count, 3] <- d
+        coefs[count, 4] <- m
+        coefs[count, 5] <- res$estimate[2]
+        coefs[count, 6] <- res$`2.5 %`[2]
+        coefs[count, 7] <- res$`97.5 %`[2]
+        coefs[count, 8] <- paste(res$`2.5 %`[2], ",", " ", res$`97.5 %`[2], sep = "")
+        coefs[count, 9] <- res$p.value[2]
+        coefs[count, 10] <- res$std.error[2]
+      }
     }
   }
 }
 
-mod_tbl <- as.data.frame(matrix(NA, nrow = 1, ncol = 18))
+
+mod_tbl <- as.data.frame(matrix(NA, nrow = 1, ncol = 20))
 colnames(mod_tbl) <- c(
   "Outcome", "Predictor",
   "beta_mod1", "95ci_mod1", "pvalue_mod1", "std_mod1",
   "beta_mod2", "95ci_mod2", "pvalue_mod2", "std_mod2",
   "beta_mod3", "95ci_mod3", "pvalue_mod3", "std_mod3",
-  "beta_mod4", "95ci_mod4", "pvalue_mod4", "std_mod4"
+  "beta_mod4", "95ci_mod4", "pvalue_mod4", "std_mod4",
+  "cilo_mod4", "cihi_mod4"
 )
 count <- 0
 
@@ -387,12 +496,21 @@ for (o in out) {
     mod_tbl[count, 16] <- sep_coefs$CI[4]
     mod_tbl[count, 17] <- sep_coefs$P[4]
     mod_tbl[count, 18] <- sep_coefs$std.error[4]
+    mod_tbl[count, 19] <- sep_coefs$cilo[4]
+    mod_tbl[count, 20] <- sep_coefs$cihi[4]
   }
 }
 
+mod_tbl <- mod_tbl %>%
+  mutate(
+    exp_beta_mod4 = case_when(Outcome == "AL_2_tot" ~ exp(beta_mod4)),
+    exp_cilo_mod4 = case_when(Outcome == "AL_2_tot" ~ exp(cilo_mod4)),
+    exp_cihi_mod4 = case_when(Outcome == "AL_2_tot" ~ exp(cihi_mod4))
+  ) %>%
+  mutate_at(c("exp_beta_mod4", "exp_cilo_mod4", "exp_cihi_mod4"), round, 2) %>%
+  mutate(exp_ci_mod4 = paste(format(exp_cilo_mod4, drop0Trailing = F), ", ", format(exp_cihi_mod4, drop0Trailing = F), sep = ""))
 
 write.xlsx(mod_tbl, file = paste("/Users/ymou/helix_project/results/", analysis, analysis_date, ".xlsx", sep = ""), rowNames = FALSE, colNames = TRUE)
-
 ```
 
 
@@ -422,7 +540,7 @@ dat_afimp_al_nonimp <- dat_afimp_rhea %>% filter(incl_var_out == 1)
 
 imp_rhea_full <- as.mids(dat_afimp_al_nonimp)
 
-rm(dat_afimp_al_nonimp, dat_afimp_sab)
+rm(dat_afimp_al_nonimp, dat_afimp_rhea)
 ```
 
 # Air pollution total and main outcomes
@@ -434,46 +552,75 @@ colnames(coefs) <- c("DateTime", "Outcome", "Predictor", "Model", "Beta", "cilo"
 
 count <- 0
 for (o in out) {
-  for (d in ap[c(1,2,4)]) {
-    for (m in 1:length(model)) {
-      count <- count + 1
-      fit <- imp_rhea_full %>%
-        mice::complete("all") %>%
-        lapply(glm, formula = paste(o, "~", d, "+", model[m], sep = ""), family = "gaussian")
-      res <- summary(pool(fit), conf.int = T)
-      # Round values
-      res <- res %>%
-        mutate_at(c("estimate", "2.5 %", "97.5 %"), round, 2) %>%
-        mutate_at(c("p.value"), round, 4)
+  if (o %in% c("AL_2_tot")) {
+    for (d in ap[c(1, 2, 4)]) {
+      for (m in 1:length(model)) {
+        count <- count + 1
+        fit <- imp_rhea_full %>%
+          mice::complete("all") %>%
+          lapply(glm.nb, formula = paste(o, "~", d, "+", model[m], sep = ""), link = "log")
+        res <- summary(pool(fit), conf.int = T)
+        # Round values
+        res <- res %>%
+          mutate_at(c("estimate", "2.5 %", "97.5 %"), round, 2) %>%
+          mutate_at(c("p.value"), round, 4)
 
-      # Save results
-      coefs[count, 1] <- gsub(" ", "_", Sys.time())
-      coefs[count, 2] <- o
-      coefs[count, 3] <- d
-      coefs[count, 4] <- m
-      coefs[count, 5] <- res$estimate[2]
-      coefs[count, 6] <- res$`2.5 %`[2]
-      coefs[count, 7] <- res$`97.5 %`[2]
-      coefs[count, 8] <- paste(res$`2.5 %`[2], ",", " ", res$`97.5 %`[2], sep = "")
-      coefs[count, 9] <- res$p.value[2]
-      coefs[count, 10] <- res$std.error[2]
+        # Save results
+        coefs[count, 1] <- gsub(" ", "_", Sys.time())
+        coefs[count, 2] <- o
+        coefs[count, 3] <- d
+        coefs[count, 4] <- m
+        coefs[count, 5] <- res$estimate[2]
+        coefs[count, 6] <- res$`2.5 %`[2]
+        coefs[count, 7] <- res$`97.5 %`[2]
+        coefs[count, 8] <- paste(res$`2.5 %`[2], ",", " ", res$`97.5 %`[2], sep = "")
+        coefs[count, 9] <- res$p.value[2]
+        coefs[count, 10] <- res$std.error[2]
+      }
+    }
+  } else {
+    for (d in ap[c(1, 2, 4)]) {
+      for (m in 1:length(model)) {
+        count <- count + 1
+        fit <- imp_rhea_full %>%
+          mice::complete("all") %>%
+          lapply(glm, formula = paste(o, "~", d, "+", model[m], sep = ""), family = "gaussian")
+        res <- summary(pool(fit), conf.int = T)
+        # Round values
+        res <- res %>%
+          mutate_at(c("estimate", "2.5 %", "97.5 %"), round, 2) %>%
+          mutate_at(c("p.value"), round, 4)
+
+        # Save results
+        coefs[count, 1] <- gsub(" ", "_", Sys.time())
+        coefs[count, 2] <- o
+        coefs[count, 3] <- d
+        coefs[count, 4] <- m
+        coefs[count, 5] <- res$estimate[2]
+        coefs[count, 6] <- res$`2.5 %`[2]
+        coefs[count, 7] <- res$`97.5 %`[2]
+        coefs[count, 8] <- paste(res$`2.5 %`[2], ",", " ", res$`97.5 %`[2], sep = "")
+        coefs[count, 9] <- res$p.value[2]
+        coefs[count, 10] <- res$std.error[2]
+      }
     }
   }
 }
 
-mod_tbl <- as.data.frame(matrix(NA, nrow = 1, ncol = 18))
+mod_tbl <- as.data.frame(matrix(NA, nrow = 1, ncol = 20))
 colnames(mod_tbl) <- c(
   "Outcome", "Predictor",
   "beta_mod1", "95ci_mod1", "pvalue_mod1", "std_mod1",
   "beta_mod2", "95ci_mod2", "pvalue_mod2", "std_mod2",
   "beta_mod3", "95ci_mod3", "pvalue_mod3", "std_mod3",
-  "beta_mod4", "95ci_mod4", "pvalue_mod4", "std_mod4"
+  "beta_mod4", "95ci_mod4", "pvalue_mod4", "std_mod4",
+  "cilo_mod4", "cihi_mod4"
 )
 count <- 0
 
 
 for (o in out) {
-  for (d in ap[c(1,2,4)]) {
+  for (d in ap[c(1, 2, 4)]) {
     sep_coefs <- coefs %>%
       filter(Outcome == o) %>%
       filter(Predictor == d)
@@ -497,12 +644,21 @@ for (o in out) {
     mod_tbl[count, 16] <- sep_coefs$CI[4]
     mod_tbl[count, 17] <- sep_coefs$P[4]
     mod_tbl[count, 18] <- sep_coefs$std.error[4]
+    mod_tbl[count, 19] <- sep_coefs$cilo[4]
+    mod_tbl[count, 20] <- sep_coefs$cihi[4]
   }
 }
 
+mod_tbl <- mod_tbl %>%
+  mutate(
+    exp_beta_mod4 = case_when(Outcome == "AL_2_tot" ~ exp(beta_mod4)),
+    exp_cilo_mod4 = case_when(Outcome == "AL_2_tot" ~ exp(cilo_mod4)),
+    exp_cihi_mod4 = case_when(Outcome == "AL_2_tot" ~ exp(cihi_mod4))
+  ) %>%
+  mutate_at(c("exp_beta_mod4", "exp_cilo_mod4", "exp_cihi_mod4"), round, 2) %>%
+  mutate(exp_ci_mod4 = paste(format(exp_cilo_mod4, drop0Trailing = F), ", ", format(exp_cihi_mod4, drop0Trailing = F), sep = ""))
 
 write.xlsx(mod_tbl, file = paste("/Users/ymou/helix_project/results/", analysis, analysis_date, ".xlsx", sep = ""), rowNames = FALSE, colNames = TRUE)
-
 ```
 
 
@@ -532,7 +688,7 @@ dat_afimp_al_nonimp <- dat_afimp_kanc %>% filter(incl_var_out == 1)
 
 imp_kanc_full <- as.mids(dat_afimp_al_nonimp)
 
-rm(dat_afimp_al_nonimp, dat_afimp_sab)
+rm(dat_afimp_al_nonimp, dat_afimp_kanc)
 ```
 
 # Air pollution total and main outcomes
@@ -544,40 +700,69 @@ colnames(coefs) <- c("DateTime", "Outcome", "Predictor", "Model", "Beta", "cilo"
 
 count <- 0
 for (o in out) {
-  for (d in ap) {
-    for (m in 1:length(model)) {
-      count <- count + 1
-      fit <- imp_kanc_full %>%
-        mice::complete("all") %>%
-        lapply(glm, formula = paste(o, "~", d, "+", model[m], sep = ""), family = "gaussian")
-      res <- summary(pool(fit), conf.int = T)
-      # Round values
-      res <- res %>%
-        mutate_at(c("estimate", "2.5 %", "97.5 %"), round, 2) %>%
-        mutate_at(c("p.value"), round, 4)
+  if (o %in% c("AL_2_tot")) {
+    for (d in ap) {
+      for (m in 1:length(model)) {
+        count <- count + 1
+        fit <- imp_kanc_full %>%
+          mice::complete("all") %>%
+          lapply(glm.nb, formula = paste(o, "~", d, "+", model[m], sep = ""), link = "log")
+        res <- summary(pool(fit), conf.int = T)
+        # Round values
+        res <- res %>%
+          mutate_at(c("estimate", "2.5 %", "97.5 %"), round, 2) %>%
+          mutate_at(c("p.value"), round, 4)
 
-      # Save results
-      coefs[count, 1] <- gsub(" ", "_", Sys.time())
-      coefs[count, 2] <- o
-      coefs[count, 3] <- d
-      coefs[count, 4] <- m
-      coefs[count, 5] <- res$estimate[2]
-      coefs[count, 6] <- res$`2.5 %`[2]
-      coefs[count, 7] <- res$`97.5 %`[2]
-      coefs[count, 8] <- paste(res$`2.5 %`[2], ",", " ", res$`97.5 %`[2], sep = "")
-      coefs[count, 9] <- res$p.value[2]
-      coefs[count, 10] <- res$std.error[2]
+        # Save results
+        coefs[count, 1] <- gsub(" ", "_", Sys.time())
+        coefs[count, 2] <- o
+        coefs[count, 3] <- d
+        coefs[count, 4] <- m
+        coefs[count, 5] <- res$estimate[2]
+        coefs[count, 6] <- res$`2.5 %`[2]
+        coefs[count, 7] <- res$`97.5 %`[2]
+        coefs[count, 8] <- paste(res$`2.5 %`[2], ",", " ", res$`97.5 %`[2], sep = "")
+        coefs[count, 9] <- res$p.value[2]
+        coefs[count, 10] <- res$std.error[2]
+      }
+    }
+  } else {
+    for (d in ap) {
+      for (m in 1:length(model)) {
+        count <- count + 1
+        fit <- imp_kanc_full %>%
+          mice::complete("all") %>%
+          lapply(glm, formula = paste(o, "~", d, "+", model[m], sep = ""), family = "gaussian")
+        res <- summary(pool(fit), conf.int = T)
+        # Round values
+        res <- res %>%
+          mutate_at(c("estimate", "2.5 %", "97.5 %"), round, 2) %>%
+          mutate_at(c("p.value"), round, 4)
+
+        # Save results
+        coefs[count, 1] <- gsub(" ", "_", Sys.time())
+        coefs[count, 2] <- o
+        coefs[count, 3] <- d
+        coefs[count, 4] <- m
+        coefs[count, 5] <- res$estimate[2]
+        coefs[count, 6] <- res$`2.5 %`[2]
+        coefs[count, 7] <- res$`97.5 %`[2]
+        coefs[count, 8] <- paste(res$`2.5 %`[2], ",", " ", res$`97.5 %`[2], sep = "")
+        coefs[count, 9] <- res$p.value[2]
+        coefs[count, 10] <- res$std.error[2]
+      }
     }
   }
 }
 
-mod_tbl <- as.data.frame(matrix(NA, nrow = 1, ncol = 18))
+mod_tbl <- as.data.frame(matrix(NA, nrow = 1, ncol = 20))
 colnames(mod_tbl) <- c(
   "Outcome", "Predictor",
   "beta_mod1", "95ci_mod1", "pvalue_mod1", "std_mod1",
   "beta_mod2", "95ci_mod2", "pvalue_mod2", "std_mod2",
   "beta_mod3", "95ci_mod3", "pvalue_mod3", "std_mod3",
-  "beta_mod4", "95ci_mod4", "pvalue_mod4", "std_mod4"
+  "beta_mod4", "95ci_mod4", "pvalue_mod4", "std_mod4",
+  "cilo_mod4", "cihi_mod4"
 )
 count <- 0
 
@@ -607,12 +792,21 @@ for (o in out) {
     mod_tbl[count, 16] <- sep_coefs$CI[4]
     mod_tbl[count, 17] <- sep_coefs$P[4]
     mod_tbl[count, 18] <- sep_coefs$std.error[4]
+    mod_tbl[count, 19] <- sep_coefs$cilo[4]
+    mod_tbl[count, 20] <- sep_coefs$cihi[4]
   }
 }
 
+mod_tbl <- mod_tbl %>%
+  mutate(
+    exp_beta_mod4 = case_when(Outcome == "AL_2_tot" ~ exp(beta_mod4)),
+    exp_cilo_mod4 = case_when(Outcome == "AL_2_tot" ~ exp(cilo_mod4)),
+    exp_cihi_mod4 = case_when(Outcome == "AL_2_tot" ~ exp(cihi_mod4))
+  ) %>%
+  mutate_at(c("exp_beta_mod4", "exp_cilo_mod4", "exp_cihi_mod4"), round, 2) %>%
+  mutate(exp_ci_mod4 = paste(format(exp_cilo_mod4, drop0Trailing = F), ", ", format(exp_cihi_mod4, drop0Trailing = F), sep = ""))
 
 write.xlsx(mod_tbl, file = paste("/Users/ymou/helix_project/results/", analysis, analysis_date, ".xlsx", sep = ""), rowNames = FALSE, colNames = TRUE)
-
 ```
 
 
@@ -636,19 +830,21 @@ dat_afimp_moba <- complete(imp_moba_full, action = "long", include = T) %>%
     hs_pm10_yr_hs_s = hs_pm10_yr_hs_s / 10,
     hs_pm10_yr_hs_r = hs_pm10_yr_hs_r / 10,
     hs_pm10_yr_hs_p = hs_pm10_yr_hs_p / 10
-  ) %>% 
+  ) %>%
   mutate(
     h_edufc = fct_collapse(h_edufc,
-      "Middle" = c("Low", "Middle")),
+      "Middle" = c("Low", "Middle")
+    ),
     h_edumc = fct_collapse(h_edumc,
-      "Middle" = c("Low", "Middle")),
+      "Middle" = c("Low", "Middle")
+    ),
   )
 
 dat_afimp_al_nonimp <- dat_afimp_moba %>% filter(incl_var_out == 1)
 
 imp_moba_full <- as.mids(dat_afimp_al_nonimp)
 
-rm(dat_afimp_al_nonimp, dat_afimp_sab)
+rm(dat_afimp_al_nonimp, dat_afimp_moba)
 ```
 
 # Air pollution total and main outcomes
@@ -660,40 +856,69 @@ colnames(coefs) <- c("DateTime", "Outcome", "Predictor", "Model", "Beta", "cilo"
 
 count <- 0
 for (o in out) {
-  for (d in ap) {
-    for (m in 1:length(model)) {
-      count <- count + 1
-      fit <- imp_moba_full %>%
-        mice::complete("all") %>%
-        lapply(glm, formula = paste(o, "~", d, "+", model[m], " + h_ethnicity_cauc", sep = ""), family = "gaussian")
-      res <- summary(pool(fit), conf.int = T)
-      # Round values
-      res <- res %>%
-        mutate_at(c("estimate", "2.5 %", "97.5 %"), round, 2) %>%
-        mutate_at(c("p.value"), round, 4)
+  if (o %in% c("AL_2_tot")) {
+    for (d in ap) {
+      for (m in 1:length(model)) {
+        count <- count + 1
+        fit <- imp_moba_full %>%
+          mice::complete("all") %>%
+          lapply(glm.nb, formula = paste(o, "~", d, "+", model[m], sep = ""), link = "log")
+        res <- summary(pool(fit), conf.int = T)
+        # Round values
+        res <- res %>%
+          mutate_at(c("estimate", "2.5 %", "97.5 %"), round, 2) %>%
+          mutate_at(c("p.value"), round, 4)
 
-      # Save results
-      coefs[count, 1] <- gsub(" ", "_", Sys.time())
-      coefs[count, 2] <- o
-      coefs[count, 3] <- d
-      coefs[count, 4] <- m
-      coefs[count, 5] <- res$estimate[2]
-      coefs[count, 6] <- res$`2.5 %`[2]
-      coefs[count, 7] <- res$`97.5 %`[2]
-      coefs[count, 8] <- paste(res$`2.5 %`[2], ",", " ", res$`97.5 %`[2], sep = "")
-      coefs[count, 9] <- res$p.value[2]
-      coefs[count, 10] <- res$std.error[2]
+        # Save results
+        coefs[count, 1] <- gsub(" ", "_", Sys.time())
+        coefs[count, 2] <- o
+        coefs[count, 3] <- d
+        coefs[count, 4] <- m
+        coefs[count, 5] <- res$estimate[2]
+        coefs[count, 6] <- res$`2.5 %`[2]
+        coefs[count, 7] <- res$`97.5 %`[2]
+        coefs[count, 8] <- paste(res$`2.5 %`[2], ",", " ", res$`97.5 %`[2], sep = "")
+        coefs[count, 9] <- res$p.value[2]
+        coefs[count, 10] <- res$std.error[2]
+      }
+    }
+  } else {
+    for (d in ap) {
+      for (m in 1:length(model)) {
+        count <- count + 1
+        fit <- imp_moba_full %>%
+          mice::complete("all") %>%
+          lapply(glm, formula = paste(o, "~", d, "+", model[m], sep = ""), family = "gaussian")
+        res <- summary(pool(fit), conf.int = T)
+        # Round values
+        res <- res %>%
+          mutate_at(c("estimate", "2.5 %", "97.5 %"), round, 2) %>%
+          mutate_at(c("p.value"), round, 4)
+
+        # Save results
+        coefs[count, 1] <- gsub(" ", "_", Sys.time())
+        coefs[count, 2] <- o
+        coefs[count, 3] <- d
+        coefs[count, 4] <- m
+        coefs[count, 5] <- res$estimate[2]
+        coefs[count, 6] <- res$`2.5 %`[2]
+        coefs[count, 7] <- res$`97.5 %`[2]
+        coefs[count, 8] <- paste(res$`2.5 %`[2], ",", " ", res$`97.5 %`[2], sep = "")
+        coefs[count, 9] <- res$p.value[2]
+        coefs[count, 10] <- res$std.error[2]
+      }
     }
   }
 }
 
-mod_tbl <- as.data.frame(matrix(NA, nrow = 1, ncol = 18))
+mod_tbl <- as.data.frame(matrix(NA, nrow = 1, ncol = 20))
 colnames(mod_tbl) <- c(
   "Outcome", "Predictor",
   "beta_mod1", "95ci_mod1", "pvalue_mod1", "std_mod1",
   "beta_mod2", "95ci_mod2", "pvalue_mod2", "std_mod2",
   "beta_mod3", "95ci_mod3", "pvalue_mod3", "std_mod3",
-  "beta_mod4", "95ci_mod4", "pvalue_mod4", "std_mod4"
+  "beta_mod4", "95ci_mod4", "pvalue_mod4", "std_mod4",
+  "cilo_mod4", "cihi_mod4"
 )
 count <- 0
 
@@ -723,10 +948,58 @@ for (o in out) {
     mod_tbl[count, 16] <- sep_coefs$CI[4]
     mod_tbl[count, 17] <- sep_coefs$P[4]
     mod_tbl[count, 18] <- sep_coefs$std.error[4]
+    mod_tbl[count, 19] <- sep_coefs$cilo[4]
+    mod_tbl[count, 20] <- sep_coefs$cihi[4]
   }
 }
 
+mod_tbl <- mod_tbl %>%
+  mutate(
+    exp_beta_mod4 = case_when(Outcome == "AL_2_tot" ~ exp(beta_mod4)),
+    exp_cilo_mod4 = case_when(Outcome == "AL_2_tot" ~ exp(cilo_mod4)),
+    exp_cihi_mod4 = case_when(Outcome == "AL_2_tot" ~ exp(cihi_mod4))
+  ) %>%
+  mutate_at(c("exp_beta_mod4", "exp_cilo_mod4", "exp_cihi_mod4"), round, 2) %>%
+  mutate(exp_ci_mod4 = paste(format(exp_cilo_mod4, drop0Trailing = F), ", ", format(exp_cihi_mod4, drop0Trailing = F), sep = ""))
 
 write.xlsx(mod_tbl, file = paste("/Users/ymou/helix_project/results/", analysis, analysis_date, ".xlsx", sep = ""), rowNames = FALSE, colNames = TRUE)
+```
 
+
+```{r extract_n}
+# extract n for meta analysis
+df_full <- imp_full$data
+
+ch <- list(SAB = "SAB", EDEN = "EDEN", BIB = "BIB", RHEA = "RHEA", KANC = "KANC", MOBA = "MOBA", total = c("SAB", "EDEN", "BIB", "RHEA", "KANC", "MOBA"))
+
+df_n <- as.data.frame(matrix(NA, nrow = 1, ncol = 4))
+colnames(df_n) <- c(
+  "cohort", "Outcome", "Predictor", "n"
+)
+count <- 0
+
+for (i in 1:7) {
+  for (o in out) {
+    for (d in ap) {
+      df_cohort <- df_full %>%
+        filter(cohort %in% ch[[i]]) %>%
+        select(cohort, all_of(o), all_of(d))
+
+      count <- count + 1
+      # Loop through each model.In this case, four models
+      df_n[count, 1] <- names(ch)[i]
+      df_n[count, 2] <- o
+      df_n[count, 3] <- d
+      df_n[count, 4] <- length(which(!is.na(df_cohort[, 2] & df_cohort[, 3])))
+    }
+  }
+}
+
+df_n <- df_n %>% 
+  arrange(match(Outcome, c("AL_2_tot", "AL_2_tot_wavg", "AL_z2_tot", "AL_z2_tot_wavg"))) %>% 
+  arrange(match(Predictor, c("hs_no2_yr_hs_t", "hs_pm10_yr_hs_t", "hs_pm25_yr_hs_t", "hs_pm25abs_yr_hs_t"))) %>% 
+  mutate(cohort = tolower(cohort)) %>% 
+  filter(n>5) # select analysis set
+
+write.xlsx(df_n, file = paste("/Users/ymou/helix_project/results/", "meta_n", analysis_date, ".xlsx", sep = ""), rowNames = FALSE, colNames = TRUE)
 ```

@@ -16,34 +16,47 @@ options(knitr.table.format = "html")
 
 ```{r load packages, include=FALSE, echo=FALSE, message=FALSE, warning=FALSE}
 # load pkgs
-packages <- c("dplyr", "tidyverse", "readxl", "openxlsx", "ggplot2", "gtools", "kableExtra")
+packages <- c("rlang", "dplyr", "tidyverse", "readxl", "openxlsx", "ggplot2", "gtools", "kableExtra", "scales")
 sapply(packages, library, character.only = T)
 ```
 
-```{r import data, include=FALSE, echo=FALSE, message=FALSE, warning=FALSE}
+```{r import data2, include=FALSE, echo=FALSE, message=FALSE, warning=FALSE}
 load("/Users/ymou/helix_project/data/analysis_data/df_full.RData")
 ```
 
 ```{r define biomarkers, include=FALSE, echo=FALSE, message=FALSE, warning=FALSE}
-# 20 biomarkers
+# 19 biomarkers included in the main AL score
+# hs_non_hdl_c is calculated with hs_totchol_c - hs_hdlchol_c
 biomarker_all <- c(
-  "hs_zsys_bp", "hs_zdia_bp",
-  "bp_pulse_avg", "hs_zbmi_who", "hs_zwaist_mets", "hs_skf_sum2", "hs_fatprop_bia",
-  "hs_hdlchol_c", "hs_ldlchol_c", "hs_triglyc_c", "hs_totchol_c", "Leptin",
+  "hs_zsys_bp", "hs_zdia_bp", "bp_pulse_sd",
+  "hs_zbmi_who", "hs_zwaist_mets", "hs_skf_sum2", "hs_fatprop_bia",
+  "hs_hdlchol_c", "hs_non_hdl_c", "hs_triglyc_c", "Leptin",
   "Adiponectin",
   "CRP", "IL1beta", "IL6", "IL8", "IL10", "TNFalfa",
   "cortisol_prod_log10"
 )
 
+biomarker_positivescore <- c(
+  "hs_zsys_bp", "hs_zdia_bp", "bp_pulse_sd",
+  "hs_zbmi_who", "hs_zwaist_mets", "hs_skf_sum2", "hs_fatprop_bia",
+  "hs_non_hdl_c", "hs_triglyc_c", "Leptin",
+  "CRP", "IL1beta", "IL6", "IL8", "TNFalfa"
+)
+biomarker_reversescore <- c(
+  "hs_hdlchol_c", "Adiponectin", "IL10"
+)
+biomarker_nonlinearscore <- c("cortisol_prod_log10")
+
+# 4 physiological systems
 physystems <- c("cardio", "metab", "immune", "neuro")
 
-cardio <- c("hs_zsys_bp", "hs_zdia_bp", "bp_pulse_avg")
+cardio <- c("hs_zsys_bp", "hs_zdia_bp", "bp_pulse_sd") # 3 biomarkers
 metab <- c(
   "hs_zbmi_who", "hs_zwaist_mets", "hs_skf_sum2", "hs_fatprop_bia",
-  "hs_hdlchol_c", "hs_ldlchol_c", "hs_triglyc_c", "hs_totchol_c", "Leptin", "Adiponectin"
-)
-immune <- c("CRP", "IL1beta", "IL6", "IL8", "IL10", "TNFalfa")
-neuro <- c("cortisol_prod_log10")
+  "hs_hdlchol_c", "hs_non_hdl_c", "hs_triglyc_c", "Leptin", "Adiponectin"
+) # 9 biomarkers
+immune <- c("CRP", "IL1beta", "IL6", "IL8", "IL10", "TNFalfa") # 6 biomarkers
+neuro <- c("cortisol_prod_log10") # 1 biomarkers
 ```
 
 ```{r descriptive statistic func}
@@ -66,165 +79,234 @@ continuous_stats <- function(data, var) {
 }
 ```
 
-# Cut-off-based AL scores
-Quantiles are created based on the values of biomarkers of total study population. The highest quantile (75%) of other biomarkers are considered 'high risk' and received a score of 1, except for HDL and cortisol. The lowest quantile (25%) of HDL scored 1, and both the lowest quantile and high quantile of cortisol scored 1. 
-
+# AL score calculation function
 ```{r AL score calc function}
+#' @description Function to take a vector and returns the percentile of a value.
+#' @param x: a vector from a data frame, to generate a empirical cumulative distribution
+#' @param perc: input value for the percentile calculation from the empirical cumulative distribution
+ecdf_fun <- function(x, perc) ecdf(x)(perc)
+# OCT 3, 2023: Summing up percentiles is not mathematically meaningful. I am not using this function.
+
 #' @description Function to automatically apply AL cut-off values
 #' @param data: data.frame that contains the biomarkers
-#' @param scoreno: character that indicates which AL cutoffs should be use (options: 'cut-off based','z-score based')
+#' @param scoreno: character that indicates which AL cutoffs should be use (options: 'cut-off score','continuous score')
 #' @param biomarkers: Character vector that includes the biomarkers to serve as colnames
+#' @param biomarker_positivescore: Character vector that includes the biomarkers with positive scoring
+#' @param biomarker_reversescore: Character vector that includes the biomarkers with reverse scoring
+#' @param biomarker_nonlinearscore: Character vector that includes the biomarkers with non-linear scoring
 
-ALscore <- function(data, scoreno, biomarkers) {
-  if ("cut-off based" %in% scoreno) {
+ALscore <- function(data, scoreno, biomarkers, biomarker_positivescore, biomarker_reversescore, biomarker_nonlinearscore) {
+  if ("cut-off score" %in% scoreno) {
     df_q <- data %>%
       select(HelixID, e3_sex, all_of(biomarkers)) %>%
       mutate(
         across(
-          .cols = biomarkers,
-          n = 4,
-          .fns = ntile,
+          .cols = all_of(biomarkers),
+          .fns = \(x) ntile(x, n = 4),
           .names = "{col}_q"
         )
       ) %>%
       select(HelixID, e3_sex, ends_with("_q"))
 
     # make quartiles
-    df_q <- df_q %>%
-      mutate(
-        hs_zsys_bp_as1 = if_else(hs_zsys_bp_q == 4, 1, 0, NA),
-        hs_zdia_bp_as1 = if_else(hs_zdia_bp_q == 4, 1, 0, NA),
-        bp_pulse_avg_as1 = if_else(bp_pulse_avg_q == 4, 1, 0, NA),
-        hs_zbmi_who_as1 = if_else(hs_zbmi_who_q == 4, 1, 0, NA),
-        hs_zwaist_mets_as1 = if_else(hs_zwaist_mets_q == 4, 1, 0, NA),
-        hs_skf_sum2_as1 = if_else(hs_skf_sum2_q == 4, 1, 0, NA),
-        hs_fatprop_bia_as1 = if_else(hs_fatprop_bia_q == 4, 1, 0, NA),
-        hdlchol_c_as1 = if_else(hs_hdlchol_c_q == 1, 1, 0, NA),
-        ldlchol_c_as1 = if_else(hs_ldlchol_c_q == 4, 1, 0, NA),
-        triglyc_c_as1 = if_else(hs_triglyc_c_q == 4, 1, 0, NA),
-        totchol_c_as1 = if_else(hs_totchol_c_q == 4, 1, 0, NA),
-        leptin_as1 = if_else(Leptin_q == 4, 1, 0, NA),
-        adiponectin_as1 = if_else(Adiponectin_q == 4, 1, 0, NA),
-        crp_as1 = if_else(CRP_q == 4, 1, 0, NA),
-        il1beta_as1 = if_else(IL1beta_q == 4, 1, 0, NA),
-        il6_as1 = if_else(IL6_q == 4, 1, 0, NA),
-        il8_as1 = if_else(IL8_q == 4, 1, 0, NA),
-        il10_as1 = if_else(IL10_q == 4, 1, 0, NA),
-        tnfalfa_as1 = if_else(TNFalfa_q == 4, 1, 0, NA),
-        cortisol_prod_log10_as1 = if_else(cortisol_prod_log10_q == 4 | cortisol_prod_log10_q == 1, 1, 0, NA)
+    # positive scoring
+    biomarker_q <- paste(biomarker_positivescore, "q", sep = "_")
+    df_q <- df_q %>% mutate(
+      across(
+        .cols = all_of(biomarker_q),
+        .fns = \(x) if_else(x == 4, 1, 0, NA),
+        .names = "{col}_as1"
       )
+    )
+
+    # reverse scoring
+    biomarker_q <- paste(biomarker_reversescore, "q", sep = "_")
+    df_q <- df_q %>% mutate(
+      across(
+        .cols = all_of(biomarker_q),
+        .fns = \(x) if_else(x == 1, 1, 0, NA),
+        .names = "{col}_as1"
+      )
+    )
+
+    # non-linear scoring
+    biomarker_q <- paste(biomarker_nonlinearscore, "q", sep = "_")
+    df_q <- df_q %>% mutate(
+      across(
+        .cols = all_of(biomarker_q),
+        .fns = \(x) if_else(x == 4 | x == 1, 1, 0, NA),
+        .names = "{col}_as1"
+      )
+    )
 
     # summary score
+    cardio_q <- paste(cardio, "q_as1", sep = "_")
+    metab_q <- paste(metab, "q_as1", sep = "_")
+    immune_q <- paste(immune, "q_as1", sep = "_")
+    neuro_q <- paste(neuro, "q_as1", sep = "_")
+    # formula
+    cardio_sum <- paste(cardio_q, collapse = " + ")
+    metab_sum <- paste(metab_q, collapse = " + ")
+    immune_sum <- paste(immune_q, collapse = " + ")
+    neuro_sum <- paste(neuro_q, collapse = " + ")
+
     df_q <- df_q %>%
       mutate(
-        AL_1_cardio = hs_zsys_bp_as1 + hs_zdia_bp_as1 + bp_pulse_avg_as1,
-        AL_1_metab = hs_zbmi_who_as1 + hs_zwaist_mets_as1 + hs_skf_sum2_as1 + hs_fatprop_bia_as1 +
-          hdlchol_c_as1 + ldlchol_c_as1 + triglyc_c_as1 + totchol_c_as1 + leptin_as1 + adiponectin_as1,
-        AL_1_immune = crp_as1 + il1beta_as1 + il6_as1 + il8_as1 + il10_as1 + tnfalfa_as1,
-        AL_1_neuro = cortisol_prod_log10_as1,
+        AL_1_cardio = rlang::eval_tidy(rlang::parse_expr(cardio_sum), data = .),
+        AL_1_metab = rlang::eval_tidy(rlang::parse_expr(metab_sum), data = .),
+        AL_1_immune = rlang::eval_tidy(rlang::parse_expr(immune_sum), data = .),
+        AL_1_neuro = rlang::eval_tidy(rlang::parse_expr(neuro_sum), data = .),
         AL_1_tot = AL_1_cardio + AL_1_metab + AL_1_immune + AL_1_neuro
       )
+
     # weighted average score
+    # formula
+    cardio_wgtsum <- paste0("(", paste(cardio_q, collapse = " + "), ")/", length(cardio_q), sep = "")
+    metab_wgtsum <- paste0("(", paste(metab_q, collapse = " + "), ")/", length(metab_q), sep = "")
+    immune_wgtsum <- paste0("(", paste(immune_q, collapse = " + "), ")/", length(immune_q), sep = "")
+    neuro_wgtsum <- paste0("(", paste(neuro_q, collapse = " + "), ")/", length(neuro_q), sep = "")
+
     df_q <- df_q %>%
       mutate(
-        AL_1_cardio_wavg = (hs_zsys_bp_as1 + hs_zdia_bp_as1 + bp_pulse_avg_as1) / 3,
-        AL_1_metab_wavg = (hs_zbmi_who_as1 + hs_zwaist_mets_as1 + hs_skf_sum2_as1 + hs_fatprop_bia_as1 +
-          hdlchol_c_as1 + ldlchol_c_as1 + triglyc_c_as1 + totchol_c_as1 + leptin_as1 + adiponectin_as1) / 10,
-        AL_1_immune_wavg = (crp_as1 + il1beta_as1 + il6_as1 + il8_as1 + il10_as1 + tnfalfa_as1) / 6,
-        AL_1_neuro_wavg = cortisol_prod_log10_as1,
-        AL_1_tot_wavg = AL_1_cardio_wavg + AL_1_metab_wavg + AL_1_immune_wavg + AL_1_neuro
+        AL_1_cardio_wavg = rlang::eval_tidy(rlang::parse_expr(cardio_wgtsum), data = .),
+        AL_1_metab_wavg = rlang::eval_tidy(rlang::parse_expr(metab_wgtsum), data = .),
+        AL_1_immune_wavg = rlang::eval_tidy(rlang::parse_expr(immune_wgtsum), data = .),
+        AL_1_neuro_wavg = rlang::eval_tidy(rlang::parse_expr(neuro_wgtsum), data = .),
+        AL_1_tot_wavg = AL_1_cardio_wavg + AL_1_metab_wavg + AL_1_immune_wavg + AL_1_neuro_wavg
       )
+
     # final dataset
-    df_q <- df_q %>% select(-matches("_q$|_as1$"))
-    # assign different score name to the AL score based on sub-population (girls and boys separately)
-    if (length(df_q)<1301) {
-      df_q <- df_q %>% mutate(
-        AL_2_cardio = AL_1_cardio,
-        AL_2_metab = AL_1_metab,
-        AL_2_immune = AL_1_immune,
-        AL_2_neuro = AL_1_neuro,
-        AL_2_tot = AL_1_tot,
-        AL_2_cardio_wavg = AL_1_cardio_wavg,
-        AL_2_metab_wavg = AL_1_metab_wavg,
-        AL_2_immune_wavg = AL_1_immune_wavg,
-        AL_2_neuro_wavg = AL_1_neuro_wavg,
-        AL_2_tot_wavg = AL_1_tot_wavg,
-      )
+    # df_q <- df_q %>% select(-matches("_q$|_as1$"))
+    # assign different score name to the sex-specific AL score, based on girls and boys separately
+    if (nrow(df_q) < 1301) {
+      df_q <- df_q %>% 
+        rename(
+          AL_2_cardio = AL_1_cardio,
+          AL_2_metab = AL_1_metab,
+          AL_2_immune = AL_1_immune,
+          AL_2_neuro = AL_1_neuro,
+          AL_2_tot = AL_1_tot,
+          AL_2_cardio_wavg = AL_1_cardio_wavg,
+          AL_2_metab_wavg = AL_1_metab_wavg,
+          AL_2_immune_wavg = AL_1_immune_wavg,
+          AL_2_neuro_wavg = AL_1_neuro_wavg,
+          AL_2_tot_wavg = AL_1_tot_wavg
+        )
     }
   }
-  if ("z-score based" %in% scoreno) {
+  if ("continuous score" %in% scoreno) {
+    # positive scoring
     df_z <- data %>%
       select(HelixID, e3_sex, all_of(biomarkers)) %>%
       mutate(
         across(
-          .cols = biomarkers,
-          .fns = scale,
+          .cols = all_of(biomarkers),
+          .fns = ~ rescale(.x, to = c(0, 1)), # rescale a variable with min = 0 and max = 1. Linear rescaling will not change the shape of the distribution.
           .names = "{col}_z"
         )
       ) %>%
       mutate(across(ends_with("_z"), as.numeric)) %>%
       select(HelixID, e3_sex, ends_with("_z"))
 
-    # flip hdl z score
-    df_z$hs_hdlchol_c_zflip <- ifelse(df_z$hs_hdlchol_c_z < 0, abs(df_z$hs_hdlchol_c_z),
-      df_z$hs_hdlchol_c_z * (-1)
+    # reverse scoring
+    biomarker_z <- paste(biomarker_reversescore, "z", sep = "_")
+    df_z <- df_z %>% mutate(
+      across(
+        .cols = all_of(biomarker_z),
+        .fns = \(x) (1 - x),
+        .names = "{col}"
+      )
     )
 
-    # convert cortisol z score <0 to >0
-    df_z$cortisol_prod_log10_zflip <- if_else(df_z$cortisol_prod_log10_z < 0, abs(df_z$cortisol_prod_log10_z),
-      df_z$cortisol_prod_log10_z, NA
-    )
+    # non-linear scoring
+    biomarker_z <- paste(biomarker_nonlinearscore, "z", sep = "_")
+    df_z <- df_z %>%
+      mutate(
+        across(
+          .cols = all_of(biomarker_z),
+          .fns = \(x) rescale(x, to = c(-1, 1)),
+          .names = "{col}"
+        )
+      ) %>%
+      mutate(
+        across(
+          .cols = all_of(biomarker_z),
+          .fns = \(x) if_else(x < 0, abs(x), ifelse(x >= 0, x, NA)),
+          .names = "{col}"
+        )
+      )
 
     # summary score
-    df_z <- df_z %>% mutate(
-      AL_z1_cardio = hs_zsys_bp_z + hs_zdia_bp_z + bp_pulse_avg_z,
-      AL_z1_metab = hs_zbmi_who_z + hs_zwaist_mets_z + hs_skf_sum2_z + hs_fatprop_bia_z +
-        hs_hdlchol_c_zflip + hs_ldlchol_c_z + hs_triglyc_c_z + hs_totchol_c_z + Leptin_z + Adiponectin_z,
-      AL_z1_immune = CRP_z + IL1beta_z + IL6_z + IL8_z + IL10_z + TNFalfa_z,
-      AL_z1_neuro = cortisol_prod_log10_zflip,
-      AL_z1_tot = AL_z1_cardio + AL_z1_metab + AL_z1_immune + AL_z1_neuro
-    )
+    cardio_z <- paste(cardio, "z", sep = "_")
+    metab_z <- paste(metab, "z", sep = "_")
+    immune_z <- paste(immune, "z", sep = "_")
+    neuro_z <- paste(neuro, "z", sep = "_")
+    # formula
+    cardio_zsum <- paste(cardio_z, collapse = " + ")
+    metab_zsum <- paste(metab_z, collapse = " + ")
+    immune_zsum <- paste(immune_z, collapse = " + ")
+    neuro_zsum <- paste(neuro_z, collapse = " + ")
+
+    df_z <- df_z %>%
+      mutate(
+        AL_z1_cardio = rlang::eval_tidy(rlang::parse_expr(cardio_zsum), data = .),
+        AL_z1_metab = rlang::eval_tidy(rlang::parse_expr(metab_zsum), data = .),
+        AL_z1_immune = rlang::eval_tidy(rlang::parse_expr(immune_zsum), data = .),
+        AL_z1_neuro = rlang::eval_tidy(rlang::parse_expr(neuro_zsum), data = .),
+        AL_z1_tot = AL_z1_cardio + AL_z1_metab + AL_z1_immune + AL_z1_neuro
+      )
 
     # weighted average score
-    df_z <- df_z %>% mutate(
-      AL_z1_cardio_wavg = (hs_zsys_bp_z + hs_zdia_bp_z + bp_pulse_avg_z) / 3,
-      AL_z1_metab_wavg = (hs_zbmi_who_z + hs_zwaist_mets_z + hs_skf_sum2_z + hs_fatprop_bia_z +
-        hs_hdlchol_c_zflip + hs_ldlchol_c_z + hs_triglyc_c_z + hs_totchol_c_z + Leptin_z + Adiponectin_z) / 10,
-      AL_z1_immune_wavg = (CRP_z + IL1beta_z + IL6_z + IL8_z + IL10_z + TNFalfa_z) / 6,
-      AL_z1_neuro_wavg = cortisol_prod_log10_zflip,
-      AL_z1_tot_wavg = AL_z1_cardio_wavg + AL_z1_metab_wavg + AL_z1_immune_wavg + AL_z1_neuro_wavg
-    )
-   # final dataset
-    df_z <- df_z %>% select(-matches("_z$|_zflip$"))
-    # assign different score name to the AL score based on sub-population (girls and boys separately)
-    if (length(df_z)<1301) {
-      df_z <- df_z %>% mutate(
-        AL_z2_cardio = AL_z1_cardio,
-        AL_z2_metab = AL_z1_metab,
-        AL_z2_immune = AL_z1_immune,
-        AL_z2_neuro = AL_z1_neuro,
-        AL_z2_tot = AL_z1_tot,
-        AL_z2_cardio_wavg = AL_z1_cardio_wavg,
-        AL_z2_metab_wavg = AL_z1_metab_wavg,
-        AL_z2_immune_wavg = AL_z1_immune_wavg,
-        AL_z2_neuro_wavg = AL_z1_neuro_wavg,
-        AL_z2_tot_wavg = AL_z1_tot_wavg,
+    # formula
+    cardio_wgtzsum <- paste0("(", paste(cardio_z, collapse = " + "), ")/", length(cardio_z), sep = "")
+    metab_wgtzsum <- paste0("(", paste(metab_z, collapse = " + "), ")/", length(metab_z), sep = "")
+    immune_wgtzsum <- paste0("(", paste(immune_z, collapse = " + "), ")/", length(immune_z), sep = "")
+    neuro_wgtzsum <- paste0("(", paste(neuro_z, collapse = " + "), ")/", length(neuro_z), sep = "")
+
+    df_z <- df_z %>%
+      mutate(
+        AL_z1_cardio_wavg = rlang::eval_tidy(rlang::parse_expr(cardio_wgtzsum), data = .),
+        AL_z1_metab_wavg = rlang::eval_tidy(rlang::parse_expr(metab_wgtzsum), data = .),
+        AL_z1_immune_wavg = rlang::eval_tidy(rlang::parse_expr(immune_wgtzsum), data = .),
+        AL_z1_neuro_wavg = rlang::eval_tidy(rlang::parse_expr(neuro_wgtzsum), data = .),
+        AL_z1_tot_wavg = AL_z1_cardio_wavg + AL_z1_metab_wavg + AL_z1_immune_wavg + AL_z1_neuro_wavg
       )
+
+    # final dataset
+    # df_z <- df_z %>% select(-matches("_z$"))
+    # assign different score name to the AL score based on sub-population (girls and boys separately)
+    if (nrow(df_z) < 1301) {
+      df_z <- df_z %>% 
+        rename(
+          AL_z2_cardio = AL_z1_cardio,
+          AL_z2_metab = AL_z1_metab,
+          AL_z2_immune = AL_z1_immune,
+          AL_z2_neuro = AL_z1_neuro,
+          AL_z2_tot = AL_z1_tot,
+          AL_z2_cardio_wavg = AL_z1_cardio_wavg,
+          AL_z2_metab_wavg = AL_z1_metab_wavg,
+          AL_z2_immune_wavg = AL_z1_immune_wavg,
+          AL_z2_neuro_wavg = AL_z1_neuro_wavg,
+          AL_z2_tot_wavg = AL_z1_tot_wavg
+        )
     }
   }
-  if (exists('df_q')) {
+  if (exists("df_q")) {
     assign("ALScore_cutoff", df_q, envir = .GlobalEnv)
   }
-  if (exists('df_z')) {
+  if (exists("df_z")) {
     assign("ALScore_z", df_z, envir = .GlobalEnv)
   }
 }
 ```
 
 
+# Cut-off-based AL scores
+Quantiles are created based on the values of biomarkers of total study population. The highest quantile (75%) of other biomarkers are considered 'high risk' and received a score of 1, except for HDL and cortisol. The lowest quantile (25%) of HDL scored 1, and both the lowest quantile and high quantile of cortisol scored 1. 
+
 ## Cut-offs based on whole study sample
 ```{r allostatic score 1 quantile based, fig.width = 15 , fig.height = 15}
-ALscore(data = df_full, scoreno = "cut-off based", biomarkers = biomarker_all)
+ALscore(data = df_full, scoreno = "cut-off score", biomarkers = biomarker_all, biomarker_positivescore, biomarker_reversescore, biomarker_nonlinearscore)
 
 df_full_q <- ALScore_cutoff
 
@@ -371,7 +453,7 @@ AL_1_tot %>%
 
 ### Cut-offs based on girls in the study sample
 ```{r allostatic score 1 quantile based girls}
-ALscore(data = df_g, scoreno = "cut-off based", biomarkers = biomarker_all)
+ALscore(data = df_g, scoreno = "cut-off score", biomarkers = biomarker_all, biomarker_positivescore, biomarker_reversescore, biomarker_nonlinearscore)
 
 df_gq <- ALScore_cutoff
 
@@ -438,7 +520,7 @@ AL_2_gq_tot %>%
 
 ### Cut-offs based on boys in the study sample
 ```{r allostatic score 1 quantile based boys}
-ALscore(data = df_b, scoreno = "cut-off based", biomarkers = biomarker_all)
+ALscore(data = df_b, scoreno = "cut-off score", biomarkers = biomarker_all, biomarker_positivescore, biomarker_reversescore, biomarker_nonlinearscore)
 
 df_bq <- ALScore_cutoff
 
@@ -504,9 +586,9 @@ AL_2_bq_tot %>%
 ```
 
 # Z-score-based AL scores
-## Cut-offs based on whole study sample
+## Z-score-based on whole study sample
 ```{r allostatic score 2 z score, fig.width = 15 , fig.height = 15}
-ALscore(data = df_full, scoreno = "z-score based", biomarkers = biomarker_all)
+ALscore(data = df_full, scoreno = "continuous score", biomarkers = biomarker_all, biomarker_positivescore, biomarker_reversescore, biomarker_nonlinearscore)
 
 df_full_z <- ALScore_z
 
@@ -644,9 +726,9 @@ AL_z1_tot %>%
   labs(x = "", y = "")
 ```
 
-### Cut-offs based on girls in the study sample
+### Z-score-based on girls in the study sample
 ```{r allostatic score z quantile based girls}
-ALscore(data = df_g, scoreno = "z-score based", biomarkers = biomarker_all)
+ALscore(data = df_g, scoreno = "continuous score", biomarkers = biomarker_all, biomarker_positivescore, biomarker_reversescore, biomarker_nonlinearscore)
 
 df_gz <- ALScore_z
 
@@ -711,9 +793,9 @@ AL_z2_gz_tot %>%
   facet_wrap(~name, scales = "free_x")
 ```
 
-### Cut-offs based on boys in the study sample
+### Z-score-based on boys in the study sample
 ```{r allostatic score z quantile based boys}
-ALscore(data = df_b, scoreno = "z-score based", biomarkers = biomarker_all)
+ALscore(data = df_b, scoreno = "continuous score", biomarkers = biomarker_all, biomarker_positivescore, biomarker_reversescore, biomarker_nonlinearscore)
 
 df_bz <- ALScore_z
 
@@ -784,9 +866,7 @@ AL_z2_bz_tot %>%
 df_indsex_q <- rbind(df_gq, df_bq) %>% select(-e3_sex)
 df_indsex_z <- rbind(df_gz, df_bz) %>% select(-e3_sex)
 
-df_final <- df_full_q %>%
-  left_join(df_full_z, by = "HelixID") %>%
-  left_join(df_indsex_q, by = "HelixID") %>%
+df_final <- df_indsex_q %>%
   left_join(df_indsex_z, by = "HelixID") %>%
   rename_at(
     vars(ends_with(".x")),

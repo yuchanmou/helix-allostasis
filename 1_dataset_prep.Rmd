@@ -24,112 +24,18 @@ df <- read_excel("/Users/ymou/helix_project/data/HELIX_AP_132_request_updated19s
 # proteome data
 load("/Users/ymou/helix_project/data/proteome_subcohort_v5.Rdata")
 # steriod data
-dt <- read_excel("/Users/ymou/helix_project/data/cortisol/urine_results_combined.xlsx", sheet = 1)
-dt_lloq <- read_excel("/Users/ymou/helix_project/data/cortisol/urine_results_combined.xlsx", sheet = 2) # originally 1008 obs, 4 duplicated rows were removed (data duplication confirmed by lab). Final dataset contains 1004 obs.
-dt_creatinine <- read_excel("/Users/ymou/helix_project/data/cortisol/urine_results_combined.xlsx", sheet = 3) # 1007 obs
+dt <- read_csv("/Users/ymou/helix_project/data/cortisol/Final corticosteroid data/Helix_urine_corticosteroid_profile_processed.csv", locale=locale(encoding="latin1"))
+
 ```
 
 # Steriod data manipulation
 Unnormalized concentrations (ng/mL)
 
-2 Sample lost, removed in the dataset: 
-- RHEA:232094
-- MOB154
-
-```{r steriod data add variable feature}
-colname <- colnames(dt)
-colname <- colname[-c(1, 2, 3, 5, 30)] # exclude variable ID_original, HelixID, cohort, F_outlier, S_outlier
-
-# create copies of analytes
-dt_1 <- dt %>% mutate(
-  across(
-    .cols = colname,
-    .names = "{col}_cp"
-  )
-)
-
-# replace <LOQ to <LLOQ
-dt_1 <- dt_1 %>% mutate_all(str_replace, "<LOQ", "<LLOQ")
-
-# create descriptive columns for each analytes
-dt_2 <- dt_1 %>%
-  mutate_at(
-    vars(-c("ID_original", "HelixID", ends_with("_cp"), "F_outlier", "S_outlier", "cohort")),
-    ~ na_if(., "<LLOQ")
-  ) %>% # replace '<LLOQ' with NA
-  mutate_at(
-    vars(-c("ID_original", "HelixID", ends_with("_cp"), "F_outlier", "S_outlier", "cohort")),
-    ~ na_if(., "n.d.")
-  ) %>% # replace "n.d." with NA
-  mutate_at(vars(-c("ID_original", "HelixID", ends_with("_cp"), "F_outlier", "S_outlier", "cohort")), as.numeric) %>%
-  mutate(across(ends_with("_cp"),
-    ~ ifelse(. == "<LLOQ", "LLOQ",
-      ifelse(. == "n.d.", "n.d.", "complete")
-    ),
-    .names = "{col}_des"
-  ))
-
-dt_2$F_cp_des[dt_2$F_outlier == "outlier"] <- "outlier"
-dt_2$S_cp_des[dt_2$S_outlier == "outlier"] <- "outlier"
-
-# analytes feature were named as ._cp_des
-# n.d.: not detected
-# outlier: outlier
-# LLOQ: lower than limit of quantification
-dt_final <- dt_2 %>%
-  select_at(
-    vars(-ends_with(c("_cp", "_outlier")))
-  )
-
-# modify ID
-dt_final$HelixID <- str_replace(dt_final$HelixID, "_1A", "")
-dt_final$HelixID <- str_replace(dt_final$HelixID, "_1X", "")
-dt_final$HelixID <- str_replace(dt_final$HelixID, "_1x", "")
-dt_final$HelixID <- str_replace(dt_final$HelixID, "_1a", "")
-dt_final$HelixID <- str_replace(dt_final$HelixID, "-1X", "")
-dt_final$HelixID <- str_replace(dt_final$HelixID, "-1A", "")
-dt_final$HelixID <- str_replace(dt_final$HelixID, " 1X ORINA", "")
-dt_final$HelixID <- str_replace(dt_final$HelixID, " 1A ORINA", "")
-dt_final$HelixID <- str_replace(dt_final$HelixID, " 1XORINA", "")
-dt_final$HelixID <- str_replace(dt_final$HelixID, " 1 X ORINA", "")
-dt_final$HelixID <- str_replace(dt_final$HelixID, " 1X ORINA", "")
-dt_final$HelixID <- str_replace(dt_final$HelixID, " 2A ORINA", "")
-dt_final$HelixID <- str_replace(dt_final$HelixID, "SAB ", "SAB")
-dt_final$HelixID <- str_replace(dt_final$HelixID, "SAB00", "SAB")
-dt_final$HelixID <- str_replace(dt_final$HelixID, "SAB0", "SAB")
-dt_final$HelixID <- str_replace(dt_final$HelixID, "MOB00", "MOB")
-dt_final$HelixID <- str_replace(dt_final$HelixID, "MOB0", "MOB")
-
-dt_final <- dt_final %>% mutate(across(HelixID, ~ str_replace(., "EDP", "EDE")))
-
-# !!! KAN1292, KAN147, KAN315, KAN918 duplicated
-# 4 Duplicated samples has been removed in the dataset. Aug 1, 2023
-# check if duplicated obs exist
-dt_final[duplicated(dt_final$HelixID), ]
+```{r steriod data}
+dt <- dt %>% rename(HelixID = Sample) # 1006 obs
+# check duplicate
+dt[duplicated(dt$HelixID), ]
 ```
-
-```{r steriod data creatinine}
-dt_creatinine$HelixID <- str_replace(dt_creatinine$HelixID, "_1A", "")
-dt_creatinine$HelixID <- str_replace(dt_creatinine$HelixID, "_1X", "")
-dt_creatinine$HelixID <- str_replace(dt_creatinine$HelixID, "_1x", "")
-dt_creatinine$HelixID <- str_replace(dt_creatinine$HelixID, "_1a", "")
-dt_creatinine$HelixID <- str_replace(dt_creatinine$HelixID, "-1X", "")
-dt_creatinine$HelixID <- str_replace(dt_creatinine$HelixID, "-1A", "")
-dt_creatinine$HelixID <- str_replace(dt_creatinine$HelixID, "_9Y_C_0", "")
-dt_creatinine$HelixID <- str_replace(dt_creatinine$HelixID, "_UN01_1A", "")
-dt_creatinine$HelixID <- str_replace(dt_creatinine$HelixID, "_UN01", "")
-dt_creatinine$HelixID <- str_replace(dt_creatinine$HelixID, "SAB00", "SAB")
-dt_creatinine$HelixID <- str_replace(dt_creatinine$HelixID, "SAB0", "SAB")
-
-dt_creatinine <- dt_creatinine %>% mutate(across(HelixID, ~ str_replace(., "EDP", "EDE")))
-
-# no duplicated ID.
-dt_creatinine[duplicated(dt_creatinine$HelixID), ]
-
-# final dataset
-dt_creatinine <- dt_creatinine %>% select(-"ID_original")
-```
-
 
 # Proteome dataset
 ```{r proteome dataset feature}
@@ -170,18 +76,16 @@ df <- df %>% mutate(across(where(is_logical), as.numeric))
 
 df <- df %>%
   mutate_at(c("hs_bp_pulse1", "hs_bp_pulse2", "hs_bp_pulse3"), as.numeric) %>%
-  mutate(bp_pulse_avg = (hs_bp_pulse1 + hs_bp_pulse2 + hs_bp_pulse3) / 3)
+  mutate(bp_pulse_avg = (hs_bp_pulse2 + hs_bp_pulse3) / 2,
+         hs_non_hdl_c = hs_totchol_c - hs_hdlchol_c)
 ```
 
 # Merge datasets
 ```{r final dataset merge}
 # steriod data
-dt_final2 <- dt_final %>%
-  select(-"cohort") %>%
-  left_join(dt_creatinine, by = "HelixID", keep = FALSE, unmatched = "drop")
-# check unmatched data
-# 5 obs no creatinine data
-anti_join(dt_final, dt_creatinine, by = "HelixID")
+dt_final <- dt
+dt_final2 <- dt %>%
+  select(-"cohort")
 
 # merge general dataset, proteome and steriod datasets together
 df_full <- df %>%
@@ -207,7 +111,7 @@ chol_conv <- function(x) {
 }
 df_full <- df_full %>%
   mutate_at(
-    c("hs_hdlchol_c", "hs_ldlchol_c", "hs_totchol_c"), ~ chol_conv(.)
+    c("hs_hdlchol_c", "hs_ldlchol_c", "hs_totchol_c", "hs_non_hdl_c"), ~ chol_conv(.)
   )
 
 # triglycerides
@@ -225,117 +129,13 @@ df_full <- df_full %>%
 # mutate_at(
 # c("CRP", "IL1beta", "IL6", "IL8", "IL10", "TNFalfa"), ~ inflam_conv(.))
 
-
-# urine creatinine uM to ng/mL
-# 88.4 uM = 1 mg/dL. https://www.lsbio.com/assaykitdocuments/K207_Datasheet.pdf
-# 1 mg/dL = 10 ug/mL (microgram per milliliter)
-# 1 ug/mL = 1000 ng/mL, multiply by 1000
-# unit conversion reference: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3718461/
-uri_creatinine_conv <- function(x) {
-  (x / 88.4) * 10000
-}
-df_full <- df_full %>%
-  mutate_at("Creatinine (µM)", ~ uri_creatinine_conv(.)) %>%
-  rename(creatinine_cortisol = `Creatinine (µM)`)
 ```
 
 ## Cortisol data manipulation
 ```{r}
-# LLoQ imputation
-# impute below LLoQ as LLoQ/sqr(2)
-# ._cp_des
-# complete: complete data
-# LLOQ: lower than limit of quantification
-# n.d.: not detected
-# outlier: outlier - HAVE NOT DONE ANYTHING WITH OUTLIER VALUE YET
-bare_to_quo <- function(x, var) {
-  x %>%
-    select(!!var) %>%
-    head(1)
-}
-
-lloq_imp <- function(data, var, var_des, value = data$var) {
-  assign("lloq", bare_to_quo(dt_lloq, quo({{ var }})))
-  data %>%
-    mutate(
-      across(
-        .cols = {{ var }},
-        ~ ifelse({{ var_des }} == "LLOQ", as.numeric(lloq) / sqrt(2),
-          ifelse({{ var_des }} == "n.d.", as.numeric(lloq) / sqrt(2),
-            ifelse({{ var_des }} == "complete", value, NA)
-          )
-        ),
-        .names = "{col}_imp"
-      )
-    )
-}
-
-# function test run: complete and LLOQ should be false (not missing), meaning that the imputation works
-# test <- lloq_imp(df_full, "F", F_cp_des, value = df_full$`F`)
-# table(test$F_cp_des)
-# length(which(!is.na(test$`F_imp`)))
-# table(test$F_cp_des, is.na(test$`F_imp`))
-# diagonal matrix means the imputation works perfect
-# table(head(test$`F`), head(test$F_imp))
-
-# 11 steriod analytes
-analytes <- c("F", "20aDHF", "20bDHF", "5bDHF", "5aTHF", "5bTHF", "6OHF", "5a20acortol", "5a20bcortol", "5b20acortol", "5b20bcortol")
-analytes_desc <- c("F_cp_des", "20aDHF_cp_des", "20bDHF_cp_des", "5bDHF_cp_des", "5aTHF_cp_des", "5bTHF_cp_des", "6OHF_cp_des", "5a20acortol_cp_des", "5a20bcortol_cp_des", "5b20acortol_cp_des", "5b20bcortol_cp_des")
-
-# loop didn't work...let's repeat everything
-# 11 analytes
-df_full <- lloq_imp(df_full, "F", `F_cp_des`, value = df_full$`F`)
-df_full <- lloq_imp(df_full, "20aDHF", `20aDHF_cp_des`, value = df_full$`20aDHF`)
-df_full <- lloq_imp(df_full, "20bDHF", `20bDHF_cp_des`, value = df_full$`20bDHF`)
-df_full <- lloq_imp(df_full, "5bDHF", `5bDHF_cp_des`, value = df_full$`5bDHF`)
-df_full <- lloq_imp(df_full, "5aTHF", `5aTHF_cp_des`, value = df_full$`5aTHF`)
-df_full <- lloq_imp(df_full, "5bTHF", `5bTHF_cp_des`, value = df_full$`5bTHF`)
-df_full <- lloq_imp(df_full, "6OHF", `6OHF_cp_des`, value = df_full$`6OHF`)
-df_full <- lloq_imp(df_full, "5a20acortol", `5a20acortol_cp_des`, value = df_full$`5a20acortol`)
-df_full <- lloq_imp(df_full, "5a20bcortol", `5a20bcortol_cp_des`, value = df_full$`5a20bcortol`)
-df_full <- lloq_imp(df_full, "5b20acortol", `5b20acortol_cp_des`, value = df_full$`5b20acortol`)
-df_full <- lloq_imp(df_full, "5b20bcortol", `5b20bcortol_cp_des`, value = df_full$`5b20bcortol`)
-
-# check if the lloq imputation works. Should be 1 at diagonal.
-table(head(df_full$`5b20bcortol`), head(df_full$`5b20bcortol_imp`))
-# complete + LLOQ/n.d should be euqual to the non-missing
-# F has 1 outlier, and is set to missing. Thus not in the current analysis. May want to impute in the future.
-table(df_full$`F_cp_des`, useNA = "always")
-length(which(is.na(df_full$`F_imp`)))
-
-# for (i in (1)) {
-#  analyte = analytes[i]
-#  assign('lloq', dt_lloq[, analyte])
-#  test %>%
-#    mutate(
-#      analytes[i] == ifelse(analytes_desc[i] == "LLOQ", as.numeric(lloq)/sqrt(2),
-#                          ifelse(analytes_desc[i] == "complete", analytes[i], NA))
-#      )
-# }
-# table(test$F_cp_des)
-# length(which(!is.na(test$`F_imp`)))
-# table(test$F_cp_des, is.na(test$`F_imp`))
-
-
-# Normalization
-# cortisol value/urine creatinine value
-# 329 samples without cortisol production value. 328 samples with creatinine value as missing, 1 sample with F value as outlier
-df_full <- df_full %>%
-  mutate(
-    across(
-      .cols = c("F_imp", "20aDHF_imp", "20bDHF_imp", "5bDHF_imp", "5aTHF_imp", "5bTHF_imp", "6OHF_imp", "5a20acortol_imp", "5a20bcortol_imp", "5b20acortol_imp", "5b20bcortol_imp"),
-      ~ noquote(.) / creatinine_cortisol,
-      .names = "{col}_norm"
-    )
-  )
-# hist(df_full$`5b20bcortol_imp_norm`)
-
-# Cortisol production calculation
-df_full <- df_full %>%
-  mutate(
-    cortisol_prod = `F_imp_norm` + `20aDHF_imp_norm` + `20bDHF_imp_norm` + `5bDHF_imp_norm` + `5aTHF_imp_norm` + `5bTHF_imp_norm` + `6OHF_imp_norm` + `5a20acortol_imp_norm` + `5a20bcortol_imp_norm` + `5b20acortol_imp_norm` + `5b20bcortol_imp_norm`,
-    cortisol_metab = (`20aDHF_imp_norm` + `20bDHF_imp_norm` + `5bDHF_imp_norm` + `5aTHF_imp_norm` + `5bTHF_imp_norm` + `6OHF_imp_norm` + `5a20acortol_imp_norm` + `5a20bcortol_imp_norm` + `5b20acortol_imp_norm` + `5b20bcortol_imp_norm`) / `F_imp_norm`
-  )
+df_full <- df_full %>% 
+  rename(cortisol_prod = Cort_Prod,
+         cortisol_metab = Cort_metab)
 hist(df_full$cortisol_prod)
 hist(df_full$cortisol_metab)
 
@@ -354,7 +154,7 @@ sd(df_full$cortisol_metab_log10, na.rm = T)
 ## Add value labels
 ```{r add value labels}
 df_full$e3_asmokyn_p <- if_else(df_full$e3_asmokyn_p == "no", 0, 1, NA)
-df_full$e3_sex <- if_else(df_full$e3_sex == "male", 1, 2, NA)
+df_full$e3_sex <- if_else(df_full$e3_sex == "male", 1, 0, NA)
 
 df_full <- df_full %>% mutate_at(c("hs_lden_c_h", "hs_lden_c_s"), as.numeric)
 
@@ -363,7 +163,7 @@ df_full <- df_full %>% set_value_labels(
   h_native = c("None native" = 0, "One native" = 1, "Both native" = 2),
   h_edumc = c(Low = 1, Middle = 2, High = 3),
   h_edufc = c(Low = 1, Middle = 2, High = 3),
-  e3_sex = c(Boys = 1, Girls = 2),
+  e3_sex = c(Boys = 1, Girls = 0),
   hs_smk_parents = c(Neither = 1, One = 2, Both = 3),
   hs_globalexp = c(No = 1, Outside = 2, Inside = 3, "In and outside house" = 4),
   e3_asmokyn_p = c(No = 0, Yes = 1),
@@ -407,6 +207,20 @@ df_full$child_age_grp <- cut(df_full$hs_child_age_years,
   breaks = c(5, 6, 7, 8, 9, 10, 11, 12.1),
   labels = c("5-5.9", "6-6.9", "7-7.9", "8-8.9", "9-9.9", "10-10.9", "11+")
 ) # greater than or equal to the cutpoint
+```
+
+## Standardize pulse rate by age and sex
+```{r}
+library(modelr)
+
+pulse <- glm(data=df_full, formula = bp_pulse_avg ~ e3_sex + hs_child_age_years, family = gaussian)
+int <- pulse$coefficients[1]
+coef_sex <- pulse$coefficients[2]
+coef_age <- pulse$coefficients[3]
+
+df_full <- df_full %>% add_residuals(pulse)
+df_full$bp_pulse_sd0 <- int + df_full$resid
+df_full$bp_pulse_sd <- as.numeric(scale(df_full$bp_pulse_sd0, center = TRUE, scale = TRUE))
 ```
 
 # Dataset stratified by sex

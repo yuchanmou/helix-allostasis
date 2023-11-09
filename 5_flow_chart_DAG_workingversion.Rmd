@@ -58,8 +58,8 @@ gp <- gpar(fill = "lightgrey")
 # for lden, home sample sizes are larger than school
 # min sample size = lden_school, max sample size = no2
 (SAB_1 <- boxGrob(str_glue('With all biomarkers\n n = {min} ~ {max}',
-                           min = nrow(df_final %>% filter(cohort == 'SAB') %>% filter(!is.na(hs_lden_c_s) & !is.na(AL_1_tot))),
-                           max = nrow(df_final %>% filter(cohort == 'SAB') %>% filter(!is.na(hs_no2_yr_hs_t) & !is.na(AL_1_tot)))),
+                           min = nrow(df_final %>% filter(cohort == 'SAB') %>% filter(!is.na(hs_lden_c_s) & !is.na(AL_2_tot))),
+                           max = nrow(df_final %>% filter(cohort == 'SAB') %>% filter(!is.na(hs_no2_yr_hs_t) & !is.na(AL_2_tot)))),
                   x = x1, y=.5, box_gp = gp, width = width))
 
 connectGrob(org_cohort, SAB, type = "N", "l")
@@ -75,8 +75,8 @@ connectGrob(SAB, SAB_1, type = "N", "l")
                  x = x2, y=.7, box_gp = gp, width = width, just = "left"))
 
 (EDEN_1 <- boxGrob(str_glue('With all biomarkers\n n = {min} ~ {max}',
-                           min = nrow(df_final %>% filter(cohort == 'EDEN') %>% filter(!is.na(hs_lden_c_s) & !is.na(AL_1_tot))),
-                           max = nrow(df_final %>% filter(cohort == 'EDEN') %>% filter(!is.na(hs_no2_yr_hs_t) & !is.na(AL_1_tot)))),
+                           min = nrow(df_final %>% filter(cohort == 'EDEN') %>% filter(!is.na(hs_lden_c_s) & !is.na(AL_2_tot))),
+                           max = nrow(df_final %>% filter(cohort == 'EDEN') %>% filter(!is.na(hs_no2_yr_hs_t) & !is.na(AL_2_tot)))),
                   x = x2, y=.5, box_gp = gp, width = width))
 
 connectGrob(org_cohort, EDEN, type = "N", "l")
@@ -93,8 +93,8 @@ connectGrob(EDEN, EDEN_1, type = "N", "l")
                x = x3, y=.7, box_gp = gp, width = width, just = "left"))
 
 (BIB_1 <- boxGrob(str_glue('With all biomarkers\n n = {min} ~ {max}',
-                           min = nrow(df_final %>% filter(cohort == 'BIB') %>% filter(!is.na(hs_lden_c_s) & !is.na(AL_1_tot))),
-                           max = nrow(df_final %>% filter(cohort == 'BIB') %>% filter(!is.na(hs_no2_yr_hs_t) & !is.na(AL_1_tot)))),
+                           min = nrow(df_final %>% filter(cohort == 'BIB') %>% filter(!is.na(hs_lden_c_s) & !is.na(AL_2_tot))),
+                           max = nrow(df_final %>% filter(cohort == 'BIB') %>% filter(!is.na(hs_no2_yr_hs_t) & !is.na(AL_2_tot)))),
                   x = x3, y=.5, box_gp = gp, width = width))
 
 connectGrob(org_cohort, BIB, type = "N", "l")
@@ -110,8 +110,8 @@ connectGrob(BIB, BIB_1, type = "N", "l")
                 x = x4, y=.7, box_gp = gp, width = width, just = "left"))
 
 (RHEA_1 <- boxGrob(str_glue('With all biomarkers\n n = {min} ~ {max}',
-                           min = nrow(df_final %>% filter(cohort == 'RHEA') %>% filter(!is.na(hs_lden_c_s) & !is.na(AL_1_tot))),
-                           max = nrow(df_final %>% filter(cohort == 'RHEA') %>% filter(!is.na(hs_no2_yr_hs_t) & !is.na(AL_1_tot)))),
+                           min = nrow(df_final %>% filter(cohort == 'RHEA') %>% filter(!is.na(hs_lden_c_s) & !is.na(AL_2_tot))),
+                           max = nrow(df_final %>% filter(cohort == 'RHEA') %>% filter(!is.na(hs_no2_yr_hs_t) & !is.na(AL_2_tot)))),
                   x = x4, y=.5, box_gp = gp, width = width))
 
 connectGrob(org_cohort, RHEA, type = "N", "l")
@@ -127,8 +127,8 @@ connectGrob(RHEA, RHEA_1, type = "N", "l")
                 x = x5, y=.7, box_gp = gp, width = width, just = "left"))
 
 (KANC_1 <- boxGrob(str_glue('With all biomarkers\n n = {min} ~ {max}',
-                           min = nrow(df_final %>% filter(cohort == 'KANC') %>% filter(!is.na(hs_lden_c_s) & !is.na(AL_1_tot))),
-                           max = nrow(df_final %>% filter(cohort == 'KANC') %>% filter(!is.na(hs_no2_yr_hs_t) & !is.na(AL_1_tot)))),
+                           min = nrow(df_final %>% filter(cohort == 'KANC') %>% filter(!is.na(hs_lden_c_s) & !is.na(AL_2_tot))),
+                           max = nrow(df_final %>% filter(cohort == 'KANC') %>% filter(!is.na(hs_no2_yr_hs_t) & !is.na(AL_2_tot)))),
                   x = x5, y=.5, box_gp = gp, width = width))
 
 connectGrob(org_cohort, KANC, type = "N", "l")
@@ -145,8 +145,8 @@ connectGrob(KANC, KANC_1, type = "N", "l")
                 x = x6, y=.7, box_gp = gp, width = width, just = "left"))
 
 (MOBA_1 <- boxGrob(str_glue('With all biomarkers\n n = {min} ~ {max}',
-                           min = nrow(df_final %>% filter(cohort == 'MOBA') %>% filter(!is.na(hs_lden_c_s) & !is.na(AL_1_tot))),
-                           max = nrow(df_final %>% filter(cohort == 'MOBA') %>% filter(!is.na(hs_no2_yr_hs_t) & !is.na(AL_1_tot)))),
+                           min = nrow(df_final %>% filter(cohort == 'MOBA') %>% filter(!is.na(hs_lden_c_s) & !is.na(AL_2_tot))),
+                           max = nrow(df_final %>% filter(cohort == 'MOBA') %>% filter(!is.na(hs_no2_yr_hs_t) & !is.na(AL_2_tot)))),
                   x = x6, y=.5, box_gp = gp, width = width))
 
 connectGrob(org_cohort, MOBA, type = "N", "l")
@@ -155,8 +155,8 @@ connectGrob(MOBA, MOBA_1, type = "N", "l")
 
 # total study sample
 (tot <- boxGrob(str_glue('Total study sample\n n = {min} ~ {max}',
-                           min = nrow(df_final %>% filter(!is.na(hs_lden_c_s) & !is.na(AL_1_tot))),
-                           max = nrow(df_final %>% filter(!is.na(hs_no2_yr_hs_t) & !is.na(AL_1_tot)))),
+                           min = nrow(df_final %>% filter(!is.na(hs_lden_c_s) & !is.na(AL_2_tot))),
+                           max = nrow(df_final %>% filter(!is.na(hs_no2_yr_hs_t) & !is.na(AL_2_tot)))),
                   x = midx, y=.3, box_gp = gp, width = width))
 
 connectGrob(SAB_1, tot, type = "N", "l")

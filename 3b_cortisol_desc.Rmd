@@ -331,7 +331,7 @@ df_full %>%
   select(
     hs_zsys_bp, hs_zdia_bp, bp_pulse_avg,
     hs_zbmi_who, hs_zwaist_mets, hs_skf_sum2, hs_fatprop_bia, hs_freefatmass_bia,
-    hs_hdlchol_c, hs_ldlchol_c, hs_triglyc_c, hs_totchol_c, Leptin, Adiponectin,
+    hs_hdlchol_c, hs_non_hdl_c, hs_ldlchol_c, hs_totchol_c, hs_triglyc_c, Leptin, Adiponectin,
     CRP, IL1beta, IL6, IL8, IL10, TNFalfa,
     cortisol_prod_log10,
     hs_child_age_years, FAS_cat, h_edumc, h_ethnicity_3cat
