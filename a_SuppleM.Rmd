@@ -1,0 +1,226 @@
+---
+title: "Supplementary materials"
+author: "Yuchan Mou"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+options(knitr.table.format = "html")
+```
+
+```{r load packages, include=FALSE, echo=FALSE, message=FALSE, warning=FALSE}
+# load pkgs
+packages <- c("dplyr", "tidyverse", "tableone", "kableExtra", "ggplot2", "ggcorrplot")
+sapply(packages, library, character.only = T)
+```
+
+```{r import data, include=FALSE, echo=FALSE, message=FALSE, warning=FALSE}
+load("/Users/ymou/helix_project/data/analysis_data/df_al_final.RData")
+Sys.Date()
+```
+
+```{r define variables, include=FALSE, echo=FALSE, message=FALSE, warning=FALSE}
+expo <- c(
+  "hs_no2_yr_hs_t", "hs_no2_yr_hs_h", "hs_no2_yr_hs_s", "hs_no2_yr_hs_r",
+  "hs_pm25_yr_hs_t", "hs_pm25_yr_hs_h", "hs_pm25_yr_hs_s", "hs_pm25_yr_hs_r",
+  "hs_pm25abs_yr_hs_t", "hs_pm25abs_yr_hs_h", "hs_pm25abs_yr_hs_s", "hs_pm25abs_yr_hs_r",
+  "hs_pm10_yr_hs_t", "hs_pm10_yr_hs_h", "hs_pm10_yr_hs_s", "hs_pm10_yr_hs_r", 
+  "hs_lden_c_h", "hs_lden_c_s"
+)
+exponame <- c("NO2-total", "NO2-home", "NO2-school", "NO2-commuting", 
+"PM2.5-total", "PM2.5-home", "PM2.5-school", "PM2.5-commuting",
+"PM2.5abs-total", "PM2.5abs-home", "PM2.5abs-school", "PM2.5abs-commuting", 
+"PM10-total", "PM10-home", "PM10-school", "PM10-commuting",
+"Noise-home", "Noise-school")
+
+mainexpo <- c( "hs_no2_yr_hs_t", "hs_pm25_yr_hs_t", "hs_pm25abs_yr_hs_t", "hs_pm10_yr_hs_t", "hs_lden_c_h", "hs_lden_c_s")
+
+biomarker_name <- c(
+  "SBP", "DBP", "Pulse rate",
+  "BMI", "Waist circumference", "Skinfold thickness", "Fat mass",
+  "HDL-C", "Non-HDL-C", "Triglycerides", "Leptin",
+  "Adiponectin",
+  "CRP", "IL-1B", "IL-6", "IL-8", "IL-10", "TNFa",
+  "Cortisol production"
+)
+
+out <- c("AL_2_tot", "AL_2_cardio", "AL_2_metab", "AL_2_immune", "AL_2_neuro",
+         "AL_z2_tot", "AL_z2_cardio", "AL_z2_metab", "AL_z2_immune", "AL_z2_neuro")
+mainout <- c("AL_2_tot", "AL_z2_tot") 
+
+outname <- c("Count-based AL score", 
+     "Count-based cardiovascular AL", 
+     "Count-based metabolic AL",
+     "Count-based immune/imflammatory AL", 
+     "Count-based neuroendorine AL",
+     "Continuous AL score", 
+     "Continuous cardiovascular AL",
+     "Continuous metabolic AL",
+     "Continuous immune/imflammatory AL",
+     "Continuous neuroendorine AL")
+
+cov <- c(
+  "e3_sex", "hs_mvpa", "hs_sd_wk", "hs_child_age_years",
+  "FAS_cat", "h_native_2cat", "h_ethnicity_cauc", "h_edumc", "h_edufc",
+  "hs_smk_parents", "hs_globalexp_2cat", "e3_asmokyn_p", "e3_alcpreg_yn", "h_marital_2cat", "h_age", "h_parity"
+)
+catcov <- c(
+  "e3_sex", "FAS_cat", "h_native", "h_ethnicity_cauc", "h_edumc", "h_edufc",
+  "hs_smk_parents", "hs_globalexp_2cat", "e3_asmokyn_p", "e3_alcpreg_yn", "h_marital", "h_parity"
+)
+nonnormalvars <- c("hs_child_age_years", "hs_mvpa", "hs_sd_wk")
+
+```
+
+AL_2 is a sex-specific count-based scores, AL_z2 is a sex-specific continuous scores. The completeness of data is the same among all outcomes. Use AL_2_tot as an example for the responders vs non-responder analysis.
+
+# Non-response to outcome measures
+
+```{r nonresponders}
+# 923 with AL, 919 with both air pollutants and AL
+df <- df_final %>% filter(!is.na(hs_no2_yr_hs_t))
+df$respond <- as.factor(if_else(is.na(df$AL_2_tot), 0, 1, NA)) # 1 as respondents to biomarkers
+
+df <- df %>% 
+  mutate(
+    h_native_2cat = fct_collapse(h_native,
+      "None or one native" = c("None native", "One native"),
+      "Both native" = "Both native"
+    ),
+    hs_globalexp_2cat = fct_collapse(hs_globalexp,
+      "No" = "No",
+      "Yes" = c("Outside", "Inside", "In and outside house")
+    ),
+    h_marital_2cat = fct_collapse(h_marital,
+      "Living with the father" = "Living with the father",
+      "Other situation" = c("Living alone", "Other situation")
+    )
+  )
+
+tbl <- CreateTableOne(
+  data = df,
+  vars = cov,
+  factorVars = catcov,
+  strata = c("respond", "cohort")
+)
+
+tab_csv <- print(tbl,
+showAllLevels = TRUE, nonnormal = nonnormalvars, contDigits = 1, catDigits = 1, noSpaces = T, format = "fp"
+)
+
+
+write.csv(tab_csv, file = "/Users/ymou/helix_project/results/nonrespondents.csv")
+```
+
+
+# Correlations among allostatic load score
+```{r corr_al}
+df <- df_final %>% filter(!is.na(hs_no2_yr_hs_t & AL_2_tot))
+cor.test(df$AL_2_tot, df$AL_z2_tot)
+
+df <- df %>% 
+  rename(
+     `Count-based AL score`= "AL_2_tot", 
+     `Count-based cardiovascular AL` = "AL_2_cardio", 
+     `Count-based metabolic AL` = "AL_2_metab",
+     `Count-based immune/imflammatory AL` = "AL_2_immune", 
+     `Count-based neuroendorine AL` = "AL_2_neuro",
+     `Continuous AL score` = "AL_z2_tot", 
+     `Continuous cardiovascular AL` = "AL_z2_cardio",
+     `Continuous metabolic AL` = "AL_z2_metab",
+     `Continuous immune/imflammatory AL` = "AL_z2_immune",
+     `Continuous neuroendorine AL` = "AL_z2_neuro"
+  )
+```
+
+Main outcomes and outcomes per system
+```{r}
+df %>%
+  dplyr::select(all_of(outname)) %>%
+  cor(use = "pairwise.complete.obs", method = "pearson") %>%
+  ggcorrplot(
+    hc.order = F,
+    type = "lower",
+    lab = TRUE
+  )
+
+ggsave("/Users/ymou/helix_project/results/Fig/corr_outcomes.png", width = 10, height = 10, units = "in", dpi = 300)
+```
+
+# Correlation among biomarkers
+```{r}
+df <- df_final %>% filter(!is.na(hs_no2_yr_hs_t & AL_2_tot))
+df <- df %>% 
+  rename(
+  `SBP` = "hs_zsys_bp", `DBP` = "hs_zdia_bp", `Pulse rate` = "bp_pulse_sd",
+  `BMI` = "hs_zbmi_who", `Waist circumference` = "hs_zwaist_mets", `Skinfold thickness` = "hs_skf_sum2", 
+  `Fat mass` = "hs_fatprop_bia",
+  `HDL-C` = "hs_hdlchol_c", `Non-HDL-C` = "hs_non_hdl_c", `Triglycerides` = "hs_triglyc_c", `Leptin` = "Leptin",
+  `Adiponectin` = "Adiponectin",
+  `CRP` = "CRP", `IL-1B` = "IL1beta", `IL-6` = "IL6", `IL-8` = "IL8", `IL-10` = "IL10", `TNFa` = "TNFalfa",
+  `Cortisol production` = "cortisol_prod_log10"
+  )
+  
+df %>%
+  dplyr::select(all_of(biomarker_name)) %>%
+  cor(use = "pairwise.complete.obs", method = "pearson") %>%
+  ggcorrplot(
+    hc.order = F,
+    type = "lower",
+    lab = TRUE
+  )
+
+ggsave("/Users/ymou/helix_project/results/Fig/corr_biomarkers.png", width = 10, height = 10, units = "in", dpi = 300)
+
+```
+
+# Correlation between air pollutants
+```{r corr_biomarkers, fig.width=10, fig.height=10}
+df <- df_final %>% filter(!is.na(hs_no2_yr_hs_t & AL_2_tot))
+
+df <- df %>% 
+  rename(
+     `NO2-total`= "hs_no2_yr_hs_t", 
+     `NO2-home` = "hs_no2_yr_hs_h", 
+     `NO2-school` = "hs_no2_yr_hs_s", 
+     `NO2-commuting` = "hs_no2_yr_hs_r", 
+     `PM2.5-total` = "hs_pm25_yr_hs_t", 
+     `PM2.5-home` = "hs_pm25_yr_hs_h", 
+     `PM2.5-school` = "hs_pm25_yr_hs_s", 
+     `PM2.5-commuting` = "hs_pm25_yr_hs_r",
+     `PM2.5abs-total`= "hs_pm25abs_yr_hs_t", 
+     `PM2.5abs-home` = "hs_pm25abs_yr_hs_h", 
+     `PM2.5abs-school` = "hs_pm25abs_yr_hs_s", 
+     `PM2.5abs-commuting` = "hs_pm25abs_yr_hs_r", 
+     `PM10-total`= "hs_pm10_yr_hs_t", 
+     `PM10-home` = "hs_pm10_yr_hs_h", 
+     `PM10-school` = "hs_pm10_yr_hs_s", 
+     `PM10-commuting` = "hs_pm10_yr_hs_r",
+     `Noise-home` = "hs_lden_c_h", 
+     `Noise-school` = "hs_lden_c_s",      
+  )
+
+df %>%
+  dplyr::select(all_of(exponame)) %>%
+  mutate_if(is.factor, as.numeric) %>%
+  cor(use = "pairwise.complete.obs", method = "spearman") %>%
+  ggcorrplot(
+    hc.order = F,
+    type = "lower",
+    lab = TRUE
+  )
+
+ggsave("/Users/ymou/helix_project/results/Fig/corr_expo.png", width = 10, height = 10, units = "in", dpi = 300)
+```
+
+# Correlation between noise level at home and at school, categorical variable
+```{r corr_noise_cat}
+library(polycor)
+
+table(df$hs_lden_c_h, df$hs_lden_c_s)
+
+# calculate polychoric correlation
+polychor(df$hs_lden_c_h, df$hs_lden_c_s, ML = T, std.err = T)
+```
