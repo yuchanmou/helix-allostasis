@@ -288,7 +288,7 @@ for (o in out_ps) {
         count <- count + 1
         fit <- imp_full %>%
           mice::complete("all") %>%
-          lapply(glm, formula = paste(o, "~", d, "+", model[m], " + cohort", sep = ""), family = "poisson")
+          lapply(glm.nb, formula = paste(o, "~", d, "+", model[m], " + cohort", sep = ""), link = "log")
         res <- summary(pool(fit), conf.int = T)
         # Round values
         res <- res %>%
@@ -586,7 +586,7 @@ for (o in out_ps) {
         count <- count + 1
         fit <- imp_full %>%
           mice::complete("all") %>%
-          lapply(glm, formula = paste(o, "~", d, "+", model[m], " + cohort", sep = ""), family = "poisson")
+          lapply(glm.nb, formula = paste(o, "~", d, "+", model[m], " + cohort", sep = ""), link = "log")
         res <- summary(pool(fit), conf.int = T)
         # Round values
         res <- res %>%
@@ -964,7 +964,7 @@ for (o in out_ps) {
         count <- count + 1
         fit <- imp_full_noise %>%
           mice::complete("all") %>%
-          lapply(glm, formula = paste(o, "~", d, "+", model[m], " + cohort", sep = ""), family = "poisson")
+          lapply(glm.nb, formula = paste(o, "~", d, "+", model[m], " + cohort", sep = ""), link = "log")
         res <- summary(pool(fit), conf.int = T)
         # Round values
         res <- res %>%

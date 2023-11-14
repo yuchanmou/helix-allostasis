@@ -26,21 +26,21 @@ analysis_date <- Sys.Date()
 
 # Air pollutants
 # Count-based AL, Continuous AL and their weighted average
-ap_tot_out <- read_excel("/Users/ymou/helix_project/results/airpollution_total_mainoutcome2023-10-14.xlsx")
+ap_tot_out <- read_excel("/Users/ymou/helix_project/results/airpollution_total_mainoutcome2023-11-14.xlsx")
 # Count-based AL and weighted average score per system
-ap_tot_outps <- read_excel("/Users/ymou/helix_project/results/airpollution_total_outcomepsystem2023-10-14.xlsx")
+ap_tot_outps <- read_excel("/Users/ymou/helix_project/results/airpollution_total_outcomepsystem2023-11-14.xlsx")
 # Continuous AL and weighted average score per system
-ap_tot_outzps <- read_excel("/Users/ymou/helix_project/results/airpollution_total_outcomepsystem_zscore2023-10-14.xlsx")
+ap_tot_outzps <- read_excel("/Users/ymou/helix_project/results/airpollution_total_outcomepsystem_zscore2023-11-14.xlsx")
 
 # Count-based AL, Continuous AL and their weighted average: Home, school, commuting
-ap_hsr_out <- read_excel("/Users/ymou/helix_project/results/airpollution_hsrp_mainoutcome2023-10-14.xlsx") %>% filter(!str_detect(Predictor, "_p$")) # other places not incl
+ap_hsr_out <- read_excel("/Users/ymou/helix_project/results/airpollution_hsrp_mainoutcome2023-11-14.xlsx") %>% filter(!str_detect(Predictor, "_p$")) # other places not incl
 # Count-based AL and weighted average score per system: Home, school, commuting
-ap_hsr_outps <- read_excel("/Users/ymou/helix_project/results/airpollution_hsrp_outcomepsystem2023-10-14.xlsx") %>% filter(!str_detect(Predictor, "_p$")) # other places not incl
+ap_hsr_outps <- read_excel("/Users/ymou/helix_project/results/airpollution_hsrp_outcomepsystem2023-11-14.xlsx") %>% filter(!str_detect(Predictor, "_p$")) # other places not incl
 # Continuous AL and weighted average score per system: Home, school, commuting
-ap_hsr_outzps <- read_excel("/Users/ymou/helix_project/results/airpollution_hsrp_outcomepsystem_zscore2023-10-14.xlsx") %>% filter(!str_detect(Predictor, "_p$")) # other places not incl
+ap_hsr_outzps <- read_excel("/Users/ymou/helix_project/results/airpollution_hsrp_outcomepsystem_zscore2023-11-14.xlsx") %>% filter(!str_detect(Predictor, "_p$")) # other places not incl
 
 # Noise
-noise_tot_out <- read_excel("/Users/ymou/helix_project/results/noise_mainoutcome2023-10-14.xlsx")
+noise_tot_out <- read_excel("/Users/ymou/helix_project/results/noise_mainoutcome2023-11-14.xlsx")
 ```
 
 ```{r merge data}

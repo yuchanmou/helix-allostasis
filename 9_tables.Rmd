@@ -25,14 +25,14 @@ sapply(packages, library, character.only = T)
 load("/Users/ymou/helix_project/data/analysis_data/imp_full_ds.Rdata")
 # Air pollutants
 # Count-based AL, Continuous AL and their weighted average
-ap_tot_out <- read_excel("/Users/ymou/helix_project/results/airpollution_total_mainoutcome2023-10-14.xlsx")
+ap_tot_out <- read_excel("/Users/ymou/helix_project/results/airpollution_total_mainoutcome2023-11-14.xlsx")
 # Count-based AL and weighted average score per system
-ap_tot_outps <- read_excel("/Users/ymou/helix_project/results/airpollution_total_outcomepsystem2023-10-14.xlsx")
+ap_tot_outps <- read_excel("/Users/ymou/helix_project/results/airpollution_total_outcomepsystem2023-11-14.xlsx")
 # Continuous AL and weighted average score per system
-ap_tot_outzps <- read_excel("/Users/ymou/helix_project/results/airpollution_total_outcomepsystem_zscore2023-10-14.xlsx")
+ap_tot_outzps <- read_excel("/Users/ymou/helix_project/results/airpollution_total_outcomepsystem_zscore2023-11-14.xlsx")
 
 # Noise
-noise_tot_out <- read_excel("/Users/ymou/helix_project/results/noise_mainoutcome2023-10-14.xlsx")
+noise_tot_out <- read_excel("/Users/ymou/helix_project/results/noise_mainoutcome2023-11-14.xlsx")
 
 tot_res <- bind_rows(ap_tot_out, ap_tot_outps, ap_tot_outzps, noise_tot_out)
 df <- imp_full$data %>% filter(!is.na(AL_2_tot))
@@ -162,7 +162,7 @@ tblone <- CreateTableOne(data = dat_afimp, vars = cov, factorVars = catcov, test
 tbl <- print(tblone, showAllLevels = TRUE, nonnormal = nonnormalvars, contDigits = 1, catDigits = 1, noSpaces = T, format = "fp")
 tbl <- as.data.frame(tbl)
 
-write_xlsx(tbl, path = paste("/Users/ymou/helix_project/results/", "tableone", analysis_date, ".xlsx", sep = ""))
+write_xlsx(tbl, path = paste("/Users/ymou/helix_project/results/Table/Table2-", "tableone", analysis_date, ".xlsx", sep = ""))
 
 df %>%
   summarise(across(all_of(mainout), ~ mean(.x, na.rm = TRUE)))
