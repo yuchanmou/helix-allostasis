@@ -96,14 +96,16 @@ nonnormalvars <- c("hs_child_age_years", "hs_mvpa", "hs_sd_wk")
 df %>%
   select(HelixID, e3_sex, all_of(biomarker_all)) %>%
   group_by(e3_sex) %>% 
-  reframe(across(all_of(biomarker_all), ~ quantile(.x, c(0.25, 0.75), na.rm = T))) %>% 
+  reframe(across(all_of(biomarker_all), ~ quantile(.x, c(0.25, 0.5, 0.75), na.rm = T))) %>% 
   mutate(across(hs_zsys_bp:cortisol_prod_log10, ~round(.,2))) %>% 
   transpose(keep.names = "Biomarkers") %>% 
   rename(
     g_0.25 = V1,
-    g_0.75 = V2,
-    b_0.25 = V3,
-    b_0.75 = V4
+    g_0.5 = V2,
+    g_0.75 = V3,
+    b_0.25 = V4,
+    b_0.5 = V5,
+    b_0.75 = V6
   ) %>% 
   slice(-1) %>%  # remove first row
   mutate(across(g_0.25:g_0.75, ~as.numeric(.))) %>% 
@@ -112,10 +114,10 @@ df %>%
     title = "Table 2 Allostatic load biomarkers and the cut-off values"
   ) %>% 
   fmt_number(decimals = 2, drop_trailing_zeros = F) %>% 
-  cols_merge(columns = c(g_0.25, g_0.75),
-             pattern = "{1}, {2}") %>% 
-  cols_merge(columns = c(b_0.25, b_0.75),
-             pattern = "{1}, {2}") %>% 
+  cols_merge(columns = c(g_0.5, g_0.25, g_0.75),
+             pattern = "{1} ({2}, {3})") %>% 
+  cols_merge(columns = c(b_0.5, b_0.25, b_0.75),
+             pattern = "{1} ({2}, {3})") %>% 
   cols_label(Biomarkers = "Biomarkers",
              g_0.25 = "Girls",
              b_0.25 = "Boys") %>% 
@@ -125,14 +127,16 @@ bioz <- paste(biomarker_all, "_z.x", sep = "")
 df %>%
   select(HelixID, e3_sex, matches("_z.x$")) %>%
   group_by(e3_sex) %>% 
-  reframe(across(all_of(bioz), ~ quantile(.x, c(0.25, 0.75), na.rm = T))) %>% 
+  reframe(across(all_of(bioz), ~ quantile(.x, c(0.25, 0.5, 0.75), na.rm = T))) %>% 
   mutate(across(all_of(bioz), ~round(.,2))) %>% 
   transpose(keep.names = "Biomarkers") %>% 
   rename(
     g_0.25 = V1,
-    g_0.75 = V2,
-    b_0.25 = V3,
-    b_0.75 = V4
+    g_0.5 = V2,
+    g_0.75 = V3,
+    b_0.25 = V4,
+    b_0.5 = V5,
+    b_0.75 = V6
   ) %>% 
   slice(-1) %>%  # remove first row
   mutate(across(g_0.25:g_0.75, ~as.numeric(.))) %>% 
@@ -141,10 +145,10 @@ df %>%
     title = "Table 2 Allostatic load biomarkers and the cut-off values"
   ) %>% 
   fmt_number(decimals = 2, drop_trailing_zeros = F) %>% 
-  cols_merge(columns = c(g_0.25, g_0.75),
-             pattern = "{1}, {2}") %>% 
-  cols_merge(columns = c(b_0.25, b_0.75),
-             pattern = "{1}, {2}") %>% 
+  cols_merge(columns = c(g_0.5, g_0.25, g_0.75),
+             pattern = "{1} ({2}, {3})") %>% 
+  cols_merge(columns = c(b_0.5, b_0.25, b_0.75),
+             pattern = "{1} ({2}, {3})") %>% 
   cols_label(Biomarkers = "Biomarkers",
              g_0.25 = "Girls",
              b_0.25 = "Boys") %>% 
