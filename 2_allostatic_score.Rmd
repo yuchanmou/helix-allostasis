@@ -101,11 +101,18 @@ ALscore <- function(data, scoreno, biomarkers, biomarker_positivescore, biomarke
       select(HelixID, e3_sex, all_of(biomarkers)) %>%
       mutate(
         across(
-          .cols = all_of(biomarkers),
+          .cols = all_of(biomarkers)[1:18],
           .fns = \(x) ntile(x, n = 4),
           .names = "{col}_q"
         )
       ) %>%
+      mutate(
+        across(
+          .cols = all_of(biomarkers)[19], # cortisol production quantiles
+          .fns = \(x) ntile(x, n = 8),
+          .names = "{col}_q"
+        )
+      ) %>% 
       select(HelixID, e3_sex, ends_with("_q"))
 
     # make quartiles
@@ -129,12 +136,12 @@ ALscore <- function(data, scoreno, biomarkers, biomarker_positivescore, biomarke
       )
     )
 
-    # non-linear scoring
+    # non-linear scoring, cortisol production
     biomarker_q <- paste(biomarker_nonlinearscore, "q", sep = "_")
     df_q <- df_q %>% mutate(
       across(
         .cols = all_of(biomarker_q),
-        .fns = \(x) if_else(x == 4 | x == 1, 1, 0, NA),
+        .fns = \(x) if_else(x == 8 | x == 1, 1, 0, NA),
         .names = "{col}_as1"
       )
     )
@@ -176,8 +183,10 @@ ALscore <- function(data, scoreno, biomarkers, biomarker_positivescore, biomarke
       )
 
     # final dataset
+    # assign different score names (AL_2_) to the sex-specific allostatic load score, based on girls and boys separately
+    # AL_1 is the allostatic load score based on the whole population
+    # AL_2 is the sex-specific allostatic load score
     # df_q <- df_q %>% select(-matches("_q$|_as1$"))
-    # assign different score name to the sex-specific AL score, based on girls and boys separately
     if (nrow(df_q) < 1301) {
       df_q <- df_q %>% 
         rename(
@@ -302,7 +311,7 @@ ALscore <- function(data, scoreno, biomarkers, biomarker_positivescore, biomarke
 
 
 # Cut-off-based AL scores
-Quantiles are created based on the values of biomarkers of total study population. The highest quantile (75%) of other biomarkers are considered 'high risk' and received a score of 1, except for HDL and cortisol. The lowest quantile (25%) of HDL scored 1, and both the lowest quantile and high quantile of cortisol scored 1. 
+Quantiles were created based on the values of biomarkers of total study population. The highest quantile (75%) of other biomarkers are considered 'high risk' and received a score of 1, except for HDL and cortisol. The lowest quantile (25%) of HDL were scored 1, and both the lowest and highest 12.5th percentiles of cortisol were scored 1. 
 
 ## Cut-offs based on whole study sample
 ```{r allostatic score 1 quantile based, fig.width = 15 , fig.height = 15}
@@ -860,7 +869,7 @@ AL_z2_bz_tot %>%
   facet_wrap(~name, scales = "free_x")
 ```
 
-
+# Export final datasets
 ```{r export final dataset}
 # Merge datasets
 df_indsex_q <- rbind(df_gq, df_bq) %>% select(-e3_sex)
