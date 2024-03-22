@@ -42,4 +42,4 @@ df <- imp_full$data %>%
   cor(use="pairwise.complete.obs", method = "spearman")
 corrplot::corrplot(df, method = "square", tl.col = "black", tl.cex=0.5)
 for(i in 1:12)df[i,i]<-1 #To make sure the diagonal is one
-meff(df, method = "galwey") #-----> n = 5
+meff(df, method = "galwey") #-----> n = 8
