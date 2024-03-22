@@ -25,14 +25,14 @@ sapply(packages, library, character.only = T)
 load("/Users/ymou/helix_project/data/analysis_data/imp_full_ds.Rdata")
 # Air pollutants
 # Count-based AL, Continuous AL and their weighted average
-ap_tot_out <- read_excel("/Users/ymou/helix_project/results/airpollution_total_mainoutcome2023-11-14.xlsx")
+ap_tot_out <- read_excel("/Users/ymou/helix_project/results/airpollution_total_mainoutcome2024-03-21.xlsx")
 # Count-based AL and weighted average score per system
-ap_tot_outps <- read_excel("/Users/ymou/helix_project/results/airpollution_total_outcomepsystem2023-11-14.xlsx")
+ap_tot_outps <- read_excel("/Users/ymou/helix_project/results/airpollution_total_outcomepsystem2024-03-21.xlsx")
 # Continuous AL and weighted average score per system
-ap_tot_outzps <- read_excel("/Users/ymou/helix_project/results/airpollution_total_outcomepsystem_zscore2023-11-14.xlsx")
+ap_tot_outzps <- read_excel("/Users/ymou/helix_project/results/airpollution_total_outcomepsystem_zscore2024-03-21.xlsx")
 
 # Noise
-noise_tot_out <- read_excel("/Users/ymou/helix_project/results/noise_mainoutcome2023-11-14.xlsx")
+noise_tot_out <- read_excel("/Users/ymou/helix_project/results/noise_mainoutcome2024-03-21.xlsx")
 
 tot_res <- bind_rows(ap_tot_out, ap_tot_outps, ap_tot_outzps, noise_tot_out)
 df <- imp_full$data %>% filter(!is.na(AL_2_tot))
@@ -123,9 +123,9 @@ df %>%
              b_0.25 = "Boys") %>% 
   gt::gtsave(., "/Users/ymou/helix_project/results/Table/Table1-1.docx")
 
-bioz <- paste(biomarker_all, "_z.x", sep = "")
+bioz <- paste(biomarker_all, "_z", sep = "")
 df %>%
-  select(HelixID, e3_sex, matches("_z.x$")) %>%
+  select(HelixID, e3_sex, matches("_z$")) %>%
   group_by(e3_sex) %>% 
   reframe(across(all_of(bioz), ~ quantile(.x, c(0.25, 0.5, 0.75), na.rm = T))) %>% 
   mutate(across(all_of(bioz), ~round(.,2))) %>% 
@@ -225,6 +225,15 @@ tbl <- print(tblnoise, showAllLevels = TRUE, contDigits = 1, catDigits = 1, noSp
 tbl <- as.data.frame(tbl)
 
 write_xlsx(tbl, path = "/Users/ymou/helix_project/results/Table/Table3-2.xlsx")
+
+
+# allostatic load scores 
+tblal <- CreateTableOne(data = df, vars = mainout, testNonNormal = kruskal.test, strata = "cohort")
+
+tbl <- print(tblal, showAllLevels = TRUE, nonnormal = mainout, contDigits = 1, noSpaces = T, format = "fp")
+tbl <- as.data.frame(tbl)
+
+write_xlsx(tbl, path = "/Users/ymou/helix_project/results/Table/Table3-3.xlsx")
 
 ```
 
