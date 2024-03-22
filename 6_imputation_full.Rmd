@@ -229,7 +229,7 @@ ap_supl, noise, noise_supl, out_supl, individual biomarker cutoff score and indi
 
 ## SAB
 ```{r}
-sab <- df_cohort_imp[[1]] %>% select(-all_of(c(ap_supl, noise, noise_supl, out_supl)), matches("_z$|_as1$"))
+sab <- df_cohort_imp[[1]] %>% select(-all_of(c(ap_supl, noise, noise_supl, out_supl)), -matches("_z$|_as1$"))
 
 inlist <- c("hs_no2_yr_hs_t", "hs_pm25_yr_hs_t", `cov`[-c(7)], out)
 
@@ -257,7 +257,7 @@ EDEN has no data on PM2.5abs and PM10, and noise h/s.
 ede <- df_cohort_imp[[2]] %>% select(-all_of(c(
   "hs_pm25abs_yr_hs_t",
   "hs_pm10_yr_hs_t", ap_supl, noise, noise_supl, out_supl
-)), matches("_z$|_as1$"))
+)), -matches("_z$|_as1$"))
 
 inlist <- c("hs_no2_yr_hs_t", "hs_pm25_yr_hs_t", "hs_pm25abs_yr_hs_t", "hs_pm10_yr_hs_t", `cov`[-c(5, 7)], out)
 
@@ -273,6 +273,8 @@ imp_ede <- mice(ede,
   seed = 2023
 )
 
+# family income low is 0. Excluded in the imputation.
+
 plot(imp_ede)
 densityplot(imp_ede, ~hs_sd_wk)
 propplot(imp_ede, strip.text = element_text(size = 14))
@@ -280,7 +282,7 @@ propplot(imp_ede, strip.text = element_text(size = 14))
 
 ## BIB
 ```{r}
-bib <- df_cohort_imp[[3]] %>% select(-all_of(c(ap_supl, noise, noise_supl, out_supl)), matches("_z$|_as1$"))
+bib <- df_cohort_imp[[3]] %>% select(-all_of(c(ap_supl, noise, noise_supl, out_supl)), -matches("_z$|_as1$"))
 
 inlist <- c("hs_no2_yr_hs_t", "hs_pm25_yr_hs_t", "hs_pm25abs_yr_hs_t", "hs_pm10_yr_hs_t", cov, out)
 
@@ -303,7 +305,7 @@ propplot(imp_bib, strip.text = element_text(size = 14))
 ## RHEA
 RHEA has no data on PM2.5abs.
 ```{r}
-rhea <- df_cohort_imp[[4]] %>% select(-all_of(c("hs_pm25abs_yr_hs_t", ap_supl, noise, noise_supl, out_supl)), matches("_z$|_as1$"))
+rhea <- df_cohort_imp[[4]] %>% select(-all_of(c("hs_pm25abs_yr_hs_t", ap_supl, noise, noise_supl, out_supl)), -matches("_z$|_as1$"))
 
 inlist <- c("hs_no2_yr_hs_t", "hs_pm25_yr_hs_t", cov[-c(5, 7)], out)
 # all air pollutants corrs >0.8
@@ -315,7 +317,7 @@ imp_rhea <- mice(rhea,
     mincor = 0.2, minpuc = 0, include = inlist,
     exclude = c(
       "HelixID", "hs_pm10_yr_hs_t",
-      "incl_var_ap", "incl_var_ap_all", "incl_var_noise", "incl_var_bio", "incl_var_out", "cohort", "h_ethnicity_cauc", "FAS_cat"
+      "incl_var_ap", "incl_var_ap_all", "incl_var_noise", "incl_var_bio", "incl_var_out", "cohort", "h_ethnicity_cauc"
     )
   ),
   seed = 2023
@@ -328,7 +330,7 @@ propplot(imp_rhea, strip.text = element_text(size = 14))
 
 ## KANC
 ```{r}
-kanc <- df_cohort_imp[[5]] %>% select(-all_of(c(ap_supl, noise, noise_supl, out_supl)), matches("_z$|_as1$"))
+kanc <- df_cohort_imp[[5]] %>% select(-all_of(c(ap_supl, noise, noise_supl, out_supl)), -matches("_z$|_as1$"))
 
 inlist <- c("hs_no2_yr_hs_t", "hs_pm25_yr_hs_t", "hs_pm25abs_yr_hs_t", "hs_pm10_yr_hs_t", cov[-c(7)], out)
 
@@ -350,7 +352,7 @@ propplot(imp_kanc, strip.text = element_text(size = 14))
 
 ## MOBA
 ```{r}
-moba <- df_cohort_imp[[6]] %>% select(-all_of(c(ap_supl, noise, noise_supl, out_supl)), matches("_z$|_as1$"))
+moba <- df_cohort_imp[[6]] %>% select(-all_of(c(ap_supl, noise, noise_supl, out_supl)), -matches("_z$|_as1$"))
 
 inlist <- c("hs_no2_yr_hs_t", "hs_pm25_yr_hs_t", "hs_pm25abs_yr_hs_t", "hs_pm10_yr_hs_t", cov[-c(8, 9)], out)
 
