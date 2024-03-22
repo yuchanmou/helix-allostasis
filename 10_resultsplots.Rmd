@@ -26,21 +26,21 @@ analysis_date <- Sys.Date()
 
 # Air pollutants
 # Count-based AL, Continuous AL and their weighted average
-ap_tot_out <- read_excel("/Users/ymou/helix_project/results/airpollution_total_mainoutcome2023-11-14.xlsx")
+ap_tot_out <- read_excel("/Users/ymou/helix_project/results/airpollution_total_mainoutcome2024-03-21.xlsx")
 # Count-based AL and weighted average score per system
-ap_tot_outps <- read_excel("/Users/ymou/helix_project/results/airpollution_total_outcomepsystem2023-11-14.xlsx")
+ap_tot_outps <- read_excel("/Users/ymou/helix_project/results/airpollution_total_outcomepsystem2024-03-21.xlsx")
 # Continuous AL and weighted average score per system
-ap_tot_outzps <- read_excel("/Users/ymou/helix_project/results/airpollution_total_outcomepsystem_zscore2023-11-14.xlsx")
+ap_tot_outzps <- read_excel("/Users/ymou/helix_project/results/airpollution_total_outcomepsystem_zscore2024-03-21.xlsx")
 
 # Count-based AL, Continuous AL and their weighted average: Home, school, commuting
-ap_hsr_out <- read_excel("/Users/ymou/helix_project/results/airpollution_hsrp_mainoutcome2023-11-14.xlsx") %>% filter(!str_detect(Predictor, "_p$")) # other places not incl
+ap_hsr_out <- read_excel("/Users/ymou/helix_project/results/airpollution_hsrp_mainoutcome2024-03-21.xlsx") %>% filter(!str_detect(Predictor, "_p$")) # other places not incl
 # Count-based AL and weighted average score per system: Home, school, commuting
-ap_hsr_outps <- read_excel("/Users/ymou/helix_project/results/airpollution_hsrp_outcomepsystem2023-11-14.xlsx") %>% filter(!str_detect(Predictor, "_p$")) # other places not incl
+ap_hsr_outps <- read_excel("/Users/ymou/helix_project/results/airpollution_hsrp_outcomepsystem2024-03-21.xlsx") %>% filter(!str_detect(Predictor, "_p$")) # other places not incl
 # Continuous AL and weighted average score per system: Home, school, commuting
-ap_hsr_outzps <- read_excel("/Users/ymou/helix_project/results/airpollution_hsrp_outcomepsystem_zscore2023-11-14.xlsx") %>% filter(!str_detect(Predictor, "_p$")) # other places not incl
+ap_hsr_outzps <- read_excel("/Users/ymou/helix_project/results/airpollution_hsrp_outcomepsystem_zscore2024-03-21.xlsx") %>% filter(!str_detect(Predictor, "_p$")) # other places not incl
 
 # Noise
-noise_tot_out <- read_excel("/Users/ymou/helix_project/results/noise_mainoutcome2023-11-14.xlsx")
+noise_tot_out <- read_excel("/Users/ymou/helix_project/results/noise_mainoutcome2024-03-21.xlsx")
 ```
 
 ```{r merge data}
@@ -59,7 +59,7 @@ ap_tot_res <- ap_tot_res %>%
     "hi" = "cihi_mod4"
   ) %>%
   mutate_at(c("Predictor", "Outcome"), as.factor) %>% 
-  mutate(Predictor = fct_relevel(Predictor,c("hs_no2_yr_hs_t","hs_pm25_yr_hs_t","hs_pm10_yr_hs_t", "hs_pm25abs_yr_hs_t")),
+  mutate(Predictor = fct_relevel(Predictor,c("hs_no2_yr_hs_t","hs_pm25_yr_hs_t","hs_pm25abs_yr_hs_t", "hs_pm10_yr_hs_t")),
          Outcome = fct_relevel(Outcome, c("AL_2_tot", "AL_2_cardio", "AL_2_metab", "AL_2_immune", "AL_2_neuro",
                                           "AL_z2_tot", "AL_z2_cardio", "AL_z2_metab", "AL_z2_immune", "AL_z2_neuro",
                                           "AL_2_tot_wavg", "AL_2_cardio_wavg", "AL_2_metab_wavg", "AL_2_immune_wavg", "AL_2_neuro_wavg",
@@ -117,8 +117,8 @@ ap_hsr_res <- ap_hsr_res %>%
   mutate_at(c("Predictor", "Outcome"), as.factor) %>% 
   mutate(Predictor = fct_relevel(Predictor,c("hs_no2_yr_hs_h","hs_no2_yr_hs_s","hs_no2_yr_hs_r",
                                              "hs_pm25_yr_hs_h", "hs_pm25_yr_hs_s", "hs_pm25_yr_hs_r",
-                                             "hs_pm10_yr_hs_h", "hs_pm10_yr_hs_s", "hs_pm10_yr_hs_r",
-                                             "hs_pm25abs_yr_hs_h", "hs_pm25abs_yr_hs_s", "hs_pm25abs_yr_hs_r")),
+                                             "hs_pm25abs_yr_hs_h", "hs_pm25abs_yr_hs_s", "hs_pm25abs_yr_hs_r",
+                                             "hs_pm10_yr_hs_h", "hs_pm10_yr_hs_s", "hs_pm10_yr_hs_r")),
          Outcome = fct_relevel(Outcome, c("AL_2_tot", "AL_2_cardio", "AL_2_metab", "AL_2_immune", "AL_2_neuro",
                                           "AL_z2_tot", "AL_z2_cardio", "AL_z2_metab", "AL_z2_immune", "AL_z2_neuro",
                                           "AL_2_tot_wavg", "AL_2_cardio_wavg", "AL_2_metab_wavg", "AL_2_immune_wavg", "AL_2_neuro_wavg",
@@ -127,37 +127,37 @@ ap_hsr_res <- ap_hsr_res %>%
     "hs_no2_yr_hs_h" = "NO[2]",
     "hs_no2_yr_hs_s" = "NO[2]",
     "hs_no2_yr_hs_r" = "NO[2]",
-    "hs_pm10_yr_hs_h" = "PM[10]",
-    "hs_pm10_yr_hs_s" = "PM[10]",
-    "hs_pm10_yr_hs_r" = "PM[10]",
     "hs_pm25_yr_hs_h" = "PM[2.5]",
     "hs_pm25_yr_hs_s" = "PM[2.5]",
     "hs_pm25_yr_hs_r" = "PM[2.5]",
     "hs_pm25abs_yr_hs_h" = "PM[2.5][abs]",
     "hs_pm25abs_yr_hs_s" = "PM[2.5][abs]",
-    "hs_pm25abs_yr_hs_r" = "PM[2.5][abs]"
+    "hs_pm25abs_yr_hs_r" = "PM[2.5][abs]",
+    "hs_pm10_yr_hs_h" = "PM[10]",
+    "hs_pm10_yr_hs_s" = "PM[10]",
+    "hs_pm10_yr_hs_r" = "PM[10]",
   ),
     Outcome = recode(Outcome,
-      "AL_2_tot" = "Count-based AL score",
-      "AL_2_tot_wavg" = "Count-based weighted average AL score",
-      "AL_z2_tot" = "Continuous AL score",
-      "AL_z2_tot_wavg" = "Continuous weighted average AL score",
-      "AL_2_cardio" = "Count-based cardiovascular AL",
-      "AL_2_metab" = "Count-based metabolic AL",
-      "AL_2_immune" = "Count-based immune/imflammatory AL",
-      "AL_2_neuro" = "Count-based neuroendorine AL",
-      "AL_2_cardio_wavg" = "Count-based cardiovascular weighted average AL",
-      "AL_2_metab_wavg" = "Count-based metabolic weighted average AL",
-      "AL_2_immune_wavg" = "Count-based immune/imflammatory weighted average AL",
-      "AL_2_neuro_wavg" = "Count-based neuroendorine weighted average AL",
-      "AL_z2_cardio" = "Continuous cardiovascular AL",
-      "AL_z2_metab" = "Continuous metabolic AL",
-      "AL_z2_immune" = "Continuous immune/imflammatory AL",
-      "AL_z2_neuro" = "Continuous neuroendorine AL",
-      "AL_z2_cardio_wavg" = "Continuous cardiovascular weighted average AL",
-      "AL_z2_metab_wavg" = "Continuous metabolic weighted average AL",
-      "AL_z2_immune_wavg" = "Continuous immune/imflammatory weighted average AL",
-      "AL_z2_neuro_wavg" = "Continuous neuroendorine weighted average AL"
+      "AL_2_tot" = "Count-based ALS",
+      "AL_2_tot_wavg" = "Count-based weighted average ALS",
+      "AL_z2_tot" = "Continuous ALS",
+      "AL_z2_tot_wavg" = "Continuous weighted average ALS",
+      "AL_2_cardio" = "Count-based cardiovascular ALSL",
+      "AL_2_metab" = "Count-based metabolic ALS",
+      "AL_2_immune" = "Count-based immune/imflammatory ALS",
+      "AL_2_neuro" = "Count-based neuroendorine ALS",
+      "AL_2_cardio_wavg" = "Count-based cardiovascular weighted average ALS",
+      "AL_2_metab_wavg" = "Count-based metabolic weighted average ALS",
+      "AL_2_immune_wavg" = "Count-based immune/imflammatory weighted average ALS",
+      "AL_2_neuro_wavg" = "Count-based neuroendorine weighted average ALS",
+      "AL_z2_cardio" = "Continuous cardiovascular ALS",
+      "AL_z2_metab" = "Continuous metabolic ALS",
+      "AL_z2_immune" = "Continuous immune/imflammatory ALS",
+      "AL_z2_neuro" = "Continuous neuroendorine ALS",
+      "AL_z2_cardio_wavg" = "Continuous cardiovascular weighted average ALS",
+      "AL_z2_metab_wavg" = "Continuous metabolic weighted average ALS",
+      "AL_z2_immune_wavg" = "Continuous immune/imflammatory weighted average ALS",
+      "AL_z2_neuro_wavg" = "Continuous neuroendorine weighted average ALS"
     ))
 
 
@@ -193,10 +193,10 @@ noise_tot_out <- noise_tot_out %>%
       "lden_s" = "Road traffic noise at school address"
     ),
     Outcome = recode(Outcome,
-      "AL_2_tot" = "Count-based AL score",
-      "AL_2_tot_wavg" = "Count-based weighted average AL score",
-      "AL_z2_tot" = "Continuous AL score",
-      "AL_z2_tot_wavg" = "Continuous weighted average AL score"
+      "AL_2_tot" = "Count-based ALS",
+      "AL_2_tot_wavg" = "Count-based weighted average ALS",
+      "AL_z2_tot" = "Continuous ALS",
+      "AL_z2_tot_wavg" = "Continuous weighted average ALS"
     )
   )
 ```
@@ -216,7 +216,7 @@ p1 <- ggplot(
   aes(x = Outcome, y = exp_beta_mod4, ymin = exp_cilo_mod4, ymax = exp_cihi_mod4)
 ) +
   geom_pointrange(aes(col = Outcome)) +
-  geom_hline(yintercept = 1, linetype = 2) +
+  geom_hline(yintercept = 1, linetype = 3) +
   xlab("") +
   ylab("Relative risk (95% Confidence Interval)") +
   geom_errorbar(aes(ymin = exp_cilo_mod4, ymax = exp_cihi_mod4, col = Outcome), width = 0.5, cex = 1) +
@@ -225,12 +225,15 @@ p1 <- ggplot(
   facet_wrap(~Predictor, strip.position = "left", nrow = 9, scales = "free_y", labeller = labeller(Predictor = label_parsed)) +
   # scale_y_continuous(limits = c(-1, 6), breaks = c(-1, 0, 1, 2, 3, 4, 5, 6)) +
   theme(
-    plot.title = element_text(size = 14, face = "bold"),
     axis.text.y = element_blank(),
     axis.ticks.y = element_blank(),
-    axis.text.x = element_text(face = "bold"),
+    axis.text.x = element_text(size = 12, face = "bold"),
     axis.title = element_text(size = 12, face = "bold"),
-    strip.text.y.left = element_text(angle = 0, face = "bold")
+    strip.text.y.left = element_text(size = 12, angle = 0, face = "bold"),
+    legend.title = element_text(size = 12, face = "bold"),
+    legend.text = element_text(size = 12),
+    panel.background = element_rect(fill = 'white', colour = 'black'),
+    strip.background=element_rect(fill="white", colour = 'white')
   ) +
   coord_flip() +
   ggtitle("")
@@ -254,7 +257,7 @@ p2 <- ggplot(
   aes(x = Outcome, y = beta, ymin = low, ymax = hi)
 ) +
   geom_pointrange(aes(col = Outcome)) +
-  geom_hline(yintercept = 0, linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 3) +
   xlab("") +
   ylab("Effect sizes (95% Confidence Interval)") +
   geom_errorbar(aes(ymin = low, ymax = hi, col = Outcome), width = 0.5, cex = 1) +
@@ -263,12 +266,15 @@ p2 <- ggplot(
   facet_wrap(~Predictor, strip.position = "left", nrow = 9, scales = "free_y", labeller = labeller(Predictor = label_parsed)) +
   # scale_y_continuous(limits = c(-1, 6), breaks = c(-1, 0, 1, 2, 3, 4, 5, 6)) +
   theme(
-    plot.title = element_text(size = 14, face = "bold"),
     axis.text.y = element_blank(),
     axis.ticks.y = element_blank(),
-    axis.text.x = element_text(face = "bold"),
+    axis.text.x = element_text(size = 12, face = "bold"),
     axis.title = element_text(size = 12, face = "bold"),
-    strip.text.y.left = element_text(angle = 0, face = "bold")
+    strip.text.y.left = element_text(size = 12, angle = 0, face = "bold"),
+    legend.title = element_text(size = 12, face = "bold"),
+    legend.text = element_text(size = 12),
+    panel.background = element_rect(fill = 'white', colour = 'black'),
+    strip.background=element_rect(fill="white", colour = 'white')
   ) +
   coord_flip() +
   ggtitle("")
@@ -288,7 +294,7 @@ p3 <- ggplot(
   aes(x = Outcome, y = beta, ymin = low, ymax = hi)
 ) +
   geom_pointrange(aes(col = Outcome)) +
-  geom_hline(yintercept = 0, linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 3) +
   xlab("") +
   ylab("Effect sizes (95% Confidence Interval)") +
   geom_errorbar(aes(ymin = low, ymax = hi, col = Outcome), width = 0.5, cex = 1) +
@@ -297,12 +303,15 @@ p3 <- ggplot(
   facet_wrap(~Predictor, strip.position = "left", nrow = 9, scales = "free_y", labeller = labeller(Predictor = label_parsed)) +
   # scale_y_continuous(limits = c(-1, 6), breaks = c(-1, 0, 1, 2, 3, 4, 5, 6)) +
   theme(
-    plot.title = element_text(size = 14, face = "bold"),
     axis.text.y = element_blank(),
     axis.ticks.y = element_blank(),
-    axis.text.x = element_text(face = "bold"),
+    axis.text.x = element_text(size = 12, face = "bold"),
     axis.title = element_text(size = 12, face = "bold"),
-    strip.text.y.left = element_text(angle = 0, face = "bold")
+    strip.text.y.left = element_text(size = 12, angle = 0, face = "bold"),
+    legend.title = element_text(size = 12, face = "bold"),
+    legend.text = element_text(size = 12),
+    panel.background = element_rect(fill = 'white', colour = 'black'),
+    strip.background=element_rect(fill="white", colour = 'white')
   ) +
   coord_flip() +
   ggtitle("")
@@ -326,7 +335,7 @@ p4 <- ggplot(
   aes(x = Outcome, y = beta, ymin = low, ymax = hi)
 ) +
   geom_pointrange(aes(col = Outcome)) +
-  geom_hline(yintercept = 0, linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 3) +
   xlab("") +
   ylab("Effect sizes (95% Confidence Interval)") +
   geom_errorbar(aes(ymin = low, ymax = hi, col = Outcome), width = 0.5, cex = 1) +
@@ -335,12 +344,15 @@ p4 <- ggplot(
   facet_wrap(~Predictor, strip.position = "left", nrow = 9, scales = "free_y", labeller = labeller(Predictor = label_parsed)) +
   # scale_y_continuous(limits = c(-1, 6), breaks = c(-1, 0, 1, 2, 3, 4, 5, 6)) +
   theme(
-    plot.title = element_text(size = 14, face = "bold"),
     axis.text.y = element_blank(),
     axis.ticks.y = element_blank(),
-    axis.text.x = element_text(face = "bold"),
+    axis.text.x = element_text(size = 12, face = "bold"),
     axis.title = element_text(size = 12, face = "bold"),
-    strip.text.y.left = element_text(angle = 0, face = "bold")
+    strip.text.y.left = element_text(size = 12, angle = 0, face = "bold"),
+    legend.title = element_text(size = 12, face = "bold"),
+    legend.text = element_text(size = 12),
+    panel.background = element_rect(fill = 'white', colour = 'black'),
+    strip.background=element_rect(fill="white", colour = 'white')
   ) +
   coord_flip() +
   ggtitle("")
@@ -361,7 +373,7 @@ p5 <- ggplot(
   aes(x = Outcome, y = exp_beta_mod4, ymin = exp_cilo_mod4, ymax = exp_cihi_mod4)
 ) +
   geom_pointrange(aes(col = Outcome)) +
-  geom_hline(yintercept = 1, linetype = 2) +
+  geom_hline(yintercept = 1, linetype = 3) +
   xlab("") +
   ylab("Relative risk (95% Confidence Interval)") +
   geom_errorbar(aes(ymin = exp_cilo_mod4, ymax = exp_cihi_mod4, col = Outcome), width = 0.5, cex = 1) +
@@ -370,12 +382,15 @@ p5 <- ggplot(
   facet_grid(Predictor ~ type, labeller = labeller(Predictor = label_parsed)) +
   # scale_y_continuous(limits = c(-1, 6), breaks = c(-1, 0, 1, 2, 3, 4, 5, 6)) +
   theme(
-    plot.title = element_text(size = 14, face = "bold"),
     axis.text.y = element_blank(),
     axis.ticks.y = element_blank(),
-    axis.text.x = element_text(face = "bold"),
+    axis.text.x = element_text(size = 12, face = "bold"),
     axis.title = element_text(size = 12, face = "bold"),
-    strip.text.y = element_text(angle = 0, face = "bold")
+    strip.text.y.left = element_text(size = 12, angle = 0, face = "bold"),
+    legend.title = element_text(size = 12, face = "bold"),
+    legend.text = element_text(size = 12),
+    panel.background = element_rect(fill = 'white', colour = 'black'),
+    strip.background=element_rect(fill="white", colour = 'white')
   ) +
   coord_flip() +
   ggtitle("")
@@ -400,7 +415,7 @@ p6 <- ggplot(
   aes(x = Outcome, y = beta, ymin = low, ymax = hi)
 ) +
   geom_pointrange(aes(col = Outcome)) +
-  geom_hline(yintercept = 0, linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 3) +
   xlab("") +
   ylab("Effect sizes (95% Confidence Interval)") +
   geom_errorbar(aes(ymin = low, ymax = hi, col = Outcome), width = 0.5, cex = 1) +
@@ -409,12 +424,15 @@ p6 <- ggplot(
   facet_grid(Predictor ~ type, labeller = labeller(Predictor = label_parsed)) +
   # scale_y_continuous(limits = c(-1, 6), breaks = c(-1, 0, 1, 2, 3, 4, 5, 6)) +
   theme(
-    plot.title = element_text(size = 14, face = "bold"),
     axis.text.y = element_blank(),
     axis.ticks.y = element_blank(),
-    axis.text.x = element_text(face = "bold"),
+    axis.text.x = element_text(size = 12, face = "bold"),
     axis.title = element_text(size = 12, face = "bold"),
-    strip.text.y = element_text(angle = 0, face = "bold")
+    strip.text.y.left = element_text(size = 12, angle = 0, face = "bold"),
+    legend.title = element_text(size = 12, face = "bold"),
+    legend.text = element_text(size = 12),
+    panel.background = element_rect(fill = 'white', colour = 'black'),
+    strip.background=element_rect(fill="white", colour = 'white')
   ) +
   coord_flip() +
   ggtitle("")
@@ -433,7 +451,7 @@ p7 <- ggplot(
   aes(x = Outcome, y = beta, ymin = low, ymax = hi)
 ) +
   geom_pointrange(aes(col = Outcome)) +
-  geom_hline(yintercept = 0, linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 3) +
   xlab("") +
   ylab("Effect sizes (95% Confidence Interval)") +
   geom_errorbar(aes(ymin = low, ymax = hi, col = Outcome), width = 0.5, cex = 1) +
@@ -442,12 +460,15 @@ p7 <- ggplot(
   facet_grid(Predictor ~ type, labeller = labeller(Predictor = label_parsed)) +
   # scale_y_continuous(limits = c(-1, 6), breaks = c(-1, 0, 1, 2, 3, 4, 5, 6)) +
   theme(
-    plot.title = element_text(size = 14, face = "bold"),
     axis.text.y = element_blank(),
     axis.ticks.y = element_blank(),
-    axis.text.x = element_text(face = "bold"),
+    axis.text.x = element_text(size = 12, face = "bold"),
     axis.title = element_text(size = 12, face = "bold"),
-    strip.text.y = element_text(angle = 0, face = "bold")
+    strip.text.y.left = element_text(size = 12, angle = 0, face = "bold"),
+    legend.title = element_text(size = 12, face = "bold"),
+    legend.text = element_text(size = 12),
+    panel.background = element_rect(fill = 'white', colour = 'black'),
+    strip.background=element_rect(fill="white", colour = 'white')
   ) +
   coord_flip() +
   ggtitle("")
@@ -470,7 +491,7 @@ p8 <- ggplot(
   aes(x = Outcome, y = beta, ymin = low, ymax = hi)
 ) +
   geom_pointrange(aes(col = Outcome)) +
-  geom_hline(yintercept = 0, linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 3) +
   xlab("") +
   ylab("Effect sizes (95% Confidence Interval)") +
   geom_errorbar(aes(ymin = low, ymax = hi, col = Outcome), width = 0.5, cex = 1) +
@@ -479,12 +500,15 @@ p8 <- ggplot(
   facet_grid(Predictor ~ type, labeller = labeller(Predictor = label_parsed)) +
   # scale_y_continuous(limits = c(-1, 6), breaks = c(-1, 0, 1, 2, 3, 4, 5, 6)) +
   theme(
-    plot.title = element_text(size = 14, face = "bold"),
     axis.text.y = element_blank(),
     axis.ticks.y = element_blank(),
-    axis.text.x = element_text(face = "bold"),
+    axis.text.x = element_text(size = 12, face = "bold"),
     axis.title = element_text(size = 12, face = "bold"),
-    strip.text.y = element_text(angle = 0, face = "bold")
+    strip.text.y.left = element_text(size = 12, angle = 0, face = "bold"),
+    legend.title = element_text(size = 12, face = "bold"),
+    legend.text = element_text(size = 12),
+    panel.background = element_rect(fill = 'white', colour = 'black'),
+    strip.background=element_rect(fill="white", colour = 'white')
   ) +
   coord_flip() +
   ggtitle("")
@@ -505,7 +529,7 @@ p9 <- ggplot(
   aes(x = Predictor, y = exp_beta_mod4, ymin = exp_cilo_mod4, ymax = exp_cihi_mod4)
 ) +
   geom_pointrange(aes(col = Predictor)) +
-  geom_hline(yintercept = 1, linetype = 2) +
+  geom_hline(yintercept = 1, linetype = 3) +
   xlab("") +
   ylab("Relative risk (95% Confidence Interval)") +
   geom_errorbar(aes(ymin = exp_cilo_mod4, ymax = exp_cihi_mod4, col = Predictor), width = 0.5, cex = 1) +
@@ -514,12 +538,15 @@ p9 <- ggplot(
   facet_wrap(~pred_type, strip.position = "left", nrow = 9, scales = "free_y") +
   # scale_y_continuous(limits = c(-1, 6), breaks = c(-1, 0, 1, 2, 3, 4, 5, 6)) +
   theme(
-    plot.title = element_text(size = 14, face = "bold"),
     axis.text.y = element_blank(),
     axis.ticks.y = element_blank(),
-    axis.text.x = element_text(face = "bold"),
+    axis.text.x = element_text(size = 12, face = "bold"),
     axis.title = element_text(size = 12, face = "bold"),
-    strip.text.y.left = element_text(angle = 0, face = "bold")
+    strip.text.y.left = element_text(size = 12, angle = 0, face = "bold"),
+    legend.title = element_text(size = 12, face = "bold"),
+    legend.text = element_text(size = 12),
+    panel.background = element_rect(fill = 'white', colour = 'black'),
+    strip.background=element_rect(fill="white", colour = 'white')
   ) +
   coord_flip() +
   ggtitle("")
@@ -528,7 +555,7 @@ p9
 ```
 
 ```{r, eval=F}
-ggsave("/Users/ymou/helix_project/results/Fig/fig-countAL-noise.png", width = 10, height = 10, units = "in", dpi = 300)
+ggsave("/Users/ymou/helix_project/results/Fig/fig-countAL-noise.png", width = 10, height = 5, units = "in", dpi = 300)
 ```
 
 ### Continuous AL score
@@ -542,7 +569,7 @@ p10 <- ggplot(
   aes(x = Predictor, y = beta, ymin = low, ymax = hi)
 ) +
   geom_pointrange(aes(col = Predictor)) +
-  geom_hline(yintercept = 0, linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 3) +
   xlab("") +
   ylab("Effect sizes (95% Confidence Interval)") +
   geom_errorbar(aes(ymin = low, ymax = hi, col = Predictor), width = 0.5, cex = 1) +
@@ -551,12 +578,15 @@ p10 <- ggplot(
   facet_wrap(~pred_type, strip.position = "left", nrow = 9, scales = "free_y") +
   # scale_y_continuous(limits = c(-1, 6), breaks = c(-1, 0, 1, 2, 3, 4, 5, 6)) +
   theme(
-    plot.title = element_text(size = 14, face = "bold"),
     axis.text.y = element_blank(),
     axis.ticks.y = element_blank(),
-    axis.text.x = element_text(face = "bold"),
+    axis.text.x = element_text(size = 12, face = "bold"),
     axis.title = element_text(size = 12, face = "bold"),
-    strip.text.y.left = element_text(angle = 0, face = "bold")
+    strip.text.y.left = element_text(size = 12, angle = 0, face = "bold"),
+    legend.title = element_text(size = 12, face = "bold"),
+    legend.text = element_text(size = 12),
+    panel.background = element_rect(fill = 'white', colour = 'black'),
+    strip.background=element_rect(fill="white", colour = 'white')
   ) +
   coord_flip() +
   ggtitle("")
@@ -565,5 +595,5 @@ p10
 ```
 
 ```{r, eval=F}
-ggsave("/Users/ymou/helix_project/results/Fig/fig-continuousAL-noise.png", width = 10, height = 10, units = "in", dpi = 300)
+ggsave("/Users/ymou/helix_project/results/Fig/fig-continuousAL-noise.png", width = 10, height = 5, units = "in", dpi = 300)
 ```
