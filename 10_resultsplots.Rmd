@@ -72,26 +72,26 @@ ap_tot_res <- ap_tot_res %>%
       "hs_pm25abs_yr_hs_t" = "PM[2.5][abs]"
     ),
     Outcome = recode(Outcome,
-      "AL_2_tot" = "Count-based AL score",
-      "AL_2_tot_wavg" = "Count-based weighted average AL score",
-      "AL_z2_tot" = "Continuous AL score",
-      "AL_z2_tot_wavg" = "Continuous weighted average AL score",
-      "AL_2_cardio" = "Count-based cardiovascular AL",
-      "AL_2_metab" = "Count-based metabolic AL",
-      "AL_2_immune" = "Count-based immune/imflammatory AL",
-      "AL_2_neuro" = "Count-based neuroendorine AL",
-      "AL_2_cardio_wavg" = "Count-based cardiovascular weighted average AL",
-      "AL_2_metab_wavg" = "Count-based metabolic weighted average AL",
-      "AL_2_immune_wavg" = "Count-based immune/imflammatory weighted average AL",
-      "AL_2_neuro_wavg" = "Count-based neuroendorine weighted average AL",
-      "AL_z2_cardio" = "Continuous cardiovascular AL",
-      "AL_z2_metab" = "Continuous metabolic AL",
-      "AL_z2_immune" = "Continuous immune/imflammatory AL",
-      "AL_z2_neuro" = "Continuous neuroendorine AL",
-      "AL_z2_cardio_wavg" = "Continuous cardiovascular weighted average AL",
-      "AL_z2_metab_wavg" = "Continuous metabolic weighted average AL",
-      "AL_z2_immune_wavg" = "Continuous immune/imflammatory weighted average AL",
-      "AL_z2_neuro_wavg" = "Continuous neuroendorine weighted average AL"
+      "AL_2_tot" = "Count-based ALS",
+      "AL_2_tot_wavg" = "Count-based weighted average ALS",
+      "AL_z2_tot" = "Continuous ALS",
+      "AL_z2_tot_wavg" = "Continuous weighted average ALS",
+      "AL_2_cardio" = "Count-based cardiovascular ALS",
+      "AL_2_metab" = "Count-based metabolic ALS",
+      "AL_2_immune" = "Count-based immune/imflammatory ALS",
+      "AL_2_neuro" = "Count-based neuroendorine ALS",
+      "AL_2_cardio_wavg" = "Count-based cardiovascular weighted average ALS",
+      "AL_2_metab_wavg" = "Count-based metabolic weighted average ALS",
+      "AL_2_immune_wavg" = "Count-based immune/imflammatory weighted average ALS",
+      "AL_2_neuro_wavg" = "Count-based neuroendorine weighted average ALS",
+      "AL_z2_cardio" = "Continuous cardiovascular ALS",
+      "AL_z2_metab" = "Continuous metabolic ALS",
+      "AL_z2_immune" = "Continuous immune/imflammatory ALS",
+      "AL_z2_neuro" = "Continuous neuroendorine ALS",
+      "AL_z2_cardio_wavg" = "Continuous cardiovascular weighted average ALS",
+      "AL_z2_metab_wavg" = "Continuous metabolic weighted average ALS",
+      "AL_z2_immune_wavg" = "Continuous immune/imflammatory weighted average ALS",
+      "AL_z2_neuro_wavg" = "Continuous neuroendorine weighted average ALS"
     )
   ) 
 
@@ -142,7 +142,7 @@ ap_hsr_res <- ap_hsr_res %>%
       "AL_2_tot_wavg" = "Count-based weighted average ALS",
       "AL_z2_tot" = "Continuous ALS",
       "AL_z2_tot_wavg" = "Continuous weighted average ALS",
-      "AL_2_cardio" = "Count-based cardiovascular ALSL",
+      "AL_2_cardio" = "Count-based cardiovascular ALS",
       "AL_2_metab" = "Count-based metabolic ALS",
       "AL_2_immune" = "Count-based immune/imflammatory ALS",
       "AL_2_neuro" = "Count-based neuroendorine ALS",
@@ -227,11 +227,11 @@ p1 <- ggplot(
   theme(
     axis.text.y = element_blank(),
     axis.ticks.y = element_blank(),
-    axis.text.x = element_text(size = 12, face = "bold"),
-    axis.title = element_text(size = 12, face = "bold"),
-    strip.text.y.left = element_text(size = 12, angle = 0, face = "bold"),
-    legend.title = element_text(size = 12, face = "bold"),
-    legend.text = element_text(size = 12),
+    axis.text.x = element_text(size = 14, face = "bold"),
+    axis.title = element_text(size = 14, face = "bold"),
+    strip.text.y.left = element_text(size = 14, angle = 0, face = "bold"),
+    legend.title = element_text(size = 14, face = "bold"),
+    legend.text = element_text(size = 14),
     panel.background = element_rect(fill = 'white', colour = 'black'),
     strip.background=element_rect(fill="white", colour = 'white')
   ) +
@@ -268,11 +268,11 @@ p2 <- ggplot(
   theme(
     axis.text.y = element_blank(),
     axis.ticks.y = element_blank(),
-    axis.text.x = element_text(size = 12, face = "bold"),
-    axis.title = element_text(size = 12, face = "bold"),
-    strip.text.y.left = element_text(size = 12, angle = 0, face = "bold"),
-    legend.title = element_text(size = 12, face = "bold"),
-    legend.text = element_text(size = 12),
+    axis.text.x = element_text(size = 14, face = "bold"),
+    axis.title = element_text(size = 14, face = "bold"),
+    strip.text.y.left = element_text(size = 14, angle = 0, face = "bold"),
+    legend.title = element_text(size = 14, face = "bold"),
+    legend.text = element_text(size = 14),
     panel.background = element_rect(fill = 'white', colour = 'black'),
     strip.background=element_rect(fill="white", colour = 'white')
   ) +
@@ -305,11 +305,11 @@ p3 <- ggplot(
   theme(
     axis.text.y = element_blank(),
     axis.ticks.y = element_blank(),
-    axis.text.x = element_text(size = 12, face = "bold"),
-    axis.title = element_text(size = 12, face = "bold"),
-    strip.text.y.left = element_text(size = 12, angle = 0, face = "bold"),
-    legend.title = element_text(size = 12, face = "bold"),
-    legend.text = element_text(size = 12),
+    axis.text.x = element_text(size = 14, face = "bold"),
+    axis.title = element_text(size = 14, face = "bold"),
+    strip.text.y.left = element_text(size = 14, angle = 0, face = "bold"),
+    legend.title = element_text(size = 14, face = "bold"),
+    legend.text = element_text(size = 14),
     panel.background = element_rect(fill = 'white', colour = 'black'),
     strip.background=element_rect(fill="white", colour = 'white')
   ) +
@@ -346,11 +346,11 @@ p4 <- ggplot(
   theme(
     axis.text.y = element_blank(),
     axis.ticks.y = element_blank(),
-    axis.text.x = element_text(size = 12, face = "bold"),
-    axis.title = element_text(size = 12, face = "bold"),
-    strip.text.y.left = element_text(size = 12, angle = 0, face = "bold"),
-    legend.title = element_text(size = 12, face = "bold"),
-    legend.text = element_text(size = 12),
+    axis.text.x = element_text(size = 14, face = "bold"),
+    axis.title = element_text(size = 14, face = "bold"),
+    strip.text.y.left = element_text(size = 14, angle = 0, face = "bold"),
+    legend.title = element_text(size = 14, face = "bold"),
+    legend.text = element_text(size = 14),
     panel.background = element_rect(fill = 'white', colour = 'black'),
     strip.background=element_rect(fill="white", colour = 'white')
   ) +
@@ -384,11 +384,12 @@ p5 <- ggplot(
   theme(
     axis.text.y = element_blank(),
     axis.ticks.y = element_blank(),
-    axis.text.x = element_text(size = 12, face = "bold"),
-    axis.title = element_text(size = 12, face = "bold"),
-    strip.text.y.left = element_text(size = 12, angle = 0, face = "bold"),
-    legend.title = element_text(size = 12, face = "bold"),
-    legend.text = element_text(size = 12),
+    axis.text.x = element_text(size = 14, face = "bold"),
+    axis.title = element_text(size = 14, face = "bold"),
+    strip.text.y = element_text(size = 14, angle = 0, face = "bold"),
+    strip.text = element_text(size = 14),
+    legend.title = element_text(size = 14, face = "bold"),
+    legend.text = element_text(size = 14),
     panel.background = element_rect(fill = 'white', colour = 'black'),
     strip.background=element_rect(fill="white", colour = 'white')
   ) +
@@ -400,7 +401,7 @@ p5
 
 
 ```{r, eval=F}
-ggsave("/Users/ymou/helix_project/results/Fig/fig-countAL-hsr.png", width = 10, height = 10, units = "in", dpi = 300)
+ggsave("/Users/ymou/helix_project/results/Fig/fig-countAL-hsr.png", width = 13, height = 13, units = "in", dpi = 300)
 ```
 
 
@@ -426,11 +427,11 @@ p6 <- ggplot(
   theme(
     axis.text.y = element_blank(),
     axis.ticks.y = element_blank(),
-    axis.text.x = element_text(size = 12, face = "bold"),
-    axis.title = element_text(size = 12, face = "bold"),
-    strip.text.y.left = element_text(size = 12, angle = 0, face = "bold"),
-    legend.title = element_text(size = 12, face = "bold"),
-    legend.text = element_text(size = 12),
+    axis.text.x = element_text(size = 14, face = "bold"),
+    axis.title = element_text(size = 14, face = "bold"),
+    strip.text.y.left = element_text(size = 14, angle = 0, face = "bold"),
+    legend.title = element_text(size = 14, face = "bold"),
+    legend.text = element_text(size = 14),
     panel.background = element_rect(fill = 'white', colour = 'black'),
     strip.background=element_rect(fill="white", colour = 'white')
   ) +
@@ -462,11 +463,12 @@ p7 <- ggplot(
   theme(
     axis.text.y = element_blank(),
     axis.ticks.y = element_blank(),
-    axis.text.x = element_text(size = 12, face = "bold"),
-    axis.title = element_text(size = 12, face = "bold"),
-    strip.text.y.left = element_text(size = 12, angle = 0, face = "bold"),
-    legend.title = element_text(size = 12, face = "bold"),
-    legend.text = element_text(size = 12),
+    axis.text.x = element_text(size = 14, face = "bold"),
+    axis.title = element_text(size = 14, face = "bold"),
+    strip.text.y = element_text(size = 14, angle = 0, face = "bold"),
+    strip.text = element_text(size = 14),
+    legend.title = element_text(size = 14, face = "bold"),
+    legend.text = element_text(size = 14),
     panel.background = element_rect(fill = 'white', colour = 'black'),
     strip.background=element_rect(fill="white", colour = 'white')
   ) +
@@ -477,7 +479,7 @@ p7
 ```
 
 ```{r, eval=F}
-ggsave("/Users/ymou/helix_project/results/Fig/fig-continousAL-hsr.png", width = 10, height = 10, units = "in", dpi = 300)
+ggsave("/Users/ymou/helix_project/results/Fig/fig-continousAL-hsr.png", width = 13, height = 13, units = "in", dpi = 300)
 ```
 
 ### Continuous weighted average AL score
@@ -502,11 +504,11 @@ p8 <- ggplot(
   theme(
     axis.text.y = element_blank(),
     axis.ticks.y = element_blank(),
-    axis.text.x = element_text(size = 12, face = "bold"),
-    axis.title = element_text(size = 12, face = "bold"),
-    strip.text.y.left = element_text(size = 12, angle = 0, face = "bold"),
-    legend.title = element_text(size = 12, face = "bold"),
-    legend.text = element_text(size = 12),
+    axis.text.x = element_text(size = 14, face = "bold"),
+    axis.title = element_text(size = 14, face = "bold"),
+    strip.text.y.left = element_text(size = 14, angle = 0, face = "bold"),
+    legend.title = element_text(size = 14, face = "bold"),
+    legend.text = element_text(size = 14),
     panel.background = element_rect(fill = 'white', colour = 'black'),
     strip.background=element_rect(fill="white", colour = 'white')
   ) +
@@ -540,11 +542,11 @@ p9 <- ggplot(
   theme(
     axis.text.y = element_blank(),
     axis.ticks.y = element_blank(),
-    axis.text.x = element_text(size = 12, face = "bold"),
-    axis.title = element_text(size = 12, face = "bold"),
-    strip.text.y.left = element_text(size = 12, angle = 0, face = "bold"),
-    legend.title = element_text(size = 12, face = "bold"),
-    legend.text = element_text(size = 12),
+    axis.text.x = element_text(size = 14, face = "bold"),
+    axis.title = element_text(size = 14, face = "bold"),
+    strip.text.y.left = element_text(size = 14, angle = 0, face = "bold"),
+    legend.title = element_text(size = 14, face = "bold"),
+    legend.text = element_text(size = 14),
     panel.background = element_rect(fill = 'white', colour = 'black'),
     strip.background=element_rect(fill="white", colour = 'white')
   ) +
@@ -580,11 +582,11 @@ p10 <- ggplot(
   theme(
     axis.text.y = element_blank(),
     axis.ticks.y = element_blank(),
-    axis.text.x = element_text(size = 12, face = "bold"),
-    axis.title = element_text(size = 12, face = "bold"),
-    strip.text.y.left = element_text(size = 12, angle = 0, face = "bold"),
-    legend.title = element_text(size = 12, face = "bold"),
-    legend.text = element_text(size = 12),
+    axis.text.x = element_text(size = 14, face = "bold"),
+    axis.title = element_text(size = 14, face = "bold"),
+    strip.text.y.left = element_text(size = 14, angle = 0, face = "bold"),
+    legend.title = element_text(size = 14, face = "bold"),
+    legend.text = element_text(size = 14),
     panel.background = element_rect(fill = 'white', colour = 'black'),
     strip.background=element_rect(fill="white", colour = 'white')
   ) +
