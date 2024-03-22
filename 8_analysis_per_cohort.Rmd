@@ -64,7 +64,7 @@ model <- c(
   "e3_sex + hs_child_age_years",
   "e3_sex + hs_child_age_years + hs_mvpa + hs_sd_wk",
   "e3_sex + hs_child_age_years + hs_mvpa + hs_sd_wk + FAS_cat + h_native_2cat + h_edumc + h_edufc + h_marital_2cat + h_age + h_parity + e3_asmokyn_p + e3_alcpreg_yn",
-  "e3_sex + hs_child_age_years + hs_mvpa + hs_sd_wk + FAS_cat + h_native_2cat + h_edumc + h_edufc + h_marital_2cat + h_age + h_parity + e3_asmokyn_p + e3_alcpreg_yn + hs_smk_parents + hs_globalexp_2cat"
+  "e3_sex + hs_child_age_years + hs_mvpa + hs_sd_wk + FAS_cat + h_native_2cat + h_edumc + h_edufc + h_marital_2cat + h_age + h_parity + e3_asmokyn_p + e3_alcpreg_yn + hs_globalexp_2cat"
 )
 ```
 
