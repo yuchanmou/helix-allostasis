@@ -34,13 +34,13 @@ out <- c("AL_2_tot", "AL_2_tot_wavg", "AL_z2_tot", "AL_z2_tot_wavg")
 
 ```{r import data, eval=T}
 analysis_date <- Sys.Date()
-sab <- read_excel("/Users/ymou/helix_project/results/airpollution_total_mainoutcome_sab2023-10-14.xlsx")
-ede <- read_excel("/Users/ymou/helix_project/results/airpollution_total_mainoutcome_ede2023-10-14.xlsx")
-bib <- read_excel("/Users/ymou/helix_project/results/airpollution_total_mainoutcome_bib2023-10-14.xlsx")
-rhea <- read_excel("/Users/ymou/helix_project/results/airpollution_total_mainoutcome_rhea2023-10-14.xlsx")
-kanc <- read_excel("/Users/ymou/helix_project/results/airpollution_total_mainoutcome_kanc2023-10-14.xlsx")
-moba <- read_excel("/Users/ymou/helix_project/results/airpollution_total_mainoutcome_moba2023-10-14.xlsx")
-meta_n <- read_excel("/Users/ymou/helix_project/results/meta_n2023-10-15.xlsx")
+sab <- read_excel("/Users/ymou/helix_project/results/airpollution_total_mainoutcome_sab2024-03-21.xlsx")
+ede <- read_excel("/Users/ymou/helix_project/results/airpollution_total_mainoutcome_ede2024-03-21.xlsx")
+bib <- read_excel("/Users/ymou/helix_project/results/airpollution_total_mainoutcome_bib2024-03-21.xlsx")
+rhea <- read_excel("/Users/ymou/helix_project/results/airpollution_total_mainoutcome_rhea2024-03-21.xlsx")
+kanc <- read_excel("/Users/ymou/helix_project/results/airpollution_total_mainoutcome_kanc2024-03-21.xlsx")
+moba <- read_excel("/Users/ymou/helix_project/results/airpollution_total_mainoutcome_moba2024-03-21.xlsx")
+meta_n <- read_excel("/Users/ymou/helix_project/results/meta_n2024-03-21.xlsx")
 ```
 
 ```{r select var for meta, eval=T}
@@ -166,9 +166,9 @@ df_meta <- df_meta %>%
   mutate_at("Predictor", as_factor) %>%
   mutate(Predictor = recode(Predictor,
     "hs_no2_yr_hs_t" = "NO[2]",
-    "hs_pm10_yr_hs_t" = "PM[10]",
     "hs_pm25_yr_hs_t" = "PM[2.5]",
-    "hs_pm25abs_yr_hs_t" = "PM[2.5][abs]"
+    "hs_pm25abs_yr_hs_t" = "PM[2.5][abs]",
+    "hs_pm10_yr_hs_t" = "PM[10]"
   )) %>%
   mutate(Cohort = fct_relevel(
     cohort,
@@ -177,7 +177,7 @@ df_meta <- df_meta %>%
   )) %>%
   mutate(Cohort = recode(Cohort,
     "total" = "Summary effect size",
-    "sab" = "SAB",
+    "sab" = "INMA",
     "eden" = "EDEN",
     "bib" = "BIB",
     "rhea" = "RHEA",
@@ -215,7 +215,7 @@ p <- ggplot(
     strip.text.y.left = element_text(angle = 0, face = "bold")
   ) +
   coord_flip() +
-  ggtitle("Cut-off based AL score")
+  ggtitle("Cut-off based allostatic load score")
 
 
 p
@@ -244,7 +244,7 @@ p <- ggplot(
     strip.text.y.left = element_text(angle = 0, face = "bold")
   ) +
   coord_flip() +
-  ggtitle("Cut-off based weighted average AL score")
+  ggtitle("Cut-off based weighted average allostatic load score")
 
 p
 
@@ -273,7 +273,7 @@ p <- ggplot(
     strip.text.y.left = element_text(angle = 0, face = "bold")
   ) +
   coord_flip() +
-  ggtitle("Z-score based AL score")
+  ggtitle("Z-score based allostatic load score")
 
 p
 
@@ -301,7 +301,7 @@ p <- ggplot(
     strip.text.y.left = element_text(angle = 0, face = "bold")
   ) +
   coord_flip() +
-  ggtitle("Z-score based weighted average AL score")
+  ggtitle("Z-score based weighted average allostatic load score")
 
 p
 ```
@@ -311,14 +311,14 @@ p
 ### Count-based AL
 ```{r, eval=T, fig.asp = 0.8, fig.width=9}
 df_test <- df_meta %>%
-  filter(Outcome == "AL_2_tot" & Predictor == "hs_no2_yr_hs_t") %>%
-  filter(cohort != "total")
+  filter(Outcome == "AL_2_tot" & Predictor == "NO[2]") %>%
+  filter(Cohort != "Summary effect size")
 test <- metagen(
   TE = beta,
   seTE = se,
   data = df_test,
   sm = "Estimate",
-  studlab = cohort,
+  studlab = Cohort,
   n.e = n,
   random = TRUE
 )
@@ -343,7 +343,7 @@ png(
 forest(test,
   rightcols = c("effect", "ci"),
   leftcols = c("studlab"),
-  leftlabs = "Cohort",
+  leftlabs = "Cohorts",
   rightlabs = c("Relative risk", "[95% CI]"),
   xlim = c(0, 2),
   comb.fixed = F,
@@ -357,7 +357,7 @@ forest(test,
   col.diamond = "olivedrab3",
   plotwidth = "10cm",
   colgap.forest.left = "2cm",
-  smlab = "NO2 and count-based AL score",
+  smlab = "NO2 and count-based allostatic load score",
   fs.smlab = 12
 )
 dev.off()
@@ -366,14 +366,14 @@ dev.off()
 
 ```{r, fig.asp = 0.8, fig.width=9}
 df_test <- df_meta %>%
-  filter(Outcome == "AL_2_tot" & Predictor == "hs_pm10_yr_hs_t") %>%
-  filter(cohort != "total")
+  filter(Outcome == "AL_2_tot" & Predictor == "PM[10]") %>%
+  filter(Cohort != "Summary effect size")
 test <- metagen(
   TE = beta,
   seTE = se,
   data = df_test,
   sm = "Estimate",
-  studlab = cohort,
+  studlab = Cohort,
   n.e = n,
   random = TRUE
 )
@@ -398,7 +398,7 @@ png(
 forest(test,
   rightcols = c("effect", "ci"),
   leftcols = c("studlab"),
-  leftlabs = "Cohort",
+  leftlabs = "Cohorts",
   rightlabs = c("Relative risk", "[95% CI]"),
   xlim = c(0, 2),
   comb.fixed = F,
@@ -412,7 +412,7 @@ forest(test,
   col.diamond = "olivedrab3",
   plotwidth = "10cm",
   colgap.forest.left = "2cm",
-  smlab = "PM10 and count-based AL score",
+  smlab = "PM10 and count-based allostatic load score",
   fs.smlab = 12
 )
 dev.off()
@@ -420,14 +420,14 @@ dev.off()
 
 ```{r, fig.asp = 0.8, fig.width=9}
 df_test <- df_meta %>%
-  filter(Outcome == "AL_2_tot" & Predictor == "hs_pm25_yr_hs_t") %>%
-  filter(cohort != "total")
+  filter(Outcome == "AL_2_tot" & Predictor == "PM[2.5]") %>%
+  filter(Cohort != "Summary effect size")
 test <- metagen(
   TE = beta,
   seTE = se,
   data = df_test,
   sm = "Estimate",
-  studlab = cohort,
+  studlab = Cohort,
   n.e = n,
   random = TRUE
 )
@@ -452,7 +452,7 @@ png(
 forest(test,
   rightcols = c("effect", "ci"),
   leftcols = c("studlab"),
-  leftlabs = "Cohort",
+  leftlabs = "Cohorts",
   rightlabs = c("Relative risk", "[95% CI]"),
   xlim = c(0, 2),
   comb.fixed = F,
@@ -466,7 +466,7 @@ forest(test,
   col.diamond = "olivedrab3",
   plotwidth = "10cm",
   colgap.forest.left = "2cm",
-  smlab = "PM2.5 and count-based AL score",
+  smlab = "PM2.5 and count-based allostatic load score",
   fs.smlab = 12
 )
 dev.off()
@@ -474,14 +474,14 @@ dev.off()
 
 ```{r, fig.asp = 0.8, fig.width=9}
 df_test <- df_meta %>%
-  filter(Outcome == "AL_2_tot" & Predictor == "hs_pm25abs_yr_hs_t") %>%
-  filter(cohort != "total")
+  filter(Outcome == "AL_2_tot" & Predictor == "PM[2.5][abs]") %>%
+  filter(Cohort != "Summary effect size")
 test <- metagen(
   TE = beta,
   seTE = se,
   data = df_test,
   sm = "Estimate",
-  studlab = cohort,
+  studlab = Cohort,
   n.e = n,
   random = TRUE
 )
@@ -506,7 +506,7 @@ png(
 forest(test,
   rightcols = c("effect", "ci"),
   leftcols = c("studlab"),
-  leftlabs = "Cohort",
+  leftlabs = "Cohorts",
   rightlabs = c("Relative risk", "[95% CI]"),
   xlim = c(0, 2),
   comb.fixed = F,
@@ -520,7 +520,7 @@ forest(test,
   col.diamond = "olivedrab3",
   plotwidth = "10cm",
   colgap.forest.left = "2cm",
-  smlab = "PM2.5abs and count-based AL score",
+  smlab = "PM2.5abs and count-based allostatic load score",
   fs.smlab = 12
 )
 dev.off()
@@ -530,14 +530,14 @@ dev.off()
 
 ```{r, eval=T, fig.asp = 0.8, fig.width=9}
 df_test <- df_meta %>%
-  filter(Outcome == "AL_2_tot_wavg" & Predictor == "hs_no2_yr_hs_t") %>%
-  filter(cohort != "total")
+  filter(Outcome == "AL_2_tot_wavg" & Predictor == "NO[2]") %>%
+  filter(Cohort != "Summary effect size")
 test <- metagen(
   TE = beta,
   seTE = se,
   data = df_test,
   sm = "Estimate",
-  studlab = cohort,
+  studlab = Cohort,
   n.e = n,
   random = TRUE
 )
@@ -545,7 +545,7 @@ test <- metagen(
 forest(test,
   rightcols = c("effect", "ci"),
   leftcols = c("studlab"),
-  leftlabs = "Cohort",
+  leftlabs = "Cohorts",
   rightlabs = c("Coefficient", "[95% CI]"),
   xlim = c(-2.5, 2.5),
   comb.fixed = F,
@@ -559,21 +559,21 @@ forest(test,
   col.diamond = "olivedrab3",
   plotwidth = "10cm",
   colgap.forest.left = "2cm",
-  smlab = "NO2 and count-based wavg AL score",
+  smlab = "NO2 and count-based wavg allostatic load score",
   fs.smlab = 12
 )
 ```
 
 ```{r, fig.asp = 0.8, fig.width=9}
 df_test <- df_meta %>%
-  filter(Outcome == "AL_2_tot_wavg" & Predictor == "hs_pm10_yr_hs_t") %>%
-  filter(cohort != "total")
+  filter(Outcome == "AL_2_tot_wavg" & Predictor == "PM[10]") %>%
+  filter(Cohort != "Summary effect size")
 test <- metagen(
   TE = beta,
   seTE = se,
   data = df_test,
   sm = "Estimate",
-  studlab = cohort,
+  studlab = Cohort,
   n.e = n,
   random = TRUE
 )
@@ -581,7 +581,7 @@ test <- metagen(
 forest(test,
   rightcols = c("effect", "ci"),
   leftcols = c("studlab"),
-  leftlabs = "Cohort",
+  leftlabs = "Cohorts",
   rightlabs = c("Coefficient", "[95% CI]"),
   xlim = c(-2.5, 2.5),
   comb.fixed = F,
@@ -595,21 +595,21 @@ forest(test,
   col.diamond = "olivedrab3",
   plotwidth = "10cm",
   colgap.forest.left = "2cm",
-  smlab = "PM10 and count-based wavg AL score",
+  smlab = "PM10 and count-based wavg allostatic load score",
   fs.smlab = 12
 )
 ```
 
 ```{r, fig.asp = 0.8, fig.width=9}
 df_test <- df_meta %>%
-  filter(Outcome == "AL_2_tot_wavg" & Predictor == "hs_pm25_yr_hs_t") %>%
-  filter(cohort != "total")
+  filter(Outcome == "AL_2_tot_wavg" & Predictor == "PM[2.5]") %>%
+  filter(Cohort != "Summary effect size")
 test <- metagen(
   TE = beta,
   seTE = se,
   data = df_test,
   sm = "Estimate",
-  studlab = cohort,
+  studlab = Cohort,
   n.e = n,
   random = TRUE
 )
@@ -617,7 +617,7 @@ test <- metagen(
 forest(test,
   rightcols = c("effect", "ci"),
   leftcols = c("studlab"),
-  leftlabs = "Cohort",
+  leftlabs = "Cohorts",
   rightlabs = c("Coefficient", "[95% CI]"),
   xlim = c(-2.5, 2.5),
   comb.fixed = F,
@@ -631,21 +631,21 @@ forest(test,
   col.diamond = "olivedrab3",
   plotwidth = "10cm",
   colgap.forest.left = "2cm",
-  smlab = "PM2.5 and count-based wavg AL score",
+  smlab = "PM2.5 and count-based wavg allostatic load score",
   fs.smlab = 12
 )
 ```
 
 ```{r, fig.asp = 0.8, fig.width=9}
 df_test <- df_meta %>%
-  filter(Outcome == "AL_2_tot_wavg" & Predictor == "hs_pm25abs_yr_hs_t") %>%
-  filter(cohort != "total")
+  filter(Outcome == "AL_2_tot_wavg" & Predictor == "PM[2.5][abs]") %>%
+  filter(Cohort != "Summary effect size")
 test <- metagen(
   TE = beta,
   seTE = se,
   data = df_test,
   sm = "Estimate",
-  studlab = cohort,
+  studlab = Cohort,
   n.e = n,
   random = TRUE
 )
@@ -653,7 +653,7 @@ test <- metagen(
 forest(test,
   rightcols = c("effect", "ci"),
   leftcols = c("studlab"),
-  leftlabs = "Cohort",
+  leftlabs = "Cohorts",
   rightlabs = c("Coefficient", "[95% CI]"),
   xlim = c(-2.5, 2.5),
   comb.fixed = F,
@@ -667,7 +667,7 @@ forest(test,
   col.diamond = "olivedrab3",
   plotwidth = "10cm",
   colgap.forest.left = "2cm",
-  smlab = "PM2.5abs and count-based wavg AL score",
+  smlab = "PM2.5abs and count-based wavg allostatic load score",
   fs.smlab = 12
 )
 ```
@@ -675,14 +675,14 @@ forest(test,
 ### Continuous AL
 ```{r, eval=T, fig.asp = 0.8, fig.width=9}
 df_test <- df_meta %>%
-  filter(Outcome == "AL_z2_tot" & Predictor == "hs_no2_yr_hs_t") %>%
-  filter(cohort != "total")
+  filter(Outcome == "AL_z2_tot" & Predictor == "NO[2]") %>%
+  filter(Cohort != "Summary effect size")
 test <- metagen(
   TE = beta,
   seTE = se,
   data = df_test,
   sm = "Estimate",
-  studlab = cohort,
+  studlab = Cohort,
   n.e = n,
   random = TRUE
 )
@@ -697,7 +697,7 @@ png(
 forest(test,
   rightcols = c("effect", "ci"),
   leftcols = c("studlab"),
-  leftlabs = "Cohort",
+  leftlabs = "Cohorts",
   rightlabs = c("Coefficient", "[95% CI]"),
   xlim = c(-2.5, 2.5),
   comb.fixed = F,
@@ -711,7 +711,7 @@ forest(test,
   col.diamond = "olivedrab3",
   plotwidth = "10cm",
   colgap.forest.left = "2cm",
-  smlab = "NO2 and continuous AL score",
+  smlab = "NO2 and continuous allostatic load score",
   fs.smlab = 12
 )
 dev.off()
@@ -719,14 +719,14 @@ dev.off()
 
 ```{r, fig.asp = 0.8, fig.width=9}
 df_test <- df_meta %>%
-  filter(Outcome == "AL_z2_tot" & Predictor == "hs_pm10_yr_hs_t") %>%
-  filter(cohort != "total")
+  filter(Outcome == "AL_z2_tot" & Predictor == "PM[10]") %>%
+  filter(Cohort != "Summary effect size")
 test <- metagen(
   TE = beta,
   seTE = se,
   data = df_test,
   sm = "Estimate",
-  studlab = cohort,
+  studlab = Cohort,
   n.e = n,
   random = TRUE
 )
@@ -741,7 +741,7 @@ png(
 forest(test,
   rightcols = c("effect", "ci"),
   leftcols = c("studlab"),
-  leftlabs = "Cohort",
+  leftlabs = "Cohorts",
   rightlabs = c("Coefficient", "[95% CI]"),
   xlim = c(-2.5, 2.5),
   comb.fixed = F,
@@ -755,7 +755,7 @@ forest(test,
   col.diamond = "olivedrab3",
   plotwidth = "10cm",
   colgap.forest.left = "2cm",
-  smlab = "PM10 and continuous AL score",
+  smlab = "PM10 and continuous allostatic load score",
   fs.smlab = 12
 )
 dev.off()
@@ -763,14 +763,14 @@ dev.off()
 
 ```{r, fig.asp = 0.8, fig.width=9}
 df_test <- df_meta %>%
-  filter(Outcome == "AL_z2_tot" & Predictor == "hs_pm25_yr_hs_t") %>%
-  filter(cohort != "total")
+  filter(Outcome == "AL_z2_tot" & Predictor == "PM[2.5]") %>%
+  filter(Cohort != "Summary effect size")
 test <- metagen(
   TE = beta,
   seTE = se,
   data = df_test,
   sm = "Estimate",
-  studlab = cohort,
+  studlab = Cohort,
   n.e = n,
   random = TRUE
 )
@@ -785,7 +785,7 @@ png(
 forest(test,
   rightcols = c("effect", "ci"),
   leftcols = c("studlab"),
-  leftlabs = "Cohort",
+  leftlabs = "Cohorts",
   rightlabs = c("Coefficient", "[95% CI]"),
   xlim = c(-2.5, 2.5),
   comb.fixed = F,
@@ -799,7 +799,7 @@ forest(test,
   col.diamond = "olivedrab3",
   plotwidth = "10cm",
   colgap.forest.left = "2cm",
-  smlab = "PM2.5 and continuous AL score",
+  smlab = "PM2.5 and continuous allostatic load score",
   fs.smlab = 12
 )
 dev.off()
@@ -807,14 +807,14 @@ dev.off()
 
 ```{r, fig.asp = 0.8, fig.width=9}
 df_test <- df_meta %>%
-  filter(Outcome == "AL_z2_tot" & Predictor == "hs_pm25abs_yr_hs_t") %>%
-  filter(cohort != "total")
+  filter(Outcome == "AL_z2_tot" & Predictor == "PM[2.5][abs]") %>%
+  filter(Cohort != "Summary effect size")
 test <- metagen(
   TE = beta,
   seTE = se,
   data = df_test,
   sm = "Estimate",
-  studlab = cohort,
+  studlab = Cohort,
   n.e = n,
   random = TRUE
 )
@@ -829,7 +829,7 @@ png(
 forest(test,
   rightcols = c("effect", "ci"),
   leftcols = c("studlab"),
-  leftlabs = "Cohort",
+  leftlabs = "Cohorts",
   rightlabs = c("Coefficient", "[95% CI]"),
   xlim = c(-2.5, 2.5),
   comb.fixed = F,
@@ -843,7 +843,7 @@ forest(test,
   col.diamond = "olivedrab3",
   plotwidth = "10cm",
   colgap.forest.left = "2cm",
-  smlab = "PM2.5abs and continuous AL score",
+  smlab = "PM2.5abs and continuous allostatic load score",
   fs.smlab = 12
 )
 dev.off()
@@ -852,14 +852,14 @@ dev.off()
 ### Continuous weighted average AL
 ```{r, eval=T, fig.asp = 0.8, fig.width=9}
 df_test <- df_meta %>%
-  filter(Outcome == "AL_z2_tot_wavg" & Predictor == "hs_no2_yr_hs_t") %>%
-  filter(cohort != "total")
+  filter(Outcome == "AL_z2_tot_wavg" & Predictor == "NO[2]") %>%
+  filter(Cohort != "Summary effect size")
 test <- metagen(
   TE = beta,
   seTE = se,
   data = df_test,
   sm = "Estimate",
-  studlab = cohort,
+  studlab = Cohort,
   n.e = n,
   random = TRUE
 )
@@ -867,7 +867,7 @@ test <- metagen(
 forest(test,
   rightcols = c("effect", "ci"),
   leftcols = c("studlab"),
-  leftlabs = "Cohort",
+  leftlabs = "Cohorts",
   rightlabs = c("Coefficient", "[95% CI]"),
   xlim = c(-0.5, 0.5),
   comb.fixed = F,
@@ -881,21 +881,21 @@ forest(test,
   col.diamond = "olivedrab3",
   plotwidth = "10cm",
   colgap.forest.left = "2cm",
-  smlab = "NO2 and continuous wavg AL score",
+  smlab = "NO2 and continuous wavg allostatic load score",
   fs.smlab = 12
 )
 ```
 
 ```{r, fig.asp = 0.8, fig.width=9}
 df_test <- df_meta %>%
-  filter(Outcome == "AL_z2_tot_wavg" & Predictor == "hs_pm10_yr_hs_t") %>%
-  filter(cohort != "total")
+  filter(Outcome == "AL_z2_tot_wavg" & Predictor == "PM[10]") %>%
+  filter(Cohort != "Summary effect size")
 test <- metagen(
   TE = beta,
   seTE = se,
   data = df_test,
   sm = "Estimate",
-  studlab = cohort,
+  studlab = Cohort,
   n.e = n,
   random = TRUE
 )
@@ -903,7 +903,7 @@ test <- metagen(
 forest(test,
   rightcols = c("effect", "ci"),
   leftcols = c("studlab"),
-  leftlabs = "Cohort",
+  leftlabs = "Cohorts",
   rightlabs = c("Coefficient", "[95% CI]"),
   xlim = c(-0.5, 0.5),
   comb.fixed = F,
@@ -917,21 +917,21 @@ forest(test,
   col.diamond = "olivedrab3",
   plotwidth = "10cm",
   colgap.forest.left = "2cm",
-  smlab = "PM10 and continuous wavg AL score",
+  smlab = "PM10 and continuous wavg allostatic load score",
   fs.smlab = 12
 )
 ```
 
 ```{r, fig.asp = 0.8, fig.width=9}
 df_test <- df_meta %>%
-  filter(Outcome == "AL_z2_tot_wavg" & Predictor == "hs_pm25_yr_hs_t") %>%
-  filter(cohort != "total")
+  filter(Outcome == "AL_z2_tot_wavg" & Predictor == "PM[2.5]") %>%
+  filter(Cohort != "Summary effect size")
 test <- metagen(
   TE = beta,
   seTE = se,
   data = df_test,
   sm = "Estimate",
-  studlab = cohort,
+  studlab = Cohort,
   n.e = n,
   random = TRUE
 )
@@ -939,7 +939,7 @@ test <- metagen(
 forest(test,
   rightcols = c("effect", "ci"),
   leftcols = c("studlab"),
-  leftlabs = "Cohort",
+  leftlabs = "Cohorts",
   rightlabs = c("Coefficient", "[95% CI]"),
   xlim = c(-0.5, 0.5),
   comb.fixed = F,
@@ -953,21 +953,21 @@ forest(test,
   col.diamond = "olivedrab3",
   plotwidth = "10cm",
   colgap.forest.left = "2cm",
-  smlab = "PM2.5 and continuous wavg AL score",
+  smlab = "PM2.5 and continuous wavg allostatic load score",
   fs.smlab = 12
 )
 ```
 
 ```{r, fig.asp = 0.8, fig.width=9}
 df_test <- df_meta %>%
-  filter(Outcome == "AL_z2_tot_wavg" & Predictor == "hs_pm25abs_yr_hs_t") %>%
-  filter(cohort != "total")
+  filter(Outcome == "AL_z2_tot_wavg" & Predictor == "PM[2.5][abs]") %>%
+  filter(Cohort != "Summary effect size")
 test <- metagen(
   TE = beta,
   seTE = se,
   data = df_test,
   sm = "Estimate",
-  studlab = cohort,
+  studlab = Cohort,
   n.e = n,
   random = TRUE
 )
@@ -975,7 +975,7 @@ test <- metagen(
 forest(test,
   rightcols = c("effect", "ci"),
   leftcols = c("studlab"),
-  leftlabs = "Cohort",
+  leftlabs = "Cohorts",
   rightlabs = c("Coefficient", "[95% CI]"),
   xlim = c(-0.5, 0.5),
   comb.fixed = F,
@@ -989,7 +989,7 @@ forest(test,
   col.diamond = "olivedrab3",
   plotwidth = "10cm",
   colgap.forest.left = "2cm",
-  smlab = "PM2.5abs and continuous wavg AL score",
+  smlab = "PM2.5abs and continuous wavg allostatic load score",
   fs.smlab = 12
 )
 ```
