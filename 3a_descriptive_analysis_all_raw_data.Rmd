@@ -1220,6 +1220,37 @@ AL_desc %>%
   scroll_box(width = "100%", height = "100%")
 ```
 
+### Median (IQR) Table
+```{r}
+median_iqr <- list(
+  median = ~median(.x, na.rm = T),
+  iqr25 = ~quantile(.x, na.rm = T)[[2]],
+  iqr75 = ~quantile(.x, na.rm = T)[[4]]
+)
+  
+# Total score
+AL_desc <- df_final %>%
+  select(cohort, AL_2_tot, AL_z2_tot) %>% 
+  group_by(cohort) %>% 
+  summarise(across(c(AL_2_tot, AL_z2_tot), median_iqr)) %>% 
+  mutate_at(2:7, round, 1) %>% 
+  mutate(
+    countAL = paste(AL_2_tot_median, " (", AL_2_tot_iqr25, ", ", AL_2_tot_iqr75, ")", sep = ""),
+    continuousAL = paste(AL_z2_tot_median, " (", AL_z2_tot_iqr25, ", ", AL_z2_tot_iqr75, ")", sep = "")
+  ) %>% 
+  select(cohort, countAL, continuousAL) %>% 
+  t()
+
+
+AL_desc %>%
+  kable(
+    caption = "Descriptives of allostatic load score by cohort",
+    escape = F
+  ) %>%
+  kable_styling(bootstrap_options = c("condensed", "responsive"), full_width = F, position = "left", font_size = 14, fixed_thead = T) %>%
+  scroll_box(width = "100%", height = "100%")
+```
+
 # Correlation matrix
 
 ## Air pollutants, noise level, covariates and allostatic load score
