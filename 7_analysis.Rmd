@@ -55,7 +55,7 @@ model <- c(
   "e3_sex + hs_child_age_years + h_ethnicity_cauc",
   "e3_sex + hs_child_age_years + h_ethnicity_cauc + hs_mvpa + hs_sd_wk",
   "e3_sex + hs_child_age_years + h_ethnicity_cauc + hs_mvpa + hs_sd_wk + FAS_cat + h_native_2cat + h_edumc + h_edufc + h_marital_2cat + h_age + h_parity + e3_asmokyn_p + e3_alcpreg_yn",
-  "e3_sex + hs_child_age_years + h_ethnicity_cauc + hs_mvpa + hs_sd_wk + FAS_cat + h_native_2cat + h_edumc + h_edufc + h_marital_2cat + h_age + h_parity + e3_asmokyn_p + e3_alcpreg_yn + hs_smk_parents + hs_globalexp_2cat"
+  "e3_sex + hs_child_age_years + h_ethnicity_cauc + hs_mvpa + hs_sd_wk + FAS_cat + h_native_2cat + h_edumc + h_edufc + h_marital_2cat + h_age + h_parity + e3_asmokyn_p + e3_alcpreg_yn + hs_globalexp_2cat"
 )
 ```
 
@@ -123,7 +123,7 @@ ggplot(data = test, aes(x = hs_pm10_yr_hs_t, y = log(AL_2_tot), color = FAS_cat)
 
 # test in a model
 no2 <- glm(
-  data = test, formula = AL_2_tot ~ hs_no2_yr_hs_t + e3_sex + hs_child_age_years + h_ethnicity_cauc + cohort + hs_mvpa + hs_sd_wk + FAS_cat + h_native_2cat + h_edumc + h_edufc + h_marital_2cat + h_age + h_parity + e3_asmokyn_p + e3_alcpreg_yn + hs_smk_parents + hs_globalexp_2cat,
+  data = test, formula = AL_2_tot ~ hs_no2_yr_hs_t + e3_sex + hs_child_age_years + h_ethnicity_cauc + cohort + hs_mvpa + hs_sd_wk + FAS_cat + h_native_2cat + h_edumc + h_edufc + h_marital_2cat + h_age + h_parity + e3_asmokyn_p + e3_alcpreg_yn + hs_globalexp_2cat,
   family = "poisson"
 )
 # model deviance/degree of freedom is larger than 1, negative binomial should be considered
@@ -131,7 +131,7 @@ summary(no2)
 
 # test for overdispension
 fit.overdisp <- glm(
-  formula = AL_2_tot ~ hs_no2_yr_hs_t + e3_sex + hs_child_age_years + h_ethnicity_cauc + cohort + hs_mvpa + hs_sd_wk + FAS_cat + h_native_2cat + h_edumc + h_edufc + h_marital_2cat + h_age + h_parity + e3_asmokyn_p + e3_alcpreg_yn + hs_smk_parents + hs_globalexp_2cat, family = "quasipoisson",
+  formula = AL_2_tot ~ hs_no2_yr_hs_t + e3_sex + hs_child_age_years + h_ethnicity_cauc + cohort + hs_mvpa + hs_sd_wk + FAS_cat + h_native_2cat + h_edumc + h_edufc + h_marital_2cat + h_age + h_parity + e3_asmokyn_p + e3_alcpreg_yn + hs_globalexp_2cat, family = "quasipoisson",
   data = test
 )
 summary(fit.overdisp)$dispersion # 2.173566
@@ -143,7 +143,7 @@ pchisq(summary(fit.overdisp)$dispersion * no2$df.residual,
 
 # test negative binomial distribution
 no2.nb <- glm.nb(
-  data = test, formula = AL_2_tot ~ hs_no2_yr_hs_t + e3_sex + hs_child_age_years + h_ethnicity_cauc + cohort + hs_mvpa + hs_sd_wk + FAS_cat + h_native_2cat + h_edumc + h_edufc + h_marital_2cat + h_age + h_parity + e3_asmokyn_p + e3_alcpreg_yn + hs_smk_parents + hs_globalexp_2cat,
+  data = test, formula = AL_2_tot ~ hs_no2_yr_hs_t + e3_sex + hs_child_age_years + h_ethnicity_cauc + cohort + hs_mvpa + hs_sd_wk + FAS_cat + h_native_2cat + h_edumc + h_edufc + h_marital_2cat + h_age + h_parity + e3_asmokyn_p + e3_alcpreg_yn + hs_globalexp_2cat,
   link = "log"
 )
 
@@ -153,7 +153,7 @@ summary(no2.nb)
 
 # test gaussian for weighted count-based AL scores
 no2 <- glm(
-  data = test, formula = AL_2_tot_wavg ~ hs_no2_yr_hs_t + e3_sex + hs_child_age_years + h_ethnicity_cauc + cohort + hs_mvpa + hs_sd_wk + FAS_cat + h_native_2cat + h_edumc + h_edufc + h_marital_2cat + h_age + h_parity + e3_asmokyn_p + e3_alcpreg_yn + hs_smk_parents + hs_globalexp_2cat,
+  data = test, formula = AL_2_tot_wavg ~ hs_no2_yr_hs_t + e3_sex + hs_child_age_years + h_ethnicity_cauc + cohort + hs_mvpa + hs_sd_wk + FAS_cat + h_native_2cat + h_edumc + h_edufc + h_marital_2cat + h_age + h_parity + e3_asmokyn_p + e3_alcpreg_yn + hs_globalexp_2cat,
   family = "gaussian"
 )
 
@@ -932,7 +932,7 @@ mod_tbl4 <- mod_tbl4 %>%
 write.xlsx(mod_tbl4, file = paste("/Users/ymou/helix_project/results/", analysis, analysis_date, ".xlsx", sep = ""), rowNames = FALSE, colNames = TRUE)
 
 lden_h <- glm(
-  data = complete(imp_full, n = 25), formula = AL_z2_tot ~ hs_lden_c_s + e3_sex + hs_child_age_years + h_ethnicity_cauc + cohort + hs_mvpa + hs_sd_wk + FAS_cat + h_native_2cat + h_edumc + h_edufc + h_marital_2cat + h_age + h_parity + e3_asmokyn_p + e3_alcpreg_yn + hs_smk_parents + hs_globalexp_2cat,
+  data = complete(imp_full, n = 25), formula = AL_z2_tot ~ hs_lden_c_s + e3_sex + hs_child_age_years + h_ethnicity_cauc + cohort + hs_mvpa + hs_sd_wk + FAS_cat + h_native_2cat + h_edumc + h_edufc + h_marital_2cat + h_age + h_parity + e3_asmokyn_p + e3_alcpreg_yn + hs_globalexp_2cat,
   family = "gaussian"
 )
 
