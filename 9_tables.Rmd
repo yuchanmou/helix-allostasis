@@ -221,7 +221,7 @@ df %>%
 # noise 
 tblnoise <- CreateTableOne(data = df, vars = mainexpo[5:6], factorVars = mainexpo[5:6], testNonNormal = kruskal.test, strata = "cohort")
 
-tbl <- print(tblnoise, showAllLevels = TRUE, contDigits = 1, catDigits = 1, noSpaces = T, format = "fp")
+tbl <- print(tblnoise, showAllLevels = TRUE, contDigits = 1, catDigits = 1, noSpaces = T, format = "p")
 tbl <- as.data.frame(tbl)
 
 write_xlsx(tbl, path = "/Users/ymou/helix_project/results/Table/Table3-2.xlsx")
