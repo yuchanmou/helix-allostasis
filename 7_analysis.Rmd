@@ -91,7 +91,7 @@ rm(dat_afimp_al_nonimp, dat_afimp)
 ```
 
 # ANALYSIS
-# Test model and check model assumptions
+## Model test and model assumption check
 ```{r, eval=FALSE}
 test <- complete(imp_full, n = 25)
 
