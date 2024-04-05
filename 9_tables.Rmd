@@ -153,6 +153,37 @@ df %>%
              g_0.25 = "Girls",
              b_0.25 = "Boys") %>% 
   gt::gtsave(., "/Users/ymou/helix_project/results/Table/Table1-2.docx")
+
+# cortisol 12.5th, 85.5th
+df %>%
+  select(HelixID, e3_sex, cortisol_prod_log10, cortisol_prod_log10_z) %>%
+  group_by(e3_sex) %>% 
+  reframe(across(cortisol_prod_log10:cortisol_prod_log10_z, ~ quantile(.x, c(0.125, 0.5, 0.855), na.rm = T))) %>% 
+  mutate(across(cortisol_prod_log10:cortisol_prod_log10_z, ~round(.,2))) %>% 
+  transpose(keep.names = "Biomarkers") %>% 
+  rename(
+    g_0.125 = V1,
+    g_0.5 = V2,
+    g_0.855 = V3,
+    b_0.125 = V4,
+    b_0.5 = V5,
+    b_0.855 = V6
+  ) %>% 
+  slice(-1) %>%  # remove first row
+  mutate(across(g_0.125:g_0.855, ~as.numeric(.))) %>% 
+  gt() %>% 
+  tab_header(
+    title = "Table 2 Allostatic load biomarkers and the cut-off values-cortisol"
+  ) %>% 
+  fmt_number(decimals = 2, drop_trailing_zeros = F) %>% 
+  cols_merge(columns = c(g_0.5, g_0.125, g_0.855),
+             pattern = "{1} ({2}, {3})") %>% 
+  cols_merge(columns = c(b_0.5, b_0.125, b_0.855),
+             pattern = "{1} ({2}, {3})") %>% 
+  cols_label(Biomarkers = "Biomarkers",
+             g_0.125 = "Girls",
+             b_0.125 = "Boys") %>% 
+  gt::gtsave(., "/Users/ymou/helix_project/results/Table/Table1-3.docx")
 ```
 
 # Table 2 Characteristics of Study Population
