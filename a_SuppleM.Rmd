@@ -50,16 +50,16 @@ out <- c("AL_2_tot", "AL_2_cardio", "AL_2_metab", "AL_2_immune", "AL_2_neuro",
          "AL_z2_tot", "AL_z2_cardio", "AL_z2_metab", "AL_z2_immune", "AL_z2_neuro")
 mainout <- c("AL_2_tot", "AL_z2_tot") 
 
-outname <- c("Count-based AL score", 
-     "Count-based cardiovascular AL", 
-     "Count-based metabolic AL",
-     "Count-based immune/imflammatory AL", 
-     "Count-based neuroendorine AL",
-     "Continuous AL score", 
-     "Continuous cardiovascular AL",
-     "Continuous metabolic AL",
-     "Continuous immune/imflammatory AL",
-     "Continuous neuroendorine AL")
+outname <- c("Count-based ALS", 
+     "Count-based cardiovascular ALS", 
+     "Count-based metabolic ALS",
+     "Count-based immune/imflammatory ALS", 
+     "Count-based neuroendorine ALS",
+     "Continuous ALS", 
+     "Continuous cardiovascular ALS",
+     "Continuous metabolic ALS",
+     "Continuous immune/imflammatory ALS",
+     "Continuous neuroendorine ALS")
 
 cov <- c(
   "e3_sex", "hs_mvpa", "hs_sd_wk", "hs_child_age_years",
@@ -122,16 +122,16 @@ cor.test(df$AL_2_tot, df$AL_z2_tot)
 
 df <- df %>% 
   rename(
-     `Count-based AL score`= "AL_2_tot", 
-     `Count-based cardiovascular AL` = "AL_2_cardio", 
-     `Count-based metabolic AL` = "AL_2_metab",
-     `Count-based immune/imflammatory AL` = "AL_2_immune", 
-     `Count-based neuroendorine AL` = "AL_2_neuro",
-     `Continuous AL score` = "AL_z2_tot", 
-     `Continuous cardiovascular AL` = "AL_z2_cardio",
-     `Continuous metabolic AL` = "AL_z2_metab",
-     `Continuous immune/imflammatory AL` = "AL_z2_immune",
-     `Continuous neuroendorine AL` = "AL_z2_neuro"
+     `Count-based ALS`= "AL_2_tot", 
+     `Count-based cardiovascular ALS` = "AL_2_cardio", 
+     `Count-based metabolic ALS` = "AL_2_metab",
+     `Count-based immune/imflammatory ALS` = "AL_2_immune", 
+     `Count-based neuroendorine ALS` = "AL_2_neuro",
+     `Continuous ALS` = "AL_z2_tot", 
+     `Continuous cardiovascular ALS` = "AL_z2_cardio",
+     `Continuous metabolic ALS` = "AL_z2_metab",
+     `Continuous immune/imflammatory ALS` = "AL_z2_immune",
+     `Continuous neuroendorine ALS` = "AL_z2_neuro"
   )
 ```
 

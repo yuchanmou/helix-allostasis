@@ -93,7 +93,8 @@ ap_tot_res <- ap_tot_res %>%
       "AL_z2_immune_wavg" = "Continuous immune/imflammatory weighted average ALS",
       "AL_z2_neuro_wavg" = "Continuous neuroendorine weighted average ALS"
     )
-  ) 
+  ) %>% 
+  rename(Outcomes = Outcome)
 
 
 
@@ -158,7 +159,8 @@ ap_hsr_res <- ap_hsr_res %>%
       "AL_z2_metab_wavg" = "Continuous metabolic weighted average ALS",
       "AL_z2_immune_wavg" = "Continuous immune/imflammatory weighted average ALS",
       "AL_z2_neuro_wavg" = "Continuous neuroendorine weighted average ALS"
-    ))
+    )) %>% 
+  rename(Outcomes = Outcome)
 
 
 noise_tot_out <- noise_tot_out %>%
@@ -198,7 +200,8 @@ noise_tot_out <- noise_tot_out %>%
       "AL_z2_tot" = "Continuous ALS",
       "AL_z2_tot_wavg" = "Continuous weighted average ALS"
     )
-  )
+  ) %>% 
+  rename(`Categories of noise levels (dB)` = Predictor)
 ```
 
 # Plots
@@ -213,13 +216,13 @@ dt_p1 <- ap_tot_res %>% filter(al_type == "AL_2")
 ```{r fig.asp = 0.8, fig.width=10}
 p1 <- ggplot(
   data = dt_p1,
-  aes(x = Outcome, y = exp_beta_mod4, ymin = exp_cilo_mod4, ymax = exp_cihi_mod4)
+  aes(x = Outcomes, y = exp_beta_mod4, ymin = exp_cilo_mod4, ymax = exp_cihi_mod4)
 ) +
-  geom_pointrange(aes(col = Outcome)) +
+  geom_pointrange(aes(col = Outcomes)) +
   geom_hline(yintercept = 1, linetype = 3) +
   xlab("") +
   ylab("Relative risk (95% Confidence Interval)") +
-  geom_errorbar(aes(ymin = exp_cilo_mod4, ymax = exp_cihi_mod4, col = Outcome), width = 0.5, cex = 1) +
+  geom_errorbar(aes(ymin = exp_cilo_mod4, ymax = exp_cihi_mod4, col = Outcomes), width = 0.5, cex = 1) +
   scale_color_npg() +
   guides(color = guide_legend(reverse = TRUE)) +
   facet_wrap(~Predictor, strip.position = "left", nrow = 9, scales = "free_y", labeller = labeller(Predictor = label_parsed)) +
@@ -254,13 +257,13 @@ dt_p2 <- ap_tot_res %>% filter(al_type == "AL_2_wavg")
 ```{r fig.asp = 0.8, fig.width=10}
 p2 <- ggplot(
   data = dt_p2,
-  aes(x = Outcome, y = beta, ymin = low, ymax = hi)
+  aes(x = Outcomes, y = beta, ymin = low, ymax = hi)
 ) +
-  geom_pointrange(aes(col = Outcome)) +
+  geom_pointrange(aes(col = Outcomes)) +
   geom_hline(yintercept = 0, linetype = 3) +
   xlab("") +
   ylab("Effect sizes (95% Confidence Interval)") +
-  geom_errorbar(aes(ymin = low, ymax = hi, col = Outcome), width = 0.5, cex = 1) +
+  geom_errorbar(aes(ymin = low, ymax = hi, col = Outcomes), width = 0.5, cex = 1) +
   scale_color_npg() +
   guides(color = guide_legend(reverse = TRUE)) +
   facet_wrap(~Predictor, strip.position = "left", nrow = 9, scales = "free_y", labeller = labeller(Predictor = label_parsed)) +
@@ -291,13 +294,13 @@ dt_p3 <- ap_tot_res %>% filter(al_type == "AL_z2")
 ```{r fig.asp = 0.8, fig.width=10}
 p3 <- ggplot(
   data = dt_p3,
-  aes(x = Outcome, y = beta, ymin = low, ymax = hi)
+  aes(x = Outcomes, y = beta, ymin = low, ymax = hi)
 ) +
-  geom_pointrange(aes(col = Outcome)) +
+  geom_pointrange(aes(col = Outcomes)) +
   geom_hline(yintercept = 0, linetype = 3) +
   xlab("") +
   ylab("Effect sizes (95% Confidence Interval)") +
-  geom_errorbar(aes(ymin = low, ymax = hi, col = Outcome), width = 0.5, cex = 1) +
+  geom_errorbar(aes(ymin = low, ymax = hi, col = Outcomes), width = 0.5, cex = 1) +
   scale_color_npg() +
   guides(color = guide_legend(reverse = TRUE)) +
   facet_wrap(~Predictor, strip.position = "left", nrow = 9, scales = "free_y", labeller = labeller(Predictor = label_parsed)) +
@@ -332,13 +335,13 @@ dt_p4 <- ap_tot_res %>% filter(al_type == "AL_z2_wavg")
 ```{r fig.asp = 0.8, fig.width=10}
 p4 <- ggplot(
   data = dt_p4,
-  aes(x = Outcome, y = beta, ymin = low, ymax = hi)
+  aes(x = Outcomes, y = beta, ymin = low, ymax = hi)
 ) +
-  geom_pointrange(aes(col = Outcome)) +
+  geom_pointrange(aes(col = Outcomes)) +
   geom_hline(yintercept = 0, linetype = 3) +
   xlab("") +
   ylab("Effect sizes (95% Confidence Interval)") +
-  geom_errorbar(aes(ymin = low, ymax = hi, col = Outcome), width = 0.5, cex = 1) +
+  geom_errorbar(aes(ymin = low, ymax = hi, col = Outcomes), width = 0.5, cex = 1) +
   scale_color_npg() +
   guides(color = guide_legend(reverse = TRUE)) +
   facet_wrap(~Predictor, strip.position = "left", nrow = 9, scales = "free_y", labeller = labeller(Predictor = label_parsed)) +
@@ -370,13 +373,13 @@ dt_p5 <- ap_hsr_res %>% filter(al_type == "AL_2")
 ```{r fig.asp = 0.8, fig.width=10}
 p5 <- ggplot(
   data = dt_p5,
-  aes(x = Outcome, y = exp_beta_mod4, ymin = exp_cilo_mod4, ymax = exp_cihi_mod4)
+  aes(x = Outcomes, y = exp_beta_mod4, ymin = exp_cilo_mod4, ymax = exp_cihi_mod4)
 ) +
-  geom_pointrange(aes(col = Outcome)) +
+  geom_pointrange(aes(col = Outcomes)) +
   geom_hline(yintercept = 1, linetype = 3) +
   xlab("") +
   ylab("Relative risk (95% Confidence Interval)") +
-  geom_errorbar(aes(ymin = exp_cilo_mod4, ymax = exp_cihi_mod4, col = Outcome), width = 0.5, cex = 1) +
+  geom_errorbar(aes(ymin = exp_cilo_mod4, ymax = exp_cihi_mod4, col = Outcomes), width = 0.5, cex = 1) +
   scale_color_npg() +
   guides(color = guide_legend(reverse = TRUE)) +
   facet_grid(Predictor ~ type, labeller = labeller(Predictor = label_parsed)) +
@@ -413,13 +416,13 @@ dt_p6 <- ap_hsr_res %>% filter(al_type == "AL_2_wavg")
 ```{r fig.asp = 1, fig.width=10}
 p6 <- ggplot(
   data = dt_p6,
-  aes(x = Outcome, y = beta, ymin = low, ymax = hi)
+  aes(x = Outcomes, y = beta, ymin = low, ymax = hi)
 ) +
-  geom_pointrange(aes(col = Outcome)) +
+  geom_pointrange(aes(col = Outcomes)) +
   geom_hline(yintercept = 0, linetype = 3) +
   xlab("") +
   ylab("Effect sizes (95% Confidence Interval)") +
-  geom_errorbar(aes(ymin = low, ymax = hi, col = Outcome), width = 0.5, cex = 1) +
+  geom_errorbar(aes(ymin = low, ymax = hi, col = Outcomes), width = 0.5, cex = 1) +
   scale_color_npg() +
   guides(color = guide_legend(reverse = TRUE)) +
   facet_grid(Predictor ~ type, labeller = labeller(Predictor = label_parsed)) +
@@ -449,13 +452,13 @@ dt_p7 <- ap_hsr_res %>% filter(al_type == "AL_z2")
 ```{r fig.asp = 0.8, fig.width=10}
 p7 <- ggplot(
   data = dt_p7,
-  aes(x = Outcome, y = beta, ymin = low, ymax = hi)
+  aes(x = Outcomes, y = beta, ymin = low, ymax = hi)
 ) +
-  geom_pointrange(aes(col = Outcome)) +
+  geom_pointrange(aes(col = Outcomes)) +
   geom_hline(yintercept = 0, linetype = 3) +
   xlab("") +
   ylab("Effect sizes (95% Confidence Interval)") +
-  geom_errorbar(aes(ymin = low, ymax = hi, col = Outcome), width = 0.5, cex = 1) +
+  geom_errorbar(aes(ymin = low, ymax = hi, col = Outcomes), width = 0.5, cex = 1) +
   scale_color_npg() +
   guides(color = guide_legend(reverse = TRUE)) +
   facet_grid(Predictor ~ type, labeller = labeller(Predictor = label_parsed)) +
@@ -490,13 +493,13 @@ dt_p8 <- ap_hsr_res %>% filter(al_type == "AL_z2_wavg")
 ```{r fig.asp = 1, fig.width=10}
 p8 <- ggplot(
   data = dt_p8,
-  aes(x = Outcome, y = beta, ymin = low, ymax = hi)
+  aes(x = Outcomes, y = beta, ymin = low, ymax = hi)
 ) +
-  geom_pointrange(aes(col = Outcome)) +
+  geom_pointrange(aes(col = Outcomes)) +
   geom_hline(yintercept = 0, linetype = 3) +
   xlab("") +
   ylab("Effect sizes (95% Confidence Interval)") +
-  geom_errorbar(aes(ymin = low, ymax = hi, col = Outcome), width = 0.5, cex = 1) +
+  geom_errorbar(aes(ymin = low, ymax = hi, col = Outcomes), width = 0.5, cex = 1) +
   scale_color_npg() +
   guides(color = guide_legend(reverse = TRUE)) +
   facet_grid(Predictor ~ type, labeller = labeller(Predictor = label_parsed)) +
@@ -528,13 +531,13 @@ dt_p9 <- noise_tot_out %>% filter(al_type == "AL_2")
 ```{r fig.asp = 0.8, fig.width=10}
 p9 <- ggplot(
   data = dt_p9,
-  aes(x = Predictor, y = exp_beta_mod4, ymin = exp_cilo_mod4, ymax = exp_cihi_mod4)
+  aes(x = `Categories of noise levels (dB)`, y = exp_beta_mod4, ymin = exp_cilo_mod4, ymax = exp_cihi_mod4)
 ) +
-  geom_pointrange(aes(col = Predictor)) +
+  geom_pointrange(aes(col = `Categories of noise levels (dB)`)) +
   geom_hline(yintercept = 1, linetype = 3) +
   xlab("") +
   ylab("Relative risk (95% Confidence Interval)") +
-  geom_errorbar(aes(ymin = exp_cilo_mod4, ymax = exp_cihi_mod4, col = Predictor), width = 0.5, cex = 1) +
+  geom_errorbar(aes(ymin = exp_cilo_mod4, ymax = exp_cihi_mod4, col = `Categories of noise levels (dB)`), width = 0.5, cex = 1) +
   scale_color_npg() +
   guides(color = guide_legend(reverse = TRUE)) +
   facet_wrap(~pred_type, strip.position = "left", nrow = 9, scales = "free_y") +
@@ -568,13 +571,13 @@ dt_p10 <- noise_tot_out %>% filter(al_type == "AL_z2")
 ```{r fig.asp = 0.8, fig.width=10}
 p10 <- ggplot(
   data = dt_p10,
-  aes(x = Predictor, y = beta, ymin = low, ymax = hi)
+  aes(x = `Categories of noise levels (dB)`, y = beta, ymin = low, ymax = hi)
 ) +
-  geom_pointrange(aes(col = Predictor)) +
+  geom_pointrange(aes(col = `Categories of noise levels (dB)`)) +
   geom_hline(yintercept = 0, linetype = 3) +
   xlab("") +
   ylab("Effect sizes (95% Confidence Interval)") +
-  geom_errorbar(aes(ymin = low, ymax = hi, col = Predictor), width = 0.5, cex = 1) +
+  geom_errorbar(aes(ymin = low, ymax = hi, col = `Categories of noise levels (dB)`), width = 0.5, cex = 1) +
   scale_color_npg() +
   guides(color = guide_legend(reverse = TRUE)) +
   facet_wrap(~pred_type, strip.position = "left", nrow = 9, scales = "free_y") +
