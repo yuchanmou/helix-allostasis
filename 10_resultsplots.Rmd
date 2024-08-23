@@ -17,7 +17,7 @@ options(knitr.table.format = "html")
 
 ```{r load packages, include=FALSE, echo=FALSE, message=FALSE, warning=FALSE}
 # load pkgs
-packages <- c("tidyverse", "labelled", "openxlsx", "meta", "readxl", "RColorBrewer", "ggsci")
+packages <- c("tidyverse", "labelled", "openxlsx", "meta", "readxl", "RColorBrewer", "ggsci", "patchwork")
 sapply(packages, library, character.only = T)
 ```
 
@@ -78,19 +78,19 @@ ap_tot_res <- ap_tot_res %>%
       "AL_z2_tot_wavg" = "Continuous weighted average ALS",
       "AL_2_cardio" = "Count-based cardiovascular ALS",
       "AL_2_metab" = "Count-based metabolic ALS",
-      "AL_2_immune" = "Count-based immune/imflammatory ALS",
+      "AL_2_immune" = "Count-based immune/inflammatory ALS",
       "AL_2_neuro" = "Count-based neuroendorine ALS",
       "AL_2_cardio_wavg" = "Count-based cardiovascular weighted average ALS",
       "AL_2_metab_wavg" = "Count-based metabolic weighted average ALS",
-      "AL_2_immune_wavg" = "Count-based immune/imflammatory weighted average ALS",
+      "AL_2_immune_wavg" = "Count-based immune/inflammatory weighted average ALS",
       "AL_2_neuro_wavg" = "Count-based neuroendorine weighted average ALS",
       "AL_z2_cardio" = "Continuous cardiovascular ALS",
       "AL_z2_metab" = "Continuous metabolic ALS",
-      "AL_z2_immune" = "Continuous immune/imflammatory ALS",
+      "AL_z2_immune" = "Continuous immune/inflammatory ALS",
       "AL_z2_neuro" = "Continuous neuroendorine ALS",
       "AL_z2_cardio_wavg" = "Continuous cardiovascular weighted average ALS",
       "AL_z2_metab_wavg" = "Continuous metabolic weighted average ALS",
-      "AL_z2_immune_wavg" = "Continuous immune/imflammatory weighted average ALS",
+      "AL_z2_immune_wavg" = "Continuous immune/inflammatory weighted average ALS",
       "AL_z2_neuro_wavg" = "Continuous neuroendorine weighted average ALS"
     )
   ) %>% 
@@ -145,19 +145,19 @@ ap_hsr_res <- ap_hsr_res %>%
       "AL_z2_tot_wavg" = "Continuous weighted average ALS",
       "AL_2_cardio" = "Count-based cardiovascular ALS",
       "AL_2_metab" = "Count-based metabolic ALS",
-      "AL_2_immune" = "Count-based immune/imflammatory ALS",
+      "AL_2_immune" = "Count-based immune/inflammatory ALS",
       "AL_2_neuro" = "Count-based neuroendorine ALS",
       "AL_2_cardio_wavg" = "Count-based cardiovascular weighted average ALS",
       "AL_2_metab_wavg" = "Count-based metabolic weighted average ALS",
-      "AL_2_immune_wavg" = "Count-based immune/imflammatory weighted average ALS",
+      "AL_2_immune_wavg" = "Count-based immune/inflammatory weighted average ALS",
       "AL_2_neuro_wavg" = "Count-based neuroendorine weighted average ALS",
       "AL_z2_cardio" = "Continuous cardiovascular ALS",
       "AL_z2_metab" = "Continuous metabolic ALS",
-      "AL_z2_immune" = "Continuous immune/imflammatory ALS",
+      "AL_z2_immune" = "Continuous immune/inflammatory ALS",
       "AL_z2_neuro" = "Continuous neuroendorine ALS",
       "AL_z2_cardio_wavg" = "Continuous cardiovascular weighted average ALS",
       "AL_z2_metab_wavg" = "Continuous metabolic weighted average ALS",
-      "AL_z2_immune_wavg" = "Continuous immune/imflammatory weighted average ALS",
+      "AL_z2_immune_wavg" = "Continuous immune/inflammatory weighted average ALS",
       "AL_z2_neuro_wavg" = "Continuous neuroendorine weighted average ALS"
     )) %>% 
   rename(Outcomes = Outcome)
@@ -185,14 +185,14 @@ noise_tot_out <- noise_tot_out %>%
     Predictor = recode(Predictor,
       "hs_lden_c_h_55-59.9" = "55-59.9",
       "hs_lden_c_h_60-64.9" = "60-64.9",
-      "hs_lden_c_h>=65" = ">=65",
+      "hs_lden_c_h>=65" = "le65",
       "hs_lden_c_s_55-59.9" = "55-59.9",
       "hs_lden_c_s_60-64.9" = "60-64.9",
-      "hs_lden_c_s>=65" = ">=65"
+      "hs_lden_c_s>=65" = "le65"
     ),
     pred_type = recode(pred_type,
-      "lden_h" = "Road traffic noise at home address",
-      "lden_s" = "Road traffic noise at school address"
+      "lden_h" = "Home address",
+      "lden_s" = "School address"
     ),
     Outcome = recode(Outcome,
       "AL_2_tot" = "Count-based ALS",
@@ -200,8 +200,7 @@ noise_tot_out <- noise_tot_out %>%
       "AL_z2_tot" = "Continuous ALS",
       "AL_z2_tot_wavg" = "Continuous weighted average ALS"
     )
-  ) %>% 
-  rename(`Categories of noise levels (dB)` = Predictor)
+  )
 ```
 
 # Plots
@@ -211,6 +210,8 @@ noise_tot_out <- noise_tot_out %>%
 ### Count-based AL score
 ```{r}
 dt_p1 <- ap_tot_res %>% filter(al_type == "AL_2")
+
+dt_p1$es <- paste0(dt_p1$exp_beta_mod4, " (", dt_p1$exp_cilo_mod4, "-", dt_p1$exp_cihi_mod4, ")")
 ```
 
 ```{r fig.asp = 0.8, fig.width=10}
@@ -218,77 +219,77 @@ p1 <- ggplot(
   data = dt_p1,
   aes(x = Outcomes, y = exp_beta_mod4, ymin = exp_cilo_mod4, ymax = exp_cihi_mod4)
 ) +
-  geom_pointrange(aes(col = Outcomes)) +
+  geom_pointrange(aes(col = Outcomes), show.legend = T) +
   geom_hline(yintercept = 1, linetype = 3) +
   xlab("") +
   ylab("Relative risk (95% Confidence Interval)") +
   geom_errorbar(aes(ymin = exp_cilo_mod4, ymax = exp_cihi_mod4, col = Outcomes), width = 0.5, cex = 1) +
-  scale_color_npg() +
-  guides(color = guide_legend(reverse = TRUE)) +
   facet_wrap(~Predictor, strip.position = "left", nrow = 9, scales = "free_y", labeller = labeller(Predictor = label_parsed)) +
   # scale_y_continuous(limits = c(-1, 6), breaks = c(-1, 0, 1, 2, 3, 4, 5, 6)) +
+  guides(col = guide_legend(nrow = 5, reverse = T, title = "Count-based ALS",
+                            title.position = "top")) +
+  
   theme(
     axis.text.y = element_blank(),
     axis.ticks.y = element_blank(),
     axis.text.x = element_text(size = 14, face = "bold"),
     axis.title = element_text(size = 14, face = "bold"),
     strip.text.y.left = element_text(size = 14, angle = 0, face = "bold"),
-    legend.title = element_text(size = 14, face = "bold"),
-    legend.text = element_text(size = 14),
+    legend.title = element_text(size = 12, face = "bold"),
+    legend.text = element_text(size = 12),
+    legend.key=element_blank(),
+    legend.position = "bottom",
+    legend.justification = "left",
     panel.background = element_rect(fill = 'white', colour = 'black'),
     strip.background=element_rect(fill="white", colour = 'white')
+  ) +
+  scale_color_npg(
+     labels = c("Count-based neuroendorine ALS" = "Neuroendocrine ALS",
+               "Count-based immune/inflammatory ALS" = "Immune/inflammatory ALS", 
+               "Count-based metabolic ALS" = "Metabolic ALS",
+               "Count-based cardiovascular ALS" = "Cardiovascular ALS",
+               "Count-based ALS" = "Total ALS")
   ) +
   coord_flip() +
   ggtitle("")
 
 p1
+
+table_es <- ggplot(dt_p1, aes(x = 0, y = Outcomes, label = es)) +
+  facet_wrap(~Predictor, strip.position = "left", nrow = 9, labeller = labeller(Predictor = label_parsed)) +
+  geom_text(hjust = 0, size = 5) +
+  theme(
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    axis.title.x = element_blank(),
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.title.y = element_blank(),
+    plot.margin = margin(0, 1, 0, 0),
+    strip.text.y = element_blank(),
+    panel.background = element_rect(fill = 'white', colour = 'white'),
+    strip.background=element_rect(fill="white", colour = 'white')
+  )
+table_es
+
+# Combine plots using patchwork
+combined_plot <- p1 + table_es + plot_layout(ncol = 2, widths = c(1, 0.5))
+
+# Display the combined plot
+print(combined_plot)
 ```
 
 ```{r, eval=F}
-ggsave("/Users/ymou/helix_project/results/Fig/fig-countAL.png", width = 10, height = 10, units = "in", dpi = 300)
+ggsave("/Users/ymou/helix_project/results/Fig/fig-countAL.png", width = 15, height = 10, units = "in", dpi = 300)
 ```
 
-
-### Count-based weighted average AL score
-```{r}
-dt_p2 <- ap_tot_res %>% filter(al_type == "AL_2_wavg")
-```
-
-```{r fig.asp = 0.8, fig.width=10}
-p2 <- ggplot(
-  data = dt_p2,
-  aes(x = Outcomes, y = beta, ymin = low, ymax = hi)
-) +
-  geom_pointrange(aes(col = Outcomes)) +
-  geom_hline(yintercept = 0, linetype = 3) +
-  xlab("") +
-  ylab("Effect sizes (95% Confidence Interval)") +
-  geom_errorbar(aes(ymin = low, ymax = hi, col = Outcomes), width = 0.5, cex = 1) +
-  scale_color_npg() +
-  guides(color = guide_legend(reverse = TRUE)) +
-  facet_wrap(~Predictor, strip.position = "left", nrow = 9, scales = "free_y", labeller = labeller(Predictor = label_parsed)) +
-  # scale_y_continuous(limits = c(-1, 6), breaks = c(-1, 0, 1, 2, 3, 4, 5, 6)) +
-  theme(
-    axis.text.y = element_blank(),
-    axis.ticks.y = element_blank(),
-    axis.text.x = element_text(size = 14, face = "bold"),
-    axis.title = element_text(size = 14, face = "bold"),
-    strip.text.y.left = element_text(size = 14, angle = 0, face = "bold"),
-    legend.title = element_text(size = 14, face = "bold"),
-    legend.text = element_text(size = 14),
-    panel.background = element_rect(fill = 'white', colour = 'black'),
-    strip.background=element_rect(fill="white", colour = 'white')
-  ) +
-  coord_flip() +
-  ggtitle("")
-
-p2
-```
 
 
 ### Continuous AL score
 ```{r}
 dt_p3 <- ap_tot_res %>% filter(al_type == "AL_z2")
+
+dt_p3$es <- paste0(dt_p3$beta, " (", dt_p3$low, "-", dt_p3$hi, ")")
 ```
 
 ```{r fig.asp = 0.8, fig.width=10}
@@ -296,13 +297,13 @@ p3 <- ggplot(
   data = dt_p3,
   aes(x = Outcomes, y = beta, ymin = low, ymax = hi)
 ) +
-  geom_pointrange(aes(col = Outcomes)) +
+  geom_pointrange(aes(col = Outcomes), show.legend = T) +
   geom_hline(yintercept = 0, linetype = 3) +
   xlab("") +
   ylab("Effect sizes (95% Confidence Interval)") +
   geom_errorbar(aes(ymin = low, ymax = hi, col = Outcomes), width = 0.5, cex = 1) +
-  scale_color_npg() +
-  guides(color = guide_legend(reverse = TRUE)) +
+  guides(color = guide_legend(nrow = 5, reverse = T, title = "Continuous ALS",
+                              title.position = "top")) +
   facet_wrap(~Predictor, strip.position = "left", nrow = 9, scales = "free_y", labeller = labeller(Predictor = label_parsed)) +
   # scale_y_continuous(limits = c(-1, 6), breaks = c(-1, 0, 1, 2, 3, 4, 5, 6)) +
   theme(
@@ -311,57 +312,54 @@ p3 <- ggplot(
     axis.text.x = element_text(size = 14, face = "bold"),
     axis.title = element_text(size = 14, face = "bold"),
     strip.text.y.left = element_text(size = 14, angle = 0, face = "bold"),
-    legend.title = element_text(size = 14, face = "bold"),
-    legend.text = element_text(size = 14),
+    legend.title = element_text(size = 12, face = "bold"),
+    legend.text = element_text(size = 12),
+    legend.key=element_blank(),
+    legend.position = "bottom",
+    legend.justification = "left",
     panel.background = element_rect(fill = 'white', colour = 'black'),
     strip.background=element_rect(fill="white", colour = 'white')
+  ) +
+  scale_color_npg(
+    labels = c("Continuous neuroendorine ALS" = "Neuroendocrine ALS",
+               "Continuous immune/inflammatory ALS" = "Immune/inflammatory ALS", 
+               "Continuous metabolic ALS" = "Metabolic ALS",
+               "Continuous cardiovascular ALS" = "Cardiovascular ALS",
+               "Continuous ALS" = "Total ALS")
   ) +
   coord_flip() +
   ggtitle("")
 
 p3
+
+table_es <- ggplot(dt_p3, aes(x = 0, y = Outcomes, label = es)) +
+  facet_wrap(~Predictor, strip.position = "left", nrow = 9, labeller = labeller(Predictor = label_parsed)) +
+  geom_text(hjust = 0, size = 5) +
+  theme(
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    axis.title.x = element_blank(),
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.title.y = element_blank(),
+    plot.margin = margin(0, 1, 0, 0),
+    strip.text.y = element_blank(),
+    panel.background = element_rect(fill = 'white', colour = 'white'),
+    strip.background=element_rect(fill="white", colour = 'white')
+  )
+table_es
+
+# Combine plots using patchwork
+combined_plot <- p3 + table_es + plot_layout(ncol = 2, widths = c(1, 0.5))
+
+# Display the combined plot
+print(combined_plot)
 ```
 
 ```{r, eval=F}
-ggsave("/Users/ymou/helix_project/results/Fig/fig-continuousAL.png", width = 10, height = 10, units = "in", dpi = 300)
+ggsave("/Users/ymou/helix_project/results/Fig/fig-continuousAL.png", width = 15, height = 10, units = "in", dpi = 300)
 ```
 
-
-### Continuous weighted average AL score
-```{r}
-dt_p4 <- ap_tot_res %>% filter(al_type == "AL_z2_wavg")
-```
-
-```{r fig.asp = 0.8, fig.width=10}
-p4 <- ggplot(
-  data = dt_p4,
-  aes(x = Outcomes, y = beta, ymin = low, ymax = hi)
-) +
-  geom_pointrange(aes(col = Outcomes)) +
-  geom_hline(yintercept = 0, linetype = 3) +
-  xlab("") +
-  ylab("Effect sizes (95% Confidence Interval)") +
-  geom_errorbar(aes(ymin = low, ymax = hi, col = Outcomes), width = 0.5, cex = 1) +
-  scale_color_npg() +
-  guides(color = guide_legend(reverse = TRUE)) +
-  facet_wrap(~Predictor, strip.position = "left", nrow = 9, scales = "free_y", labeller = labeller(Predictor = label_parsed)) +
-  # scale_y_continuous(limits = c(-1, 6), breaks = c(-1, 0, 1, 2, 3, 4, 5, 6)) +
-  theme(
-    axis.text.y = element_blank(),
-    axis.ticks.y = element_blank(),
-    axis.text.x = element_text(size = 14, face = "bold"),
-    axis.title = element_text(size = 14, face = "bold"),
-    strip.text.y.left = element_text(size = 14, angle = 0, face = "bold"),
-    legend.title = element_text(size = 14, face = "bold"),
-    legend.text = element_text(size = 14),
-    panel.background = element_rect(fill = 'white', colour = 'black'),
-    strip.background=element_rect(fill="white", colour = 'white')
-  ) +
-  coord_flip() +
-  ggtitle("")
-
-p4
-```
 
 ## Air pollutants(home, school, commuting) 
 
@@ -391,8 +389,8 @@ p5 <- ggplot(
     axis.title = element_text(size = 14, face = "bold"),
     strip.text.y = element_text(size = 14, angle = 0, face = "bold"),
     strip.text = element_text(size = 14),
-    legend.title = element_text(size = 14, face = "bold"),
-    legend.text = element_text(size = 14),
+    legend.title = element_text(size = 12, face = "bold"),
+    legend.text = element_text(size = 12),
     panel.background = element_rect(fill = 'white', colour = 'black'),
     strip.background=element_rect(fill="white", colour = 'white')
   ) +
@@ -407,42 +405,6 @@ p5
 ggsave("/Users/ymou/helix_project/results/Fig/fig-countAL-hsr.png", width = 13, height = 13, units = "in", dpi = 300)
 ```
 
-
-### Count-based weighted average AL score
-```{r}
-dt_p6 <- ap_hsr_res %>% filter(al_type == "AL_2_wavg")
-```
-
-```{r fig.asp = 1, fig.width=10}
-p6 <- ggplot(
-  data = dt_p6,
-  aes(x = Outcomes, y = beta, ymin = low, ymax = hi)
-) +
-  geom_pointrange(aes(col = Outcomes)) +
-  geom_hline(yintercept = 0, linetype = 3) +
-  xlab("") +
-  ylab("Effect sizes (95% Confidence Interval)") +
-  geom_errorbar(aes(ymin = low, ymax = hi, col = Outcomes), width = 0.5, cex = 1) +
-  scale_color_npg() +
-  guides(color = guide_legend(reverse = TRUE)) +
-  facet_grid(Predictor ~ type, labeller = labeller(Predictor = label_parsed)) +
-  # scale_y_continuous(limits = c(-1, 6), breaks = c(-1, 0, 1, 2, 3, 4, 5, 6)) +
-  theme(
-    axis.text.y = element_blank(),
-    axis.ticks.y = element_blank(),
-    axis.text.x = element_text(size = 14, face = "bold"),
-    axis.title = element_text(size = 14, face = "bold"),
-    strip.text.y.left = element_text(size = 14, angle = 0, face = "bold"),
-    legend.title = element_text(size = 14, face = "bold"),
-    legend.text = element_text(size = 14),
-    panel.background = element_rect(fill = 'white', colour = 'black'),
-    strip.background=element_rect(fill="white", colour = 'white')
-  ) +
-  coord_flip() +
-  ggtitle("")
-
-p6
-```
 
 ### Continuous AL score
 ```{r}
@@ -470,8 +432,8 @@ p7 <- ggplot(
     axis.title = element_text(size = 14, face = "bold"),
     strip.text.y = element_text(size = 14, angle = 0, face = "bold"),
     strip.text = element_text(size = 14),
-    legend.title = element_text(size = 14, face = "bold"),
-    legend.text = element_text(size = 14),
+    legend.title = element_text(size = 12, face = "bold"),
+    legend.text = element_text(size = 12),
     panel.background = element_rect(fill = 'white', colour = 'black'),
     strip.background=element_rect(fill="white", colour = 'white')
   ) +
@@ -485,120 +447,156 @@ p7
 ggsave("/Users/ymou/helix_project/results/Fig/fig-continousAL-hsr.png", width = 13, height = 13, units = "in", dpi = 300)
 ```
 
-### Continuous weighted average AL score
-```{r}
-dt_p8 <- ap_hsr_res %>% filter(al_type == "AL_z2_wavg")
-```
-
-```{r fig.asp = 1, fig.width=10}
-p8 <- ggplot(
-  data = dt_p8,
-  aes(x = Outcomes, y = beta, ymin = low, ymax = hi)
-) +
-  geom_pointrange(aes(col = Outcomes)) +
-  geom_hline(yintercept = 0, linetype = 3) +
-  xlab("") +
-  ylab("Effect sizes (95% Confidence Interval)") +
-  geom_errorbar(aes(ymin = low, ymax = hi, col = Outcomes), width = 0.5, cex = 1) +
-  scale_color_npg() +
-  guides(color = guide_legend(reverse = TRUE)) +
-  facet_grid(Predictor ~ type, labeller = labeller(Predictor = label_parsed)) +
-  # scale_y_continuous(limits = c(-1, 6), breaks = c(-1, 0, 1, 2, 3, 4, 5, 6)) +
-  theme(
-    axis.text.y = element_blank(),
-    axis.ticks.y = element_blank(),
-    axis.text.x = element_text(size = 14, face = "bold"),
-    axis.title = element_text(size = 14, face = "bold"),
-    strip.text.y.left = element_text(size = 14, angle = 0, face = "bold"),
-    legend.title = element_text(size = 14, face = "bold"),
-    legend.text = element_text(size = 14),
-    panel.background = element_rect(fill = 'white', colour = 'black'),
-    strip.background=element_rect(fill="white", colour = 'white')
-  ) +
-  coord_flip() +
-  ggtitle("")
-
-p8
-```
 
 
 ## Road traffic noise
 ### Count-based AL score
 ```{r}
 dt_p9 <- noise_tot_out %>% filter(al_type == "AL_2")
+
+dt_p9$es <- paste0(dt_p9$exp_beta_mod4, " (", dt_p9$exp_cilo_mod4, "-", dt_p9$exp_cihi_mod4, ")")
+dt_p9$pred_tbl <- paste0(dt_p9$pred_type, dt_p9$Predictor)
 ```
 
 ```{r fig.asp = 0.8, fig.width=10}
 p9 <- ggplot(
   data = dt_p9,
-  aes(x = `Categories of noise levels (dB)`, y = exp_beta_mod4, ymin = exp_cilo_mod4, ymax = exp_cihi_mod4)
+  aes(x = Predictor, y = exp_beta_mod4, ymin = exp_cilo_mod4, ymax = exp_cihi_mod4)
 ) +
-  geom_pointrange(aes(col = `Categories of noise levels (dB)`)) +
+  geom_pointrange(aes(col = Predictor), show.legend = T) +
   geom_hline(yintercept = 1, linetype = 3) +
+  scale_x_discrete(limits = rev(levels(dt_p9$Predictor))) +
   xlab("") +
   ylab("Relative risk (95% Confidence Interval)") +
-  geom_errorbar(aes(ymin = exp_cilo_mod4, ymax = exp_cihi_mod4, col = `Categories of noise levels (dB)`), width = 0.5, cex = 1) +
-  scale_color_npg() +
-  guides(color = guide_legend(reverse = TRUE)) +
+  geom_errorbar(aes(ymin = exp_cilo_mod4, ymax = exp_cihi_mod4, col = Predictor), width = 0.5, cex = 1) +
   facet_wrap(~pred_type, strip.position = "left", nrow = 9, scales = "free_y") +
   # scale_y_continuous(limits = c(-1, 6), breaks = c(-1, 0, 1, 2, 3, 4, 5, 6)) +
+  guides(col = guide_legend(nrow = 3, reverse = F, title = "Road traffic Noise levels (dB)",
+                            title.position = "top")) +
   theme(
     axis.text.y = element_blank(),
     axis.ticks.y = element_blank(),
     axis.text.x = element_text(size = 14, face = "bold"),
     axis.title = element_text(size = 14, face = "bold"),
     strip.text.y.left = element_text(size = 14, angle = 0, face = "bold"),
-    legend.title = element_text(size = 14, face = "bold"),
-    legend.text = element_text(size = 14),
+    legend.title = element_text(size = 12, face = "bold"),
+    legend.text = element_text(size = 12),
+    legend.key=element_blank(),
+    legend.position = "bottom",
+    legend.justification = "left",
     panel.background = element_rect(fill = 'white', colour = 'black'),
     strip.background=element_rect(fill="white", colour = 'white')
+  ) +
+  scale_color_npg(
+    labels = c("55to59.9" = "55-<60",
+               "60to64.9" = "60-<65",
+               "le65" = "≥65")
   ) +
   coord_flip() +
   ggtitle("")
 
 p9
+
+table_es <- ggplot(dt_p9, aes(x = 0, y = Outcome, label = es)) +
+  facet_wrap(~pred_tbl, strip.position = "left", nrow = 6) +
+  geom_text(hjust = 0, size = 5) +
+  theme(
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    axis.title.x = element_blank(),
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.title.y = element_blank(),
+    plot.margin = margin(0, 1, 0, 0),
+    strip.text.y = element_blank(),
+    panel.background = element_rect(fill = 'white', colour = 'white'),
+    strip.background=element_rect(fill="white", colour = 'white')
+  )
+table_es
+
+# Combine plots using patchwork
+combined_plot <- p9 + table_es + plot_layout(ncol = 2, widths = c(1, 1))
+
+# Display the combined plot
+print(combined_plot)
 ```
 
 ```{r, eval=F}
-ggsave("/Users/ymou/helix_project/results/Fig/fig-countAL-noise.png", width = 10, height = 5, units = "in", dpi = 300)
+ggsave("/Users/ymou/helix_project/results/Fig/fig-countAL-noise.png", width = 15, height = 5, units = "in", dpi = 300)
 ```
 
 ### Continuous AL score
 ```{r}
 dt_p10 <- noise_tot_out %>% filter(al_type == "AL_z2")
+
+dt_p10$es <- paste0(dt_p10$beta, " (", dt_p10$low, "-", dt_p10$hi, ")")
+dt_p10$pred_tbl <- paste0(dt_p10$pred_type, dt_p10$Predictor)
 ```
 
 ```{r fig.asp = 0.8, fig.width=10}
 p10 <- ggplot(
   data = dt_p10,
-  aes(x = `Categories of noise levels (dB)`, y = beta, ymin = low, ymax = hi)
+  aes(x = Predictor, y = beta, ymin = low, ymax = hi)
 ) +
-  geom_pointrange(aes(col = `Categories of noise levels (dB)`)) +
+  geom_pointrange(aes(col = Predictor), show.legend = T) +
   geom_hline(yintercept = 0, linetype = 3) +
+  scale_x_discrete(limits = rev(levels(dt_p10$Predictor))) +
   xlab("") +
   ylab("Effect sizes (95% Confidence Interval)") +
-  geom_errorbar(aes(ymin = low, ymax = hi, col = `Categories of noise levels (dB)`), width = 0.5, cex = 1) +
-  scale_color_npg() +
+  geom_errorbar(aes(ymin = low, ymax = hi, col = Predictor), width = 0.5, cex = 1) +
   guides(color = guide_legend(reverse = TRUE)) +
   facet_wrap(~pred_type, strip.position = "left", nrow = 9, scales = "free_y") +
   # scale_y_continuous(limits = c(-1, 6), breaks = c(-1, 0, 1, 2, 3, 4, 5, 6)) +
+  guides(col = guide_legend(nrow = 3, reverse = F, title = "Road traffic Noise levels (dB)",
+                            title.position = "top")) +
   theme(
     axis.text.y = element_blank(),
     axis.ticks.y = element_blank(),
     axis.text.x = element_text(size = 14, face = "bold"),
     axis.title = element_text(size = 14, face = "bold"),
     strip.text.y.left = element_text(size = 14, angle = 0, face = "bold"),
-    legend.title = element_text(size = 14, face = "bold"),
-    legend.text = element_text(size = 14),
+    legend.title = element_text(size = 12, face = "bold"),
+    legend.text = element_text(size = 12),
+    legend.key=element_blank(),
+    legend.position = "bottom",
+    legend.justification = "left",
     panel.background = element_rect(fill = 'white', colour = 'black'),
     strip.background=element_rect(fill="white", colour = 'white')
+  ) +
+  scale_color_npg(
+    labels = c("55to59.9" = "55-<60",
+               "60to64.9" = "60-<65",
+               "le65" = "≥65")
   ) +
   coord_flip() +
   ggtitle("")
 
 p10
+
+table_es <- ggplot(dt_p10, aes(x = 0, y = Outcome, label = es)) +
+  facet_wrap(~pred_tbl, strip.position = "left", nrow = 6) +
+  geom_text(hjust = 0, size = 5) +
+  theme(
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    axis.title.x = element_blank(),
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.title.y = element_blank(),
+    plot.margin = margin(0, 1, 0, 0),
+    strip.text.y = element_blank(),
+    panel.background = element_rect(fill = 'white', colour = 'white'),
+    strip.background=element_rect(fill="white", colour = 'white')
+  )
+table_es
+
+# Combine plots using patchwork
+combined_plot <- p10 + table_es + plot_layout(ncol = 2, widths = c(1, 1))
+
+# Display the combined plot
+print(combined_plot)
 ```
 
 ```{r, eval=F}
-ggsave("/Users/ymou/helix_project/results/Fig/fig-continuousAL-noise.png", width = 10, height = 5, units = "in", dpi = 300)
+ggsave("/Users/ymou/helix_project/results/Fig/fig-continuousAL-noise.png", width = 15, height = 5, units = "in", dpi = 300)
 ```
