@@ -131,7 +131,7 @@ summary(no2)
 
 # test for overdispension
 fit.overdisp <- glm(
-  formula = AL_2_tot ~ hs_no2_yr_hs_t + e3_sex + hs_child_age_years + h_ethnicity_cauc + cohort + hs_mvpa + hs_sd_wk + FAS_cat + h_native_2cat + h_edumc + h_edufc + h_marital_2cat + h_age + h_parity + e3_asmokyn_p + e3_alcpreg_yn + hs_globalexp_2cat, family = "quasipoisson",
+  formula = AL_2_tot ~ hs_no2_yr_hs_t + e3_sex + hs_child_age_years + h_ethnicity_cauc + cohort + hs_mvpa + hs_sd_wk + FAS_cat + h_native_2cat + h_edumc + h_edufc + h_marital_2cat + h_age + h_parity + e3_asmokyn_p + e3_alcpreg_yn + hs_globalexp_2cat + cohort, family = "quasipoisson",
   data = test
 )
 summary(fit.overdisp)$dispersion # 2.173566
@@ -143,7 +143,7 @@ pchisq(summary(fit.overdisp)$dispersion * no2$df.residual,
 
 # test negative binomial distribution
 no2.nb <- glm.nb(
-  data = test, formula = AL_2_tot ~ hs_no2_yr_hs_t + e3_sex + hs_child_age_years + h_ethnicity_cauc + cohort + hs_mvpa + hs_sd_wk + FAS_cat + h_native_2cat + h_edumc + h_edufc + h_marital_2cat + h_age + h_parity + e3_asmokyn_p + e3_alcpreg_yn + hs_globalexp_2cat,
+  data = test, formula = AL_2_tot ~ hs_no2_yr_hs_t + e3_sex + hs_child_age_years + h_ethnicity_cauc + cohort + hs_mvpa + hs_sd_wk + FAS_cat + h_native_2cat + h_edumc + h_edufc + h_marital_2cat + h_age + h_parity + e3_asmokyn_p + e3_alcpreg_yn + hs_globalexp_2cat + cohort,
   link = "log"
 )
 
@@ -153,7 +153,7 @@ summary(no2.nb)
 
 # test gaussian for weighted count-based AL scores
 no2 <- glm(
-  data = test, formula = AL_2_tot_wavg ~ hs_no2_yr_hs_t + e3_sex + hs_child_age_years + h_ethnicity_cauc + cohort + hs_mvpa + hs_sd_wk + FAS_cat + h_native_2cat + h_edumc + h_edufc + h_marital_2cat + h_age + h_parity + e3_asmokyn_p + e3_alcpreg_yn + hs_globalexp_2cat,
+  data = test, formula = AL_2_tot_wavg ~ hs_no2_yr_hs_t + e3_sex + hs_child_age_years + h_ethnicity_cauc + cohort + hs_mvpa + hs_sd_wk + FAS_cat + h_native_2cat + h_edumc + h_edufc + h_marital_2cat + h_age + h_parity + e3_asmokyn_p + e3_alcpreg_yn + hs_globalexp_2cat + cohort,
   family = "gaussian"
 )
 
