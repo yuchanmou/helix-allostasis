@@ -191,8 +191,8 @@ noise_tot_out <- noise_tot_out %>%
       "hs_lden_c_s>=65" = "le65"
     ),
     pred_type = recode(pred_type,
-      "lden_h" = "Home address",
-      "lden_s" = "School address"
+      "lden_h" = "Home",
+      "lden_s" = "School"
     ),
     Outcome = recode(Outcome,
       "AL_2_tot" = "Count-based ALS",
@@ -205,6 +205,7 @@ noise_tot_out <- noise_tot_out %>%
 
 # Plots
 
+-----------------------------------------------------------------------------------------------------
 ## Air pollutants
 
 ### Count-based AL score
@@ -280,7 +281,7 @@ print(combined_plot)
 ```
 
 ```{r, eval=F}
-ggsave("/Users/ymou/helix_project/results/Fig/fig-countAL.png", width = 15, height = 10, units = "in", dpi = 300)
+ggsave("/Users/ymou/helix_project/results/Fig/fig1-countAL.png", width = 15, height = 10, units = "in", dpi = 300)
 ```
 
 
@@ -357,10 +358,10 @@ print(combined_plot)
 ```
 
 ```{r, eval=F}
-ggsave("/Users/ymou/helix_project/results/Fig/fig-continuousAL.png", width = 15, height = 10, units = "in", dpi = 300)
+ggsave("/Users/ymou/helix_project/results/Fig/fig1-continuousAL.png", width = 15, height = 10, units = "in", dpi = 300)
 ```
 
-
+-----------------------------------------------------------------------------------------------------
 ## Air pollutants(home, school, commuting) 
 
 ### Count-based AL score
@@ -373,26 +374,36 @@ p5 <- ggplot(
   data = dt_p5,
   aes(x = Outcomes, y = exp_beta_mod4, ymin = exp_cilo_mod4, ymax = exp_cihi_mod4)
 ) +
-  geom_pointrange(aes(col = Outcomes)) +
+  geom_pointrange(aes(col = Outcomes), show.legend = T) +
   geom_hline(yintercept = 1, linetype = 3) +
   xlab("") +
   ylab("Relative risk (95% Confidence Interval)") +
   geom_errorbar(aes(ymin = exp_cilo_mod4, ymax = exp_cihi_mod4, col = Outcomes), width = 0.5, cex = 1) +
-  scale_color_npg() +
-  guides(color = guide_legend(reverse = TRUE)) +
-  facet_grid(Predictor ~ type, labeller = labeller(Predictor = label_parsed)) +
+  facet_grid(rows = vars(Predictor), cols = vars(type), switch = "y", labeller = labeller(Predictor = label_parsed)) +
+  guides(col = guide_legend(nrow = 2, reverse = T, title = "Count-based ALS",
+                            title.position = "top")) +
   # scale_y_continuous(limits = c(-1, 6), breaks = c(-1, 0, 1, 2, 3, 4, 5, 6)) +
   theme(
     axis.text.y = element_blank(),
     axis.ticks.y = element_blank(),
     axis.text.x = element_text(size = 14, face = "bold"),
     axis.title = element_text(size = 14, face = "bold"),
-    strip.text.y = element_text(size = 14, angle = 0, face = "bold"),
-    strip.text = element_text(size = 14),
+    strip.text.x = element_text(size = 14, angle = 0),
+    strip.text.y.left = element_text(size = 14, angle = 0),
     legend.title = element_text(size = 12, face = "bold"),
     legend.text = element_text(size = 12),
+    legend.key=element_blank(),
+    legend.position = "bottom",
+    legend.justification = "left",
     panel.background = element_rect(fill = 'white', colour = 'black'),
     strip.background=element_rect(fill="white", colour = 'white')
+  ) +
+  scale_color_npg(
+    labels = c("Count-based neuroendorine ALS" = "Neuroendocrine ALS",
+               "Count-based immune/inflammatory ALS" = "Immune/inflammatory ALS", 
+               "Count-based metabolic ALS" = "Metabolic ALS",
+               "Count-based cardiovascular ALS" = "Cardiovascular ALS",
+               "Count-based ALS" = "Total ALS")
   ) +
   coord_flip() +
   ggtitle("")
@@ -402,7 +413,7 @@ p5
 
 
 ```{r, eval=F}
-ggsave("/Users/ymou/helix_project/results/Fig/fig-countAL-hsr.png", width = 13, height = 13, units = "in", dpi = 300)
+ggsave("/Users/ymou/helix_project/results/Fig/figs7-countAL-hsr.png", width = 13, height = 13, units = "in", dpi = 300)
 ```
 
 
@@ -416,26 +427,36 @@ p7 <- ggplot(
   data = dt_p7,
   aes(x = Outcomes, y = beta, ymin = low, ymax = hi)
 ) +
-  geom_pointrange(aes(col = Outcomes)) +
+  geom_pointrange(aes(col = Outcomes), show.legend = T) +
   geom_hline(yintercept = 0, linetype = 3) +
   xlab("") +
-  ylab("Effect sizes (95% Confidence Interval)") +
+  ylab("Relative risk (95% Confidence Interval)") +
   geom_errorbar(aes(ymin = low, ymax = hi, col = Outcomes), width = 0.5, cex = 1) +
-  scale_color_npg() +
-  guides(color = guide_legend(reverse = TRUE)) +
-  facet_grid(Predictor ~ type, labeller = labeller(Predictor = label_parsed)) +
+  facet_grid(rows = vars(Predictor), cols = vars(type), switch = "y", labeller = labeller(Predictor = label_parsed)) +
+  guides(col = guide_legend(nrow = 2, reverse = T, title = "Count-based ALS",
+                            title.position = "top")) +
   # scale_y_continuous(limits = c(-1, 6), breaks = c(-1, 0, 1, 2, 3, 4, 5, 6)) +
   theme(
     axis.text.y = element_blank(),
     axis.ticks.y = element_blank(),
     axis.text.x = element_text(size = 14, face = "bold"),
     axis.title = element_text(size = 14, face = "bold"),
-    strip.text.y = element_text(size = 14, angle = 0, face = "bold"),
-    strip.text = element_text(size = 14),
+    strip.text.x = element_text(size = 14, angle = 0),
+    strip.text.y.left = element_text(size = 14, angle = 0),
     legend.title = element_text(size = 12, face = "bold"),
     legend.text = element_text(size = 12),
+    legend.key=element_blank(),
+    legend.position = "bottom",
+    legend.justification = "left",
     panel.background = element_rect(fill = 'white', colour = 'black'),
     strip.background=element_rect(fill="white", colour = 'white')
+  ) +
+  scale_color_npg(
+    labels = c("Continuous neuroendorine ALS" = "Neuroendocrine ALS",
+               "Continuous immune/inflammatory ALS" = "Immune/inflammatory ALS", 
+               "Continuous metabolic ALS" = "Metabolic ALS",
+               "Continuous cardiovascular ALS" = "Cardiovascular ALS",
+               "Continuous ALS" = "Total ALS")
   ) +
   coord_flip() +
   ggtitle("")
@@ -444,12 +465,13 @@ p7
 ```
 
 ```{r, eval=F}
-ggsave("/Users/ymou/helix_project/results/Fig/fig-continousAL-hsr.png", width = 13, height = 13, units = "in", dpi = 300)
+ggsave("/Users/ymou/helix_project/results/Fig/figs7-continousAL-hsr.png", width = 13, height = 13, units = "in", dpi = 300)
 ```
 
 
-
+-----------------------------------------------------------------------------------------------------
 ## Road traffic noise
+
 ### Count-based AL score
 ```{r}
 dt_p9 <- noise_tot_out %>% filter(al_type == "AL_2")
@@ -478,7 +500,7 @@ p9 <- ggplot(
     axis.ticks.y = element_blank(),
     axis.text.x = element_text(size = 14, face = "bold"),
     axis.title = element_text(size = 14, face = "bold"),
-    strip.text.y.left = element_text(size = 14, angle = 0, face = "bold"),
+    strip.text.y.left = element_text(size = 14, angle = 0),
     legend.title = element_text(size = 12, face = "bold"),
     legend.text = element_text(size = 12),
     legend.key=element_blank(),
@@ -522,7 +544,7 @@ print(combined_plot)
 ```
 
 ```{r, eval=F}
-ggsave("/Users/ymou/helix_project/results/Fig/fig-countAL-noise.png", width = 15, height = 4.2, units = "in", dpi = 300)
+ggsave("/Users/ymou/helix_project/results/Fig/fig1-countAL-noise.png", width = 15, height = 4.2, units = "in", dpi = 300)
 ```
 
 ### Continuous AL score
@@ -554,7 +576,7 @@ p10 <- ggplot(
     axis.ticks.y = element_blank(),
     axis.text.x = element_text(size = 14, face = "bold"),
     axis.title = element_text(size = 14, face = "bold"),
-    strip.text.y.left = element_text(size = 14, angle = 0, face = "bold"),
+    strip.text.y.left = element_text(size = 14, angle = 0),
     legend.title = element_text(size = 12, face = "bold"),
     legend.text = element_text(size = 12),
     legend.key=element_blank(),
@@ -598,5 +620,5 @@ print(combined_plot)
 ```
 
 ```{r, eval=F}
-ggsave("/Users/ymou/helix_project/results/Fig/fig-continuousAL-noise.png", width = 15, height = 4.2, units = "in", dpi = 300)
+ggsave("/Users/ymou/helix_project/results/Fig/fig1-continuousAL-noise.png", width = 15, height = 4.2, units = "in", dpi = 300)
 ```
