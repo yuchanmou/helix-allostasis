@@ -226,7 +226,7 @@ p1 <- ggplot(
   geom_errorbar(aes(ymin = exp_cilo_mod4, ymax = exp_cihi_mod4, col = Outcomes), width = 0.5, cex = 1) +
   facet_wrap(~Predictor, strip.position = "left", nrow = 9, scales = "free_y", labeller = labeller(Predictor = label_parsed)) +
   # scale_y_continuous(limits = c(-1, 6), breaks = c(-1, 0, 1, 2, 3, 4, 5, 6)) +
-  guides(col = guide_legend(nrow = 5, reverse = T, title = "Count-based ALS",
+  guides(col = guide_legend(nrow = 2, reverse = T, title = "Count-based ALS",
                             title.position = "top")) +
   
   theme(
@@ -273,7 +273,7 @@ table_es <- ggplot(dt_p1, aes(x = 0, y = Outcomes, label = es)) +
 table_es
 
 # Combine plots using patchwork
-combined_plot <- p1 + table_es + plot_layout(ncol = 2, widths = c(1, 0.5))
+combined_plot <- p1 + table_es + plot_layout(ncol = 2, widths = c(0.5, 0.5))
 
 # Display the combined plot
 print(combined_plot)
@@ -302,7 +302,7 @@ p3 <- ggplot(
   xlab("") +
   ylab("Effect sizes (95% Confidence Interval)") +
   geom_errorbar(aes(ymin = low, ymax = hi, col = Outcomes), width = 0.5, cex = 1) +
-  guides(color = guide_legend(nrow = 5, reverse = T, title = "Continuous ALS",
+  guides(color = guide_legend(nrow = 2, reverse = T, title = "Continuous ALS",
                               title.position = "top")) +
   facet_wrap(~Predictor, strip.position = "left", nrow = 9, scales = "free_y", labeller = labeller(Predictor = label_parsed)) +
   # scale_y_continuous(limits = c(-1, 6), breaks = c(-1, 0, 1, 2, 3, 4, 5, 6)) +
@@ -350,7 +350,7 @@ table_es <- ggplot(dt_p3, aes(x = 0, y = Outcomes, label = es)) +
 table_es
 
 # Combine plots using patchwork
-combined_plot <- p3 + table_es + plot_layout(ncol = 2, widths = c(1, 0.5))
+combined_plot <- p3 + table_es + plot_layout(ncol = 2, widths = c(0.5, 0.5))
 
 # Display the combined plot
 print(combined_plot)
@@ -471,7 +471,7 @@ p9 <- ggplot(
   geom_errorbar(aes(ymin = exp_cilo_mod4, ymax = exp_cihi_mod4, col = Predictor), width = 0.5, cex = 1) +
   facet_wrap(~pred_type, strip.position = "left", nrow = 9, scales = "free_y") +
   # scale_y_continuous(limits = c(-1, 6), breaks = c(-1, 0, 1, 2, 3, 4, 5, 6)) +
-  guides(col = guide_legend(nrow = 3, reverse = F, title = "Road traffic Noise levels (dB)",
+  guides(col = guide_legend(nrow = 1, reverse = F, title = "Road traffic Noise levels (dB)",
                             title.position = "top")) +
   theme(
     axis.text.y = element_blank(),
@@ -515,14 +515,14 @@ table_es <- ggplot(dt_p9, aes(x = 0, y = Outcome, label = es)) +
 table_es
 
 # Combine plots using patchwork
-combined_plot <- p9 + table_es + plot_layout(ncol = 2, widths = c(1, 1))
+combined_plot <- p9 + table_es + plot_layout(ncol = 2, widths = c(0.5, 0.5))
 
 # Display the combined plot
 print(combined_plot)
 ```
 
 ```{r, eval=F}
-ggsave("/Users/ymou/helix_project/results/Fig/fig-countAL-noise.png", width = 15, height = 5, units = "in", dpi = 300)
+ggsave("/Users/ymou/helix_project/results/Fig/fig-countAL-noise.png", width = 15, height = 4.2, units = "in", dpi = 300)
 ```
 
 ### Continuous AL score
@@ -547,7 +547,7 @@ p10 <- ggplot(
   guides(color = guide_legend(reverse = TRUE)) +
   facet_wrap(~pred_type, strip.position = "left", nrow = 9, scales = "free_y") +
   # scale_y_continuous(limits = c(-1, 6), breaks = c(-1, 0, 1, 2, 3, 4, 5, 6)) +
-  guides(col = guide_legend(nrow = 3, reverse = F, title = "Road traffic Noise levels (dB)",
+  guides(col = guide_legend(nrow = 1, reverse = F, title = "Road traffic Noise levels (dB)",
                             title.position = "top")) +
   theme(
     axis.text.y = element_blank(),
@@ -591,12 +591,12 @@ table_es <- ggplot(dt_p10, aes(x = 0, y = Outcome, label = es)) +
 table_es
 
 # Combine plots using patchwork
-combined_plot <- p10 + table_es + plot_layout(ncol = 2, widths = c(1, 1))
+combined_plot <- p10 + table_es + plot_layout(ncol = 2, widths = c(0.5, 0.5))
 
 # Display the combined plot
 print(combined_plot)
 ```
 
 ```{r, eval=F}
-ggsave("/Users/ymou/helix_project/results/Fig/fig-continuousAL-noise.png", width = 15, height = 5, units = "in", dpi = 300)
+ggsave("/Users/ymou/helix_project/results/Fig/fig-continuousAL-noise.png", width = 15, height = 4.2, units = "in", dpi = 300)
 ```
