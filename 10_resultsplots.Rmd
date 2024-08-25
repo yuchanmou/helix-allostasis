@@ -212,7 +212,11 @@ noise_tot_out <- noise_tot_out %>%
 ```{r}
 dt_p1 <- ap_tot_res %>% filter(al_type == "AL_2")
 
-dt_p1$es <- paste0(dt_p1$exp_beta_mod4, " (", dt_p1$exp_cilo_mod4, "-", dt_p1$exp_cihi_mod4, ")")
+dt_p1$es <- paste0(
+  sprintf("%.2f", dt_p1$exp_beta_mod4), " (",
+  sprintf("%.2f", dt_p1$exp_cilo_mod4), "-",
+  sprintf("%.2f", dt_p1$exp_cihi_mod4), ")"
+)
 ```
 
 ```{r fig.asp = 0.8, fig.width=10}
@@ -290,7 +294,11 @@ ggsave("/Users/ymou/helix_project/results/Fig/fig1-countAL.png", width = 15, hei
 ```{r}
 dt_p3 <- ap_tot_res %>% filter(al_type == "AL_z2")
 
-dt_p3$es <- paste0(dt_p3$beta, " (", dt_p3$low, "-", dt_p3$hi, ")")
+dt_p3$es <- paste0(
+  sprintf("%.2f", dt_p3$beta), " (",
+  sprintf("%.2f", dt_p3$low), "-",
+  sprintf("%.2f", dt_p3$hi), ")"
+)
 ```
 
 ```{r fig.asp = 0.8, fig.width=10}
@@ -476,7 +484,11 @@ ggsave("/Users/ymou/helix_project/results/Fig/figs7-continousAL-hsr.png", width 
 ```{r}
 dt_p9 <- noise_tot_out %>% filter(al_type == "AL_2")
 
-dt_p9$es <- paste0(dt_p9$exp_beta_mod4, " (", dt_p9$exp_cilo_mod4, "-", dt_p9$exp_cihi_mod4, ")")
+dt_p9$es <- paste0(
+  sprintf("%.2f", dt_p9$exp_beta_mod4), " (",
+  sprintf("%.2f", dt_p9$exp_cilo_mod4), "-",
+  sprintf("%.2f", dt_p9$exp_cihi_mod4), ")"
+)
 dt_p9$pred_tbl <- paste0(dt_p9$pred_type, dt_p9$Predictor)
 ```
 
@@ -551,7 +563,11 @@ ggsave("/Users/ymou/helix_project/results/Fig/fig1-countAL-noise.png", width = 1
 ```{r}
 dt_p10 <- noise_tot_out %>% filter(al_type == "AL_z2")
 
-dt_p10$es <- paste0(dt_p10$beta, " (", dt_p10$low, "-", dt_p10$hi, ")")
+dt_p10$es <- paste0(
+  sprintf("%.2f", dt_p10$beta), " (",
+  sprintf("%.2f", dt_p10$low), "-",
+  sprintf("%.2f", dt_p10$hi), ")"
+)
 dt_p10$pred_tbl <- paste0(dt_p10$pred_type, dt_p10$Predictor)
 ```
 
