@@ -134,6 +134,1153 @@ noise_psystem_zscore %>%
   gt::gtsave(., "/Users/ymou/helix_project/results/Table/eTable3.docx")
 ```
 
+# ANALYSIS: highest 25th percentiles of cortisol cut-offs as "high risk"
+
+```{r define biomarkers, include=FALSE, echo=FALSE, message=FALSE, warning=FALSE}
+# 19 biomarkers included in the main AL score
+# hs_non_hdl_c is calculated with hs_totchol_c - hs_hdlchol_c
+biomarker_all <- c(
+  "hs_zsys_bp", "hs_zdia_bp", "bp_pulse_sd",
+  "hs_zbmi_who", "hs_zwaist_mets", "hs_skf_sum2", "hs_fatprop_bia",
+  "hs_hdlchol_c", "hs_non_hdl_c", "hs_triglyc_c", "Leptin",
+  "Adiponectin",
+  "CRP", "IL1beta", "IL6", "IL8", "IL10", "TNFalfa",
+  "cortisol_prod_log10"
+)
+
+biomarker_positivescore <- c(
+  "hs_zsys_bp", "hs_zdia_bp", "bp_pulse_sd",
+  "hs_zbmi_who", "hs_zwaist_mets", "hs_skf_sum2", "hs_fatprop_bia",
+  "hs_non_hdl_c", "hs_triglyc_c", "Leptin",
+  "CRP", "IL1beta", "IL6", "IL8", "TNFalfa"
+)
+biomarker_reversescore <- c(
+  "hs_hdlchol_c", "Adiponectin", "IL10", "cortisol_prod_log10"
+)
+
+# 4 physiological systems
+physystems <- c("cardio", "metab", "immune", "neuro")
+
+cardio <- c("hs_zsys_bp", "hs_zdia_bp", "bp_pulse_sd") # 3 biomarkers
+metab <- c(
+  "hs_zbmi_who", "hs_zwaist_mets", "hs_skf_sum2", "hs_fatprop_bia",
+  "hs_hdlchol_c", "hs_non_hdl_c", "hs_triglyc_c", "Leptin", "Adiponectin"
+) # 9 biomarkers
+immune <- c("CRP", "IL1beta", "IL6", "IL8", "IL10", "TNFalfa") # 6 biomarkers
+neuro <- c("cortisol_prod_log10") # 1 biomarkers
+```
+
+## Define function to calculate new ALS
+```{r}
+#' @description Function to automatically apply AL cut-off values
+#' @param data: data.frame that contains the biomarkers
+#' @param scoreno: character that indicates which AL cutoffs should be use (options: 'cut-off score','continuous score')
+#' @param biomarkers: Character vector that includes the biomarkers to serve as colnames
+#' @param biomarker_positivescore: Character vector that includes the biomarkers with positive scoring
+#' @param biomarker_reversescore: Character vector that includes the biomarkers with reverse scoring
+
+ALscore <- function(data, scoreno, biomarkers, biomarker_positivescore, biomarker_reversescore) {
+  if ("cut-off score" %in% scoreno) {
+    df_q <- data %>%
+      dplyr::select(HelixID, e3_sex, all_of(biomarkers)) %>%
+      mutate(
+        across(
+          .cols = all_of(biomarkers)[1:19],
+          .fns = \(x) ntile(x, n = 4),
+          .names = "{col}_q"
+        )
+      ) %>% 
+      dplyr::select(HelixID, e3_sex, ends_with("_q"))
+
+    # make quartiles
+    # positive scoring
+    biomarker_q <- paste(biomarker_positivescore, "q", sep = "_")
+    df_q <- df_q %>% mutate(
+      across(
+        .cols = all_of(biomarker_q),
+        .fns = \(x) if_else(x == 4, 1, 0, NA),
+        .names = "{col}_as1"
+      )
+    )
+
+    # reverse scoring
+    biomarker_q <- paste(biomarker_reversescore, "q", sep = "_")
+    df_q <- df_q %>% mutate(
+      across(
+        .cols = all_of(biomarker_q),
+        .fns = \(x) if_else(x == 1, 1, 0, NA),
+        .names = "{col}_as1"
+      )
+    )
+
+
+    # summary score
+    cardio_q <- paste(cardio, "q_as1", sep = "_")
+    metab_q <- paste(metab, "q_as1", sep = "_")
+    immune_q <- paste(immune, "q_as1", sep = "_")
+    neuro_q <- paste(neuro, "q_as1", sep = "_")
+    # formula
+    cardio_sum <- paste(cardio_q, collapse = " + ")
+    metab_sum <- paste(metab_q, collapse = " + ")
+    immune_sum <- paste(immune_q, collapse = " + ")
+    neuro_sum <- paste(neuro_q, collapse = " + ")
+
+    df_q <- df_q %>%
+      mutate(
+        AL_1_cardio = rlang::eval_tidy(rlang::parse_expr(cardio_sum), data = .),
+        AL_1_metab = rlang::eval_tidy(rlang::parse_expr(metab_sum), data = .),
+        AL_1_immune = rlang::eval_tidy(rlang::parse_expr(immune_sum), data = .),
+        AL_1_neuro = rlang::eval_tidy(rlang::parse_expr(neuro_sum), data = .),
+        AL_1_tot = AL_1_cardio + AL_1_metab + AL_1_immune + AL_1_neuro
+      )
+
+    # weighted average score
+    # formula
+    cardio_wgtsum <- paste0("(", paste(cardio_q, collapse = " + "), ")/", length(cardio_q), sep = "")
+    metab_wgtsum <- paste0("(", paste(metab_q, collapse = " + "), ")/", length(metab_q), sep = "")
+    immune_wgtsum <- paste0("(", paste(immune_q, collapse = " + "), ")/", length(immune_q), sep = "")
+    neuro_wgtsum <- paste0("(", paste(neuro_q, collapse = " + "), ")/", length(neuro_q), sep = "")
+
+    df_q <- df_q %>%
+      mutate(
+        AL_1_cardio_wavg = rlang::eval_tidy(rlang::parse_expr(cardio_wgtsum), data = .),
+        AL_1_metab_wavg = rlang::eval_tidy(rlang::parse_expr(metab_wgtsum), data = .),
+        AL_1_immune_wavg = rlang::eval_tidy(rlang::parse_expr(immune_wgtsum), data = .),
+        AL_1_neuro_wavg = rlang::eval_tidy(rlang::parse_expr(neuro_wgtsum), data = .),
+        AL_1_tot_wavg = AL_1_cardio_wavg + AL_1_metab_wavg + AL_1_immune_wavg + AL_1_neuro_wavg
+      )
+
+    # final dataset
+    # assign different score names (AL_2_) to the sex-specific allostatic load score, based on girls and boys separately
+    # AL_1 is the allostatic load score based on the whole population
+    # AL_2 is the sex-specific allostatic load score
+    # df_q <- df_q %>% select(-matches("_q$|_as1$"))
+    if (nrow(df_q) < 1301) {
+      df_q <- df_q %>% 
+        rename(
+          AL_2_cardio = AL_1_cardio,
+          AL_2_metab = AL_1_metab,
+          AL_2_immune = AL_1_immune,
+          AL_2_neuro = AL_1_neuro,
+          AL_2_tot = AL_1_tot,
+          AL_2_cardio_wavg = AL_1_cardio_wavg,
+          AL_2_metab_wavg = AL_1_metab_wavg,
+          AL_2_immune_wavg = AL_1_immune_wavg,
+          AL_2_neuro_wavg = AL_1_neuro_wavg,
+          AL_2_tot_wavg = AL_1_tot_wavg
+        )
+    }
+  }
+  if ("continuous score" %in% scoreno) {
+    # positive scoring
+    df_z <- data %>%
+      dplyr::select(HelixID, e3_sex, all_of(biomarkers)) %>%
+      mutate(
+        across(
+          .cols = all_of(biomarkers),
+          .fns = ~ rescale(.x, to = c(0, 1)), # rescale a variable with min = 0 and max = 1. Linear rescaling will not change the shape of the distribution.
+          .names = "{col}_z"
+        )
+      ) %>%
+      mutate(across(ends_with("_z"), as.numeric)) %>%
+      dplyr::select(HelixID, e3_sex, ends_with("_z"))
+
+    # reverse scoring
+    biomarker_z <- paste(biomarker_reversescore, "z", sep = "_")
+    df_z <- df_z %>% mutate(
+      across(
+        .cols = all_of(biomarker_z),
+        .fns = \(x) (1 - x),
+        .names = "{col}"
+      )
+    )
+
+    # summary score
+    cardio_z <- paste(cardio, "z", sep = "_")
+    metab_z <- paste(metab, "z", sep = "_")
+    immune_z <- paste(immune, "z", sep = "_")
+    neuro_z <- paste(neuro, "z", sep = "_")
+    # formula
+    cardio_zsum <- paste(cardio_z, collapse = " + ")
+    metab_zsum <- paste(metab_z, collapse = " + ")
+    immune_zsum <- paste(immune_z, collapse = " + ")
+    neuro_zsum <- paste(neuro_z, collapse = " + ")
+
+    df_z <- df_z %>%
+      mutate(
+        AL_z1_cardio = rlang::eval_tidy(rlang::parse_expr(cardio_zsum), data = .),
+        AL_z1_metab = rlang::eval_tidy(rlang::parse_expr(metab_zsum), data = .),
+        AL_z1_immune = rlang::eval_tidy(rlang::parse_expr(immune_zsum), data = .),
+        AL_z1_neuro = rlang::eval_tidy(rlang::parse_expr(neuro_zsum), data = .),
+        AL_z1_tot = AL_z1_cardio + AL_z1_metab + AL_z1_immune + AL_z1_neuro
+      )
+
+    # weighted average score
+    # formula
+    cardio_wgtzsum <- paste0("(", paste(cardio_z, collapse = " + "), ")/", length(cardio_z), sep = "")
+    metab_wgtzsum <- paste0("(", paste(metab_z, collapse = " + "), ")/", length(metab_z), sep = "")
+    immune_wgtzsum <- paste0("(", paste(immune_z, collapse = " + "), ")/", length(immune_z), sep = "")
+    neuro_wgtzsum <- paste0("(", paste(neuro_z, collapse = " + "), ")/", length(neuro_z), sep = "")
+
+    df_z <- df_z %>%
+      mutate(
+        AL_z1_cardio_wavg = rlang::eval_tidy(rlang::parse_expr(cardio_wgtzsum), data = .),
+        AL_z1_metab_wavg = rlang::eval_tidy(rlang::parse_expr(metab_wgtzsum), data = .),
+        AL_z1_immune_wavg = rlang::eval_tidy(rlang::parse_expr(immune_wgtzsum), data = .),
+        AL_z1_neuro_wavg = rlang::eval_tidy(rlang::parse_expr(neuro_wgtzsum), data = .),
+        AL_z1_tot_wavg = AL_z1_cardio_wavg + AL_z1_metab_wavg + AL_z1_immune_wavg + AL_z1_neuro_wavg
+      )
+
+    # final dataset
+    # df_z <- df_z %>% select(-matches("_z$"))
+    # assign different score name to the AL score based on sub-population (girls and boys separately)
+    if (nrow(df_z) < 1301) {
+      df_z <- df_z %>% 
+        rename(
+          AL_z2_cardio = AL_z1_cardio,
+          AL_z2_metab = AL_z1_metab,
+          AL_z2_immune = AL_z1_immune,
+          AL_z2_neuro = AL_z1_neuro,
+          AL_z2_tot = AL_z1_tot,
+          AL_z2_cardio_wavg = AL_z1_cardio_wavg,
+          AL_z2_metab_wavg = AL_z1_metab_wavg,
+          AL_z2_immune_wavg = AL_z1_immune_wavg,
+          AL_z2_neuro_wavg = AL_z1_neuro_wavg,
+          AL_z2_tot_wavg = AL_z1_tot_wavg
+        )
+    }
+  }
+  if (exists("df_q")) {
+    assign("ALScore_cutoff", df_q, envir = .GlobalEnv)
+  }
+  if (exists("df_z")) {
+    assign("ALScore_z", df_z, envir = .GlobalEnv)
+  }
+}
+```
+
+## Calculate new ALS
+```{r}
+# create 25 imputed datasets
+num <- 0
+repeat{
+  num = num+1
+  dd <- complete(imp_full, num)
+  dd_g <- dd %>% filter(e3_sex == "Girls")
+  assign(paste('a.g',num,sep=""), dd_g, envir = .GlobalEnv)
+  
+  dd_b <- dd %>% filter(e3_sex == "Boys")
+  assign(paste('a.b',num,sep=""), dd_b, envir = .GlobalEnv)
+
+  if (num == 25){
+    print("repeat loop ends");
+    break
+  }
+}
+
+list_a.g <- list(a.g1, a.g2, a.g3, a.g4, a.g5, a.g6, a.g7, a.g8, a.g9, a.g10, a.g11, a.g12, a.g13,
+a.g14, a.g15, a.g16, a.g17, a.g18, a.g19, a.g20, a.g21, a.g22, a.g23, a.g24, a.g25)
+
+list_a.b <- list(a.b1, a.b2, a.b3, a.b4, a.b5, a.b6, a.b7, a.b8, a.b9, a.b10, a.b11, a.b12, a.b13,
+a.b14, a.b15, a.b16, a.b17, a.b18, a.b19, a.b20, a.b21, a.b22, a.b23, a.b24, a.b25)
+```
+
+```{r}
+# Calculate ALS a1
+# Dataset girls
+dsnum <- 0
+repeat{
+  dsnum <- dsnum+1
+  ALscore(data = list_a.g[[dsnum]], scoreno = "cut-off score", biomarkers = biomarker_all,
+          biomarker_positivescore, biomarker_reversescore)
+  ALscore(data = list_a.g[[dsnum]], scoreno = "continuous score", biomarkers = biomarker_all,
+          biomarker_positivescore, biomarker_reversescore)
+
+  df <- cbind(list_a.g[[dsnum]], 
+              AL_2_total_a1 = ALScore_cutoff$AL_2_tot, 
+              AL_2_cardio_a1 = ALScore_cutoff$AL_2_cardio,
+              AL_2_metabolic_a1 = ALScore_cutoff$AL_2_metab, 
+              AL_2_immune_a1 = ALScore_cutoff$AL_2_immune,
+              AL_2_neuro_a1 = ALScore_cutoff$AL_2_neuro,
+              AL_z2_tot_a1 = ALScore_z$AL_z2_tot,
+              AL_z2_cardio_a1 = ALScore_z$AL_z2_cardio, 
+              AL_z2_metab_a1 = ALScore_z$AL_z2_metab, 
+              AL_z2_immune_a1 = ALScore_z$AL_z2_immune, 
+              AL_z2_neuro_a1 = ALScore_z$AL_z2_neuro)
+  assign(paste("Sup_ag", dsnum, sep = ""), df)
+  rm(df)
+  if (dsnum == 25){
+    SupsetG_complete <- lapply(ls(pattern = "^Sup_"), get)
+    rm(list = ls(pattern = "^Sup_"))
+    rm(list = ls(pattern = "^ALScore"))
+    print("repeat loop ends");
+    break
+  }
+}
+
+rm(list = ls(pattern = "(^a\\.g)"))
+
+# Dataset girls
+dsnum <- 0
+repeat{
+  dsnum <- dsnum+1
+  ALscore(data = list_a.b[[dsnum]], scoreno = "cut-off score", biomarkers = biomarker_all,
+          biomarker_positivescore, biomarker_reversescore)
+  ALscore(data = list_a.b[[dsnum]], scoreno = "continuous score", biomarkers = biomarker_all,
+          biomarker_positivescore, biomarker_reversescore)
+
+  df <- cbind(list_a.b[[dsnum]], 
+              AL_2_total_a1 = ALScore_cutoff$AL_2_tot, 
+              AL_2_cardio_a1 = ALScore_cutoff$AL_2_cardio,
+              AL_2_metabolic_a1 = ALScore_cutoff$AL_2_metab, 
+              AL_2_immune_a1 = ALScore_cutoff$AL_2_immune,
+              AL_2_neuro_a1 = ALScore_cutoff$AL_2_neuro,
+              AL_z2_tot_a1 = ALScore_z$AL_z2_tot,
+              AL_z2_cardio_a1 = ALScore_z$AL_z2_cardio, 
+              AL_z2_metab_a1 = ALScore_z$AL_z2_metab, 
+              AL_z2_immune_a1 = ALScore_z$AL_z2_immune, 
+              AL_z2_neuro_a1 = ALScore_z$AL_z2_neuro)
+  assign(paste("Sup_ag", dsnum, sep = ""), df)
+  rm(df)
+  if (dsnum == 25){
+    SupsetB_complete <- lapply(ls(pattern = "^Sup_"), get)
+    rm(list = ls(pattern = "^Sup_"))
+    rm(list = ls(pattern = "^ALScore"))
+    print("repeat loop ends");
+    break
+  }
+}
+
+rm(list = ls(pattern = "(^a\\.b)"))
+
+# Combine lists of datasets of girls and boys
+Supset_complete <- Map(bind_rows, SupsetG_complete, SupsetB_complete)
+
+# Combine list back to MIDS object to use the pool function of R again
+library(miceadds)
+Suppl_impset  <- datalist2mids(Supset_complete) 
+```
+
+RUN ANALYSIS with new sets of ALS with the highest quartile of cortisol production labelled as 'high risk'
+```{r define variables, include=FALSE, echo=FALSE, message=FALSE, warning=FALSE}
+# Exposures: air pollutants and noise level
+ap <- c(
+  "hs_no2_yr_hs_t",
+  "hs_pm25_yr_hs_t",
+  "hs_pm25abs_yr_hs_t",
+  "hs_pm10_yr_hs_t"
+)
+ap_supl <- c(
+  "hs_no2_yr_hs_h", "hs_no2_yr_hs_s", "hs_no2_yr_hs_r", "hs_no2_yr_hs_p",
+  "hs_pm25_yr_hs_h", "hs_pm25_yr_hs_s", "hs_pm25_yr_hs_r", "hs_pm25_yr_hs_p",
+  "hs_pm25abs_yr_hs_h", "hs_pm25abs_yr_hs_s", "hs_pm25abs_yr_hs_r", "hs_pm25abs_yr_hs_p",
+  "hs_pm10_yr_hs_h", "hs_pm10_yr_hs_s", "hs_pm10_yr_hs_r", "hs_pm10_yr_hs_p"
+)
+noise <- c("hs_lden_c_h", "hs_lden_c_s")
+noise_supl <- c("hs_lden_h", "hs_lden_s", "hs_lden_t")
+
+
+# Outcomes: AL scores
+out <- c("AL_2_total_a1", "AL_z2_tot_a1") # sex-specific scores
+
+# Outcomes per physiological systems
+out_ps <- c("AL_2_cardio_a1", "AL_2_metab_a1", "AL_2_immune_a1", "AL_2_neuro_a1")
+out_ps_z <- c("AL_z2_cardio_a1", "AL_z2_metab_a1", "AL_z2_immune_a1", "AL_z2_neuro_a1")
+
+
+# Models
+model <- c(
+  "e3_sex + hs_child_age_years + h_ethnicity_cauc",
+  "e3_sex + hs_child_age_years + h_ethnicity_cauc + hs_mvpa + hs_sd_wk",
+  "e3_sex + hs_child_age_years + h_ethnicity_cauc + hs_mvpa + hs_sd_wk + FAS_cat + h_native_2cat + h_edumc + h_edufc + h_marital_2cat + h_age + h_parity + e3_asmokyn_p + e3_alcpreg_yn",
+  "e3_sex + hs_child_age_years + h_ethnicity_cauc + hs_mvpa + hs_sd_wk + FAS_cat + h_native_2cat + h_edumc + h_edufc + h_marital_2cat + h_age + h_parity + e3_asmokyn_p + e3_alcpreg_yn + hs_globalexp_2cat"
+)
+```
+
+### Air pollution total and main outcomes
+```{r}
+analysis <- "airpollution_total_mainoutcome"
+
+coefs <- as.data.frame(matrix(NA, nrow = 1, ncol = 9))
+colnames(coefs) <- c("DateTime", "Outcome", "Predictor", "Model", "Beta", "cilo", "cihi", "CI", "P")
+
+count <- 0
+for (o in out) {
+  if (o %in% c("AL_2_total_a1")) {
+    for (d in ap) {
+      for (m in 1:length(model)) {
+        count <- count + 1
+        fit <- Suppl_impset %>%
+          mice::complete("all") %>%
+          lapply(glm.nb, formula = paste(o, "~", d, "+", model[m], " + cohort", sep = ""), link = "log")
+        res <- summary(pool(fit), conf.int = T)
+        # Round values
+        res <- res %>%
+          mutate_at(c("estimate", "2.5 %", "97.5 %"), round, 2) %>%
+          mutate_at(c("p.value"), round, 4)
+
+        # Save results
+        coefs[count, 1] <- gsub(" ", "_", Sys.time())
+        coefs[count, 2] <- o
+        coefs[count, 3] <- d
+        coefs[count, 4] <- m
+        coefs[count, 5] <- res$estimate[2]
+        coefs[count, 6] <- res$`2.5 %`[2]
+        coefs[count, 7] <- res$`97.5 %`[2]
+        coefs[count, 8] <- paste(res$`2.5 %`[2], ",", " ", res$`97.5 %`[2], sep = "")
+        coefs[count, 9] <- res$p.value[2]
+      }
+    }
+  } else {
+    for (d in ap) {
+      for (m in 1:length(model)) {
+        count <- count + 1
+        fit <- Suppl_impset %>%
+          mice::complete("all") %>%
+          lapply(glm, formula = paste(o, "~", d, "+", model[m], " + cohort", sep = ""), family = "gaussian")
+        res <- summary(pool(fit), conf.int = T)
+        # Round values
+        res <- res %>%
+          mutate_at(c("estimate", "2.5 %", "97.5 %"), round, 2) %>%
+          mutate_at(c("p.value"), round, 4)
+
+        # Save results
+        coefs[count, 1] <- gsub(" ", "_", Sys.time())
+        coefs[count, 2] <- o
+        coefs[count, 3] <- d
+        coefs[count, 4] <- m
+        coefs[count, 5] <- res$estimate[2]
+        coefs[count, 6] <- res$`2.5 %`[2]
+        coefs[count, 7] <- res$`97.5 %`[2]
+        coefs[count, 8] <- paste(res$`2.5 %`[2], ",", " ", res$`97.5 %`[2], sep = "")
+        coefs[count, 9] <- res$p.value[2]
+      }
+    }
+  }
+}
+
+
+mod_tbl <- as.data.frame(matrix(NA, nrow = 1, ncol = 16))
+colnames(mod_tbl) <- c(
+  "Outcome", "Predictor",
+  "beta_mod1", "95ci_mod1", "pvalue_mod1",
+  "beta_mod2", "95ci_mod2", "pvalue_mod2",
+  "beta_mod3", "95ci_mod3", "pvalue_mod3",
+  "beta_mod4", "95ci_mod4", "pvalue_mod4",
+  "cilo_mod4", "cihi_mod4"
+)
+count <- 0
+
+
+for (o in out) {
+  for (d in ap) {
+    sep_coefs <- coefs %>%
+      filter(Outcome == o) %>%
+      filter(Predictor == d)
+    count <- count + 1
+    # Loop through each model.In this case, four models
+    mod_tbl[count, 1] <- o
+    mod_tbl[count, 2] <- d
+    mod_tbl[count, 3] <- sep_coefs$Beta[1]
+    mod_tbl[count, 4] <- sep_coefs$CI[1]
+    mod_tbl[count, 5] <- sep_coefs$P[1]
+    mod_tbl[count, 6] <- sep_coefs$Beta[2]
+    mod_tbl[count, 7] <- sep_coefs$CI[2]
+    mod_tbl[count, 8] <- sep_coefs$P[2]
+    mod_tbl[count, 9] <- sep_coefs$Beta[3]
+    mod_tbl[count, 10] <- sep_coefs$CI[3]
+    mod_tbl[count, 11] <- sep_coefs$P[3]
+    mod_tbl[count, 12] <- sep_coefs$Beta[4]
+    mod_tbl[count, 13] <- sep_coefs$CI[4]
+    mod_tbl[count, 14] <- sep_coefs$P[4]
+    mod_tbl[count, 15] <- sep_coefs$cilo[4]
+    mod_tbl[count, 16] <- sep_coefs$cihi[4]
+  }
+}
+
+mod_tbl <- mod_tbl %>% 
+  mutate(exp_beta_mod4 = case_when(Outcome == "AL_2_total_a1"~ exp(beta_mod4)),
+         exp_cilo_mod4 = case_when(Outcome == "AL_2_total_a1"~ exp(cilo_mod4)),
+         exp_cihi_mod4 = case_when(Outcome == "AL_2_total_a1"~ exp(cihi_mod4))) %>% 
+  mutate_at(c("exp_beta_mod4", "exp_cilo_mod4", "exp_cihi_mod4"), round, 2) %>% 
+  mutate(exp_ci_mod4 = paste(format(exp_cilo_mod4,drop0Trailing = F), ", ", format(exp_cihi_mod4,drop0Trailing = F), sep = ""))
+
+write.xlsx(mod_tbl, file = paste("/Users/ymou/helix_project/results/sensitivity_analysis/cortisol_highestquartile_ALS/", analysis, analysis_date, ".xlsx", sep = ""), rowNames = FALSE, colNames = TRUE)
+```
+
+### Air pollution total and outcomes per physiological systems
+```{r}
+analysis <- "airpollution_total_outcomepsystem"
+
+coefs1 <- as.data.frame(matrix(NA, nrow = 1, ncol = 9))
+colnames(coefs1) <- c("DateTime", "Outcome", "Predictor", "Model", "Beta", "cilo", "cihi", "CI", "P")
+
+count <- 0
+for (o in out_ps) {
+  if (o %in% c("AL_2_cardio_a1", "AL_2_metab_a1", "AL_2_immune_a1", "AL_2_neuro_a1")) {
+    for (d in ap) {
+      for (m in 1:length(model)) {
+        count <- count + 1
+        fit <- Suppl_impset %>%
+          mice::complete("all") %>%
+          lapply(glm.nb, formula = paste(o, "~", d, "+", model[m], " + cohort", sep = ""), link = "log")
+        res <- summary(pool(fit), conf.int = T)
+        # Round values
+        res <- res %>%
+          mutate_at(c("estimate", "2.5 %", "97.5 %"), round, 2) %>%
+          mutate_at(c("p.value"), round, 4)
+
+        # Save results
+        coefs1[count, 1] <- gsub(" ", "_", Sys.time())
+        coefs1[count, 2] <- o
+        coefs1[count, 3] <- d
+        coefs1[count, 4] <- m
+        coefs1[count, 5] <- res$estimate[2]
+        coefs1[count, 6] <- res$`2.5 %`[2]
+        coefs1[count, 7] <- res$`97.5 %`[2]
+        coefs1[count, 8] <- paste(res$`2.5 %`[2], ",", " ", res$`97.5 %`[2], sep = "")
+        coefs1[count, 9] <- res$p.value[2]
+      }
+    }
+  } else {
+    for (d in ap) {
+      for (m in 1:length(model)) {
+        count <- count + 1
+        fit <- Suppl_impset %>%
+          mice::complete("all") %>%
+          lapply(glm, formula = paste(o, "~", d, "+", model[m], " + cohort", sep = ""), family = "gaussian")
+        res <- summary(pool(fit), conf.int = T)
+        # Round values
+        res <- res %>%
+          mutate_at(c("estimate", "2.5 %", "97.5 %"), round, 2) %>%
+          mutate_at(c("p.value"), round, 4)
+
+        # Save results
+        coefs1[count, 1] <- gsub(" ", "_", Sys.time())
+        coefs1[count, 2] <- o
+        coefs1[count, 3] <- d
+        coefs1[count, 4] <- m
+        coefs1[count, 5] <- res$estimate[2]
+        coefs1[count, 6] <- res$`2.5 %`[2]
+        coefs1[count, 7] <- res$`97.5 %`[2]
+        coefs1[count, 8] <- paste(res$`2.5 %`[2], ",", " ", res$`97.5 %`[2], sep = "")
+        coefs1[count, 9] <- res$p.value[2]
+      }
+    }
+  }
+}
+
+mod_tbl1 <- as.data.frame(matrix(NA, nrow = 1, ncol = 16))
+colnames(mod_tbl1) <- c(
+  "Outcome", "Predictor",
+  "beta_mod1", "95ci_mod1", "pvalue_mod1",
+  "beta_mod2", "95ci_mod2", "pvalue_mod2",
+  "beta_mod3", "95ci_mod3", "pvalue_mod3",
+  "beta_mod4", "95ci_mod4", "pvalue_mod4",
+  "cilo_mod4", "cihi_mod4"
+)
+count <- 0
+
+
+for (o in out_ps) {
+  for (d in ap) {
+    sep_coefs1 <- coefs1 %>%
+      filter(Outcome == o) %>%
+      filter(Predictor == d)
+    count <- count + 1
+    # Loop through each model.In this case, four models
+    mod_tbl1[count, 1] <- o
+    mod_tbl1[count, 2] <- d
+    mod_tbl1[count, 3] <- sep_coefs1$Beta[1]
+    mod_tbl1[count, 4] <- sep_coefs1$CI[1]
+    mod_tbl1[count, 5] <- sep_coefs1$P[1]
+    mod_tbl1[count, 6] <- sep_coefs1$Beta[2]
+    mod_tbl1[count, 7] <- sep_coefs1$CI[2]
+    mod_tbl1[count, 8] <- sep_coefs1$P[2]
+    mod_tbl1[count, 9] <- sep_coefs1$Beta[3]
+    mod_tbl1[count, 10] <- sep_coefs1$CI[3]
+    mod_tbl1[count, 11] <- sep_coefs1$P[3]
+    mod_tbl1[count, 12] <- sep_coefs1$Beta[4]
+    mod_tbl1[count, 13] <- sep_coefs1$CI[4]
+    mod_tbl1[count, 14] <- sep_coefs1$P[4]
+    mod_tbl1[count, 15] <- sep_coefs1$cilo[4]
+    mod_tbl1[count, 16] <- sep_coefs1$cihi[4]
+  }
+}
+
+mod_tbl1 <- mod_tbl1 %>% 
+  mutate(exp_beta_mod4 = case_when(Outcome %in% c("AL_2_cardio_a1", "AL_2_metab_a1", "AL_2_immune_a1", "AL_2_neuro_a1") ~ exp(beta_mod4)),
+         exp_cilo_mod4 = case_when(Outcome %in% c("AL_2_cardio_a1", "AL_2_metab_a1", "AL_2_immune_a1", "AL_2_neuro_a1") ~ exp(cilo_mod4)),
+         exp_cihi_mod4 = case_when(Outcome %in% c("AL_2_cardio_a1", "AL_2_metab_a1", "AL_2_immune_a1", "AL_2_neuro_a1") ~ exp(cihi_mod4))) %>% 
+  mutate_at(c("exp_beta_mod4", "exp_cilo_mod4", "exp_cihi_mod4"), round, 2) %>% 
+  mutate(exp_ci_mod4 = paste(format(exp_cilo_mod4,drop0Trailing = F), ", ", format(exp_cihi_mod4,drop0Trailing = F), sep = ""))
+
+write.xlsx(mod_tbl1, file = paste("/Users/ymou/helix_project/results/sensitivity_analysis/cortisol_highestquartile_ALS/", analysis, analysis_date, ".xlsx", sep = ""), rowNames = FALSE, colNames = TRUE)
+```
+
+```{r}
+analysis <- "airpollution_total_outcomepsystem_zscore"
+
+coefs1 <- as.data.frame(matrix(NA, nrow = 1, ncol = 9))
+colnames(coefs1) <- c("DateTime", "Outcome", "Predictor", "Model", "Beta", "cilo", "cihi", "CI", "P")
+
+count <- 0
+for (o in out_ps_z) {
+  for (d in ap) {
+    for (m in 1:length(model)) {
+      count <- count + 1
+      fit <- Suppl_impset %>%
+        mice::complete("all") %>%
+        lapply(glm, formula = paste(o, "~", d, "+", model[m], " + cohort", sep = ""), family = "gaussian")
+      res <- summary(pool(fit), conf.int = T)
+      # Round values
+      res <- res %>%
+        mutate_at(c("estimate", "2.5 %", "97.5 %"), round, 2) %>%
+        mutate_at(c("p.value"), round, 4)
+
+      # Save results
+      coefs1[count, 1] <- gsub(" ", "_", Sys.time())
+      coefs1[count, 2] <- o
+      coefs1[count, 3] <- d
+      coefs1[count, 4] <- m
+      coefs1[count, 5] <- res$estimate[2]
+      coefs1[count, 6] <- res$`2.5 %`[2]
+      coefs1[count, 7] <- res$`97.5 %`[2]
+      coefs1[count, 8] <- paste(res$`2.5 %`[2], ",", " ", res$`97.5 %`[2], sep = "")
+      coefs1[count, 9] <- res$p.value[2]
+    }
+  }
+}
+
+mod_tbl1 <- as.data.frame(matrix(NA, nrow = 1, ncol = 16))
+colnames(mod_tbl1) <- c(
+  "Outcome", "Predictor",
+  "beta_mod1", "95ci_mod1", "pvalue_mod1",
+  "beta_mod2", "95ci_mod2", "pvalue_mod2",
+  "beta_mod3", "95ci_mod3", "pvalue_mod3",
+  "beta_mod4", "95ci_mod4", "pvalue_mod4",
+  "cilo_mod4", "cihi_mod4"
+)
+count <- 0
+
+
+for (o in out_ps_z) {
+  for (d in ap) {
+    sep_coefs1 <- coefs1 %>%
+      filter(Outcome == o) %>%
+      filter(Predictor == d)
+    count <- count + 1
+    # Loop through each model.In this case, four models
+    mod_tbl1[count, 1] <- o
+    mod_tbl1[count, 2] <- d
+    mod_tbl1[count, 3] <- sep_coefs1$Beta[1]
+    mod_tbl1[count, 4] <- sep_coefs1$CI[1]
+    mod_tbl1[count, 5] <- sep_coefs1$P[1]
+    mod_tbl1[count, 6] <- sep_coefs1$Beta[2]
+    mod_tbl1[count, 7] <- sep_coefs1$CI[2]
+    mod_tbl1[count, 8] <- sep_coefs1$P[2]
+    mod_tbl1[count, 9] <- sep_coefs1$Beta[3]
+    mod_tbl1[count, 10] <- sep_coefs1$CI[3]
+    mod_tbl1[count, 11] <- sep_coefs1$P[3]
+    mod_tbl1[count, 12] <- sep_coefs1$Beta[4]
+    mod_tbl1[count, 13] <- sep_coefs1$CI[4]
+    mod_tbl1[count, 14] <- sep_coefs1$P[4]
+    mod_tbl1[count, 15] <- sep_coefs1$cilo[4]
+    mod_tbl1[count, 16] <- sep_coefs1$cihi[4]
+  }
+}
+
+
+write.xlsx(mod_tbl1, file = paste("/Users/ymou/helix_project/results/sensitivity_analysis/cortisol_highestquartile_ALS/", analysis, analysis_date, ".xlsx", sep = ""), rowNames = FALSE, colNames = TRUE)
+```
+
+### Noise home, school and main outcomes
+EDEN removed in the analysis because no data available. 
+```{r}
+analysis <- "noise_mainoutcome"
+
+imp_full_noise <- complete(Suppl_impset, "long", include = T) %>%
+  filter(cohort != "EDEN") %>%
+  as.mids()
+
+coefs4 <- as.data.frame(matrix(NA, nrow = 1, ncol = 19))
+colnames(coefs4) <- c(
+  "DateTime", "Outcome", "Predictor", "Model", "Beta1", "cilo1", "cihi1", "CI1", "P1",
+  "Beta2", "cilo2", "cihi2", "CI2", "P2", "Beta3", "cilo3", "cihi3", "CI3", "P3"
+)
+
+count <- 0
+for (o in out) {
+  if (o %in% c("AL_2_total_a1")) {
+    for (d in noise) {
+      for (m in 1:length(model)) {
+        count <- count + 1
+        fit <- imp_full_noise %>%
+          mice::complete("all") %>%
+          lapply(glm.nb, formula = paste(o, "~", d, "+", model[m], " + cohort", sep = ""), link = "log")
+        res <- summary(pool(fit), conf.int = T)
+        # Round values
+        res <- res %>%
+          mutate_at(c("estimate", "2.5 %", "97.5 %"), round, 2) %>%
+          mutate_at(c("p.value"), round, 4)
+
+        # Save results
+        coefs4[count, 1] <- gsub(" ", "_", Sys.time())
+        coefs4[count, 2] <- o
+        coefs4[count, 3] <- d
+        coefs4[count, 4] <- m
+        coefs4[count, 5] <- res$estimate[2]
+        coefs4[count, 6] <- res$`2.5 %`[2]
+        coefs4[count, 7] <- res$`97.5 %`[2]
+        coefs4[count, 8] <- paste(res$`2.5 %`[2], ",", " ", res$`97.5 %`[2], sep = "")
+        coefs4[count, 9] <- res$p.value[2]
+        coefs4[count, 10] <- res$estimate[3]
+        coefs4[count, 11] <- res$`2.5 %`[3]
+        coefs4[count, 12] <- res$`97.5 %`[3]
+        coefs4[count, 13] <- paste(res$`2.5 %`[3], ",", " ", res$`97.5 %`[3], sep = "")
+        coefs4[count, 14] <- res$p.value[3]
+        coefs4[count, 15] <- res$estimate[4]
+        coefs4[count, 16] <- res$`2.5 %`[4]
+        coefs4[count, 17] <- res$`97.5 %`[4]
+        coefs4[count, 18] <- paste(res$`2.5 %`[4], ",", " ", res$`97.5 %`[4], sep = "")
+        coefs4[count, 19] <- res$p.value[4]
+      }
+    }
+  } else {
+    for (d in noise) {
+      for (m in 1:length(model)) {
+        count <- count + 1
+        fit <- imp_full_noise %>%
+          mice::complete("all") %>%
+          lapply(glm, formula = paste(o, "~", d, "+", model[m], " + cohort", sep = ""), family = "gaussian")
+        res <- summary(pool(fit), conf.int = T)
+        # Round values
+        res <- res %>%
+          mutate_at(c("estimate", "2.5 %", "97.5 %"), round, 2) %>%
+          mutate_at(c("p.value"), round, 4)
+
+        # Save results
+        coefs4[count, 1] <- gsub(" ", "_", Sys.time())
+        coefs4[count, 2] <- o
+        coefs4[count, 3] <- d
+        coefs4[count, 4] <- m
+        coefs4[count, 5] <- res$estimate[2]
+        coefs4[count, 6] <- res$`2.5 %`[2]
+        coefs4[count, 7] <- res$`97.5 %`[2]
+        coefs4[count, 8] <- paste(res$`2.5 %`[2], ",", " ", res$`97.5 %`[2], sep = "")
+        coefs4[count, 9] <- res$p.value[2]
+        coefs4[count, 10] <- res$estimate[3]
+        coefs4[count, 11] <- res$`2.5 %`[3]
+        coefs4[count, 12] <- res$`97.5 %`[3]
+        coefs4[count, 13] <- paste(res$`2.5 %`[3], ",", " ", res$`97.5 %`[3], sep = "")
+        coefs4[count, 14] <- res$p.value[3]
+        coefs4[count, 15] <- res$estimate[4]
+        coefs4[count, 16] <- res$`2.5 %`[4]
+        coefs4[count, 17] <- res$`97.5 %`[4]
+        coefs4[count, 18] <- paste(res$`2.5 %`[4], ",", " ", res$`97.5 %`[4], sep = "")
+        coefs4[count, 19] <- res$p.value[4]
+      }
+    }
+  }
+}
+
+mod_tbl4 <- as.data.frame(matrix(NA, nrow = 1, ncol = 16))
+colnames(mod_tbl4) <- c(
+  "Outcome", "Predictor",
+  "beta_mod1", "95ci_mod1", "pvalue_mod1",
+  "beta_mod2", "95ci_mod2", "pvalue_mod2",
+  "beta_mod3", "95ci_mod3", "pvalue_mod3",
+  "beta_mod4", "95ci_mod4", "pvalue_mod4",
+  "cilo_mod4", "cihi_mod4"
+)
+count <- 0
+
+
+for (o in out) {
+  for (d in noise) {
+    sep_coefs <- coefs4 %>%
+      filter(Outcome == o) %>%
+      filter(Predictor == d)
+    count <- count + 1
+    # Loop through each model.In this case, four models
+    mod_tbl4[count, 1] <- o
+    mod_tbl4[count, 2] <- paste(d, "_55-59.9", sep = "")
+    mod_tbl4[count, 3] <- sep_coefs$Beta1[1]
+    mod_tbl4[count, 4] <- sep_coefs$CI1[1]
+    mod_tbl4[count, 5] <- sep_coefs$P1[1]
+    mod_tbl4[count, 6] <- sep_coefs$Beta1[2]
+    mod_tbl4[count, 7] <- sep_coefs$CI1[2]
+    mod_tbl4[count, 8] <- sep_coefs$P1[2]
+    mod_tbl4[count, 9] <- sep_coefs$Beta1[3]
+    mod_tbl4[count, 10] <- sep_coefs$CI1[3]
+    mod_tbl4[count, 11] <- sep_coefs$P1[3]
+    mod_tbl4[count, 12] <- sep_coefs$Beta1[4]
+    mod_tbl4[count, 13] <- sep_coefs$CI1[4]
+    mod_tbl4[count, 14] <- sep_coefs$P1[4]
+    mod_tbl4[count, 15] <- sep_coefs$cilo1[4]
+    mod_tbl4[count, 16] <- sep_coefs$cihi1[4]
+
+    count <- count + 1
+    # Loop through each model.In this case, four models
+    mod_tbl4[count, 1] <- o
+    mod_tbl4[count, 2] <- paste(d, "_60-64.9 ", sep = "")
+    mod_tbl4[count, 3] <- sep_coefs$Beta2[1]
+    mod_tbl4[count, 4] <- sep_coefs$CI2[1]
+    mod_tbl4[count, 5] <- sep_coefs$P2[1]
+    mod_tbl4[count, 6] <- sep_coefs$Beta2[2]
+    mod_tbl4[count, 7] <- sep_coefs$CI2[2]
+    mod_tbl4[count, 8] <- sep_coefs$P2[2]
+    mod_tbl4[count, 9] <- sep_coefs$Beta2[3]
+    mod_tbl4[count, 10] <- sep_coefs$CI2[3]
+    mod_tbl4[count, 11] <- sep_coefs$P2[3]
+    mod_tbl4[count, 12] <- sep_coefs$Beta2[4]
+    mod_tbl4[count, 13] <- sep_coefs$CI2[4]
+    mod_tbl4[count, 14] <- sep_coefs$P2[4]
+    mod_tbl4[count, 15] <- sep_coefs$cilo2[4]
+    mod_tbl4[count, 16] <- sep_coefs$cihi2[4]
+
+    count <- count + 1
+    # Loop through each model.In this case, four models
+    mod_tbl4[count, 1] <- o
+    mod_tbl4[count, 2] <- paste(d, ">=65 ", sep = "")
+    mod_tbl4[count, 3] <- sep_coefs$Beta3[1]
+    mod_tbl4[count, 4] <- sep_coefs$CI3[1]
+    mod_tbl4[count, 5] <- sep_coefs$P3[1]
+    mod_tbl4[count, 6] <- sep_coefs$Beta3[2]
+    mod_tbl4[count, 7] <- sep_coefs$CI3[2]
+    mod_tbl4[count, 8] <- sep_coefs$P3[2]
+    mod_tbl4[count, 9] <- sep_coefs$Beta3[3]
+    mod_tbl4[count, 10] <- sep_coefs$CI3[3]
+    mod_tbl4[count, 11] <- sep_coefs$P3[3]
+    mod_tbl4[count, 12] <- sep_coefs$Beta3[4]
+    mod_tbl4[count, 13] <- sep_coefs$CI3[4]
+    mod_tbl4[count, 14] <- sep_coefs$P3[4]
+    mod_tbl4[count, 15] <- sep_coefs$cilo3[4]
+    mod_tbl4[count, 16] <- sep_coefs$cihi3[4]
+  }
+}
+
+mod_tbl4 <- mod_tbl4 %>% 
+  mutate(exp_beta_mod4 = case_when(Outcome == "AL_2_total_a1"~ exp(beta_mod4)),
+         exp_cilo_mod4 = case_when(Outcome == "AL_2_total_a1"~ exp(cilo_mod4)),
+         exp_cihi_mod4 = case_when(Outcome == "AL_2_total_a1"~ exp(cihi_mod4))) %>% 
+  mutate_at(c("exp_beta_mod4", "exp_cilo_mod4", "exp_cihi_mod4"), round, 2) %>% 
+  mutate(exp_ci_mod4 = paste(format(exp_cilo_mod4,drop0Trailing = F), ", ", format(exp_cihi_mod4,drop0Trailing = F), sep = ""))
+
+write.xlsx(mod_tbl4, file = paste("/Users/ymou/helix_project/results/sensitivity_analysis/cortisol_highestquartile_ALS/", analysis, analysis_date, ".xlsx", sep = ""), rowNames = FALSE, colNames = TRUE)
+
+```
+
+
+### Noise home, school and outcomes per physiological systems
+EDEN removed in the analysis because no data available. 
+```{r}
+analysis <- "noise_outcomepsystem"
+
+imp_full_noise <- complete(Suppl_impset, "long", include = T) %>%
+  filter(cohort != "EDEN") %>%
+  as.mids()
+
+coefs5 <- as.data.frame(matrix(NA, nrow = 1, ncol = 19))
+colnames(coefs5) <- c(
+  "DateTime", "Outcome", "Predictor", "Model", "Beta1", "cilo1", "cihi1", "CI1", "P1",
+  "Beta2", "cilo2", "cihi2", "CI2", "P2", "Beta3", "cilo3", "cihi3", "CI3", "P3"
+)
+
+count <- 0
+for (o in out_ps) {
+  if (o %in% c("AL_2_cardio_a1", "AL_2_metab_a1", "AL_2_immune_a1", "AL_2_neuro_a1")) {
+    for (d in noise) {
+      for (m in 1:length(model)) {
+        count <- count + 1
+        fit <- imp_full_noise %>%
+          mice::complete("all") %>%
+          lapply(glm.nb, formula = paste(o, "~", d, "+", model[m], " + cohort", sep = ""), link = "log")
+        res <- summary(pool(fit), conf.int = T)
+        # Round values
+        res <- res %>%
+          mutate_at(c("estimate", "2.5 %", "97.5 %"), round, 2) %>%
+          mutate_at(c("p.value"), round, 4)
+
+        # Save results
+        coefs5[count, 1] <- gsub(" ", "_", Sys.time())
+        coefs5[count, 2] <- o
+        coefs5[count, 3] <- d
+        coefs5[count, 4] <- m
+        coefs5[count, 5] <- res$estimate[2]
+        coefs5[count, 6] <- res$`2.5 %`[2]
+        coefs5[count, 7] <- res$`97.5 %`[2]
+        coefs5[count, 8] <- paste(res$`2.5 %`[2], ",", " ", res$`97.5 %`[2], sep = "")
+        coefs5[count, 9] <- res$p.value[2]
+        coefs5[count, 10] <- res$estimate[3]
+        coefs5[count, 11] <- res$`2.5 %`[3]
+        coefs5[count, 12] <- res$`97.5 %`[3]
+        coefs5[count, 13] <- paste(res$`2.5 %`[3], ",", " ", res$`97.5 %`[3], sep = "")
+        coefs5[count, 14] <- res$p.value[3]
+        coefs5[count, 15] <- res$estimate[4]
+        coefs5[count, 16] <- res$`2.5 %`[4]
+        coefs5[count, 17] <- res$`97.5 %`[4]
+        coefs5[count, 18] <- paste(res$`2.5 %`[4], ",", " ", res$`97.5 %`[4], sep = "")
+        coefs5[count, 19] <- res$p.value[4]
+      }
+    }
+  } else {
+    for (d in noise) {
+      for (m in 1:length(model)) {
+        count <- count + 1
+        fit <- imp_full_noise %>%
+          mice::complete("all") %>%
+          lapply(glm, formula = paste(o, "~", d, "+", model[m], " + cohort", sep = ""), family = "gaussian")
+        res <- summary(pool(fit), conf.int = T)
+        # Round values
+        res <- res %>%
+          mutate_at(c("estimate", "2.5 %", "97.5 %"), round, 2) %>%
+          mutate_at(c("p.value"), round, 4)
+
+        # Save results
+        coefs5[count, 1] <- gsub(" ", "_", Sys.time())
+        coefs5[count, 2] <- o
+        coefs5[count, 3] <- d
+        coefs5[count, 4] <- m
+        coefs5[count, 5] <- res$estimate[2]
+        coefs5[count, 6] <- res$`2.5 %`[2]
+        coefs5[count, 7] <- res$`97.5 %`[2]
+        coefs5[count, 8] <- paste(res$`2.5 %`[2], ",", " ", res$`97.5 %`[2], sep = "")
+        coefs5[count, 9] <- res$p.value[2]
+        coefs5[count, 10] <- res$estimate[3]
+        coefs5[count, 11] <- res$`2.5 %`[3]
+        coefs5[count, 12] <- res$`97.5 %`[3]
+        coefs5[count, 13] <- paste(res$`2.5 %`[3], ",", " ", res$`97.5 %`[3], sep = "")
+        coefs5[count, 14] <- res$p.value[3]
+        coefs5[count, 15] <- res$estimate[4]
+        coefs5[count, 16] <- res$`2.5 %`[4]
+        coefs5[count, 17] <- res$`97.5 %`[4]
+        coefs5[count, 18] <- paste(res$`2.5 %`[4], ",", " ", res$`97.5 %`[4], sep = "")
+        coefs5[count, 19] <- res$p.value[4]
+      }
+    }
+  }
+}
+
+mod_tbl5 <- as.data.frame(matrix(NA, nrow = 1, ncol = 16))
+colnames(mod_tbl5) <- c(
+  "Outcome", "Predictor",
+  "beta_mod1", "95ci_mod1", "pvalue_mod1",
+  "beta_mod2", "95ci_mod2", "pvalue_mod2",
+  "beta_mod3", "95ci_mod3", "pvalue_mod3",
+  "beta_mod4", "95ci_mod4", "pvalue_mod4",
+  "cilo_mod4", "cihi_mod4"
+)
+count <- 0
+
+
+for (o in out_ps) {
+  for (d in noise) {
+    sep_coefs <- coefs5 %>%
+      filter(Outcome == o) %>%
+      filter(Predictor == d)
+    count <- count + 1
+    # Loop through each model.In this case, four models
+    mod_tbl5[count, 1] <- o
+    mod_tbl5[count, 2] <- paste(d, "_55-59.9", sep = "")
+    mod_tbl5[count, 3] <- sep_coefs$Beta1[1]
+    mod_tbl5[count, 4] <- sep_coefs$CI1[1]
+    mod_tbl5[count, 5] <- sep_coefs$P1[1]
+    mod_tbl5[count, 6] <- sep_coefs$Beta1[2]
+    mod_tbl5[count, 7] <- sep_coefs$CI1[2]
+    mod_tbl5[count, 8] <- sep_coefs$P1[2]
+    mod_tbl5[count, 9] <- sep_coefs$Beta1[3]
+    mod_tbl5[count, 10] <- sep_coefs$CI1[3]
+    mod_tbl5[count, 11] <- sep_coefs$P1[3]
+    mod_tbl5[count, 12] <- sep_coefs$Beta1[4]
+    mod_tbl5[count, 13] <- sep_coefs$CI1[4]
+    mod_tbl5[count, 14] <- sep_coefs$P1[4]
+    mod_tbl5[count, 15] <- sep_coefs$cilo1[4]
+    mod_tbl5[count, 16] <- sep_coefs$cihi1[4]
+
+    count <- count + 1
+    # Loop through each model.In this case, four models
+    mod_tbl5[count, 1] <- o
+    mod_tbl5[count, 2] <- paste(d, "_60-64.9 ", sep = "")
+    mod_tbl5[count, 3] <- sep_coefs$Beta2[1]
+    mod_tbl5[count, 4] <- sep_coefs$CI2[1]
+    mod_tbl5[count, 5] <- sep_coefs$P2[1]
+    mod_tbl5[count, 6] <- sep_coefs$Beta2[2]
+    mod_tbl5[count, 7] <- sep_coefs$CI2[2]
+    mod_tbl5[count, 8] <- sep_coefs$P2[2]
+    mod_tbl5[count, 9] <- sep_coefs$Beta2[3]
+    mod_tbl5[count, 10] <- sep_coefs$CI2[3]
+    mod_tbl5[count, 11] <- sep_coefs$P2[3]
+    mod_tbl5[count, 12] <- sep_coefs$Beta2[4]
+    mod_tbl5[count, 13] <- sep_coefs$CI2[4]
+    mod_tbl5[count, 14] <- sep_coefs$P2[4]
+    mod_tbl5[count, 15] <- sep_coefs$cilo2[4]
+    mod_tbl5[count, 16] <- sep_coefs$cihi2[4]
+
+    count <- count + 1
+    # Loop through each model.In this case, four models
+    mod_tbl5[count, 1] <- o
+    mod_tbl5[count, 2] <- paste(d, ">=65 ", sep = "")
+    mod_tbl5[count, 3] <- sep_coefs$Beta3[1]
+    mod_tbl5[count, 4] <- sep_coefs$CI3[1]
+    mod_tbl5[count, 5] <- sep_coefs$P3[1]
+    mod_tbl5[count, 6] <- sep_coefs$Beta3[2]
+    mod_tbl5[count, 7] <- sep_coefs$CI3[2]
+    mod_tbl5[count, 8] <- sep_coefs$P3[2]
+    mod_tbl5[count, 9] <- sep_coefs$Beta3[3]
+    mod_tbl5[count, 10] <- sep_coefs$CI3[3]
+    mod_tbl5[count, 11] <- sep_coefs$P3[3]
+    mod_tbl5[count, 12] <- sep_coefs$Beta3[4]
+    mod_tbl5[count, 13] <- sep_coefs$CI3[4]
+    mod_tbl5[count, 14] <- sep_coefs$P3[4]
+    mod_tbl5[count, 15] <- sep_coefs$cilo3[4]
+    mod_tbl5[count, 16] <- sep_coefs$cihi3[4]
+  }
+}
+
+mod_tbl5 <- mod_tbl5 %>% 
+  mutate(exp_beta_mod4 = case_when(Outcome %in% c("AL_2_cardio_a1", "AL_2_metab_a1", "AL_2_immune_a1", "AL_2_neuro_a1") ~ exp(beta_mod4)),
+         exp_cilo_mod4 = case_when(Outcome %in% c("AL_2_cardio_a1", "AL_2_metab_a1", "AL_2_immune_a1", "AL_2_neuro_a1") ~ exp(cilo_mod4)),
+         exp_cihi_mod4 = case_when(Outcome %in% c("AL_2_cardio_a1", "AL_2_metab_a1", "AL_2_immune_a1", "AL_2_neuro_a1") ~ exp(cihi_mod4))) %>% 
+  mutate_at(c("exp_beta_mod4", "exp_cilo_mod4", "exp_cihi_mod4"), round, 2) %>% 
+  mutate(exp_ci_mod4 = paste(format(exp_cilo_mod4,drop0Trailing = F), ", ", format(exp_cihi_mod4,drop0Trailing = F), sep = ""))
+
+write.xlsx(mod_tbl5, file = paste("/Users/ymou/helix_project/results/sensitivity_analysis/cortisol_highestquartile_ALS/", analysis, analysis_date, ".xlsx", sep = ""), rowNames = FALSE, colNames = TRUE)
+```
+
+```{r}
+analysis <- "noise_outcomepsystem_zscore"
+
+imp_full_noise <- complete(Suppl_impset, "long", include = T) %>%
+  filter(cohort != "EDEN") %>%
+  as.mids()
+
+coefs5 <- as.data.frame(matrix(NA, nrow = 1, ncol = 19))
+colnames(coefs5) <- c(
+  "DateTime", "Outcome", "Predictor", "Model", "Beta1", "cilo1", "cihi1", "CI1", "P1",
+  "Beta2", "cilo2", "cihi2", "CI2", "P2", "Beta3", "cilo3", "cihi3", "CI3", "P3"
+)
+
+count <- 0
+for (o in out_ps_z) {
+  for (d in noise) {
+    for (m in 1:length(model)) {
+      count <- count + 1
+      fit <- imp_full_noise %>%
+        mice::complete("all") %>%
+        lapply(glm, formula = paste(o, "~", d, "+", model[m], " + cohort", sep = ""), family = "gaussian")
+      res <- summary(pool(fit), conf.int = T)
+      # Round values
+      res <- res %>%
+        mutate_at(c("estimate", "2.5 %", "97.5 %"), round, 2) %>%
+        mutate_at(c("p.value"), round, 4)
+
+      # Save results
+      coefs5[count, 1] <- gsub(" ", "_", Sys.time())
+      coefs5[count, 2] <- o
+      coefs5[count, 3] <- d
+      coefs5[count, 4] <- m
+      coefs5[count, 5] <- res$estimate[2]
+      coefs5[count, 6] <- res$`2.5 %`[2]
+      coefs5[count, 7] <- res$`97.5 %`[2]
+      coefs5[count, 8] <- paste(res$`2.5 %`[2], ",", " ", res$`97.5 %`[2], sep = "")
+      coefs5[count, 9] <- res$p.value[2]
+      coefs5[count, 10] <- res$estimate[3]
+      coefs5[count, 11] <- res$`2.5 %`[3]
+      coefs5[count, 12] <- res$`97.5 %`[3]
+      coefs5[count, 13] <- paste(res$`2.5 %`[3], ",", " ", res$`97.5 %`[3], sep = "")
+      coefs5[count, 14] <- res$p.value[3]
+      coefs5[count, 15] <- res$estimate[4]
+      coefs5[count, 16] <- res$`2.5 %`[4]
+      coefs5[count, 17] <- res$`97.5 %`[4]
+      coefs5[count, 18] <- paste(res$`2.5 %`[4], ",", " ", res$`97.5 %`[4], sep = "")
+      coefs5[count, 19] <- res$p.value[4]
+    }
+  }
+}
+
+mod_tbl5 <- as.data.frame(matrix(NA, nrow = 1, ncol = 16))
+colnames(mod_tbl5) <- c(
+  "Outcome", "Predictor",
+  "beta_mod1", "95ci_mod1", "pvalue_mod1",
+  "beta_mod2", "95ci_mod2", "pvalue_mod2",
+  "beta_mod3", "95ci_mod3", "pvalue_mod3",
+  "beta_mod4", "95ci_mod4", "pvalue_mod4",
+  "cilo_mod4", "cihi_mod4"
+)
+count <- 0
+
+
+for (o in out_ps_z) {
+  for (d in noise) {
+    sep_coefs <- coefs5 %>%
+      filter(Outcome == o) %>%
+      filter(Predictor == d)
+    count <- count + 1
+    # Loop through each model.In this case, four models
+    mod_tbl5[count, 1] <- o
+    mod_tbl5[count, 2] <- paste(d, "_55-59.9", sep = "")
+    mod_tbl5[count, 3] <- sep_coefs$Beta1[1]
+    mod_tbl5[count, 4] <- sep_coefs$CI1[1]
+    mod_tbl5[count, 5] <- sep_coefs$P1[1]
+    mod_tbl5[count, 6] <- sep_coefs$Beta1[2]
+    mod_tbl5[count, 7] <- sep_coefs$CI1[2]
+    mod_tbl5[count, 8] <- sep_coefs$P1[2]
+    mod_tbl5[count, 9] <- sep_coefs$Beta1[3]
+    mod_tbl5[count, 10] <- sep_coefs$CI1[3]
+    mod_tbl5[count, 11] <- sep_coefs$P1[3]
+    mod_tbl5[count, 12] <- sep_coefs$Beta1[4]
+    mod_tbl5[count, 13] <- sep_coefs$CI1[4]
+    mod_tbl5[count, 14] <- sep_coefs$P1[4]
+    mod_tbl5[count, 15] <- sep_coefs$cilo1[4]
+    mod_tbl5[count, 16] <- sep_coefs$cihi1[4]
+
+    count <- count + 1
+    # Loop through each model.In this case, four models
+    mod_tbl5[count, 1] <- o
+    mod_tbl5[count, 2] <- paste(d, "_60-64.9 ", sep = "")
+    mod_tbl5[count, 3] <- sep_coefs$Beta2[1]
+    mod_tbl5[count, 4] <- sep_coefs$CI2[1]
+    mod_tbl5[count, 5] <- sep_coefs$P2[1]
+    mod_tbl5[count, 6] <- sep_coefs$Beta2[2]
+    mod_tbl5[count, 7] <- sep_coefs$CI2[2]
+    mod_tbl5[count, 8] <- sep_coefs$P2[2]
+    mod_tbl5[count, 9] <- sep_coefs$Beta2[3]
+    mod_tbl5[count, 10] <- sep_coefs$CI2[3]
+    mod_tbl5[count, 11] <- sep_coefs$P2[3]
+    mod_tbl5[count, 12] <- sep_coefs$Beta2[4]
+    mod_tbl5[count, 13] <- sep_coefs$CI2[4]
+    mod_tbl5[count, 14] <- sep_coefs$P2[4]
+    mod_tbl5[count, 15] <- sep_coefs$cilo2[4]
+    mod_tbl5[count, 16] <- sep_coefs$cihi2[4]
+
+
+    count <- count + 1
+    # Loop through each model.In this case, four models
+    mod_tbl5[count, 1] <- o
+    mod_tbl5[count, 2] <- paste(d, ">=65 ", sep = "")
+    mod_tbl5[count, 3] <- sep_coefs$Beta3[1]
+    mod_tbl5[count, 4] <- sep_coefs$CI3[1]
+    mod_tbl5[count, 5] <- sep_coefs$P3[1]
+    mod_tbl5[count, 6] <- sep_coefs$Beta3[2]
+    mod_tbl5[count, 7] <- sep_coefs$CI3[2]
+    mod_tbl5[count, 8] <- sep_coefs$P3[2]
+    mod_tbl5[count, 9] <- sep_coefs$Beta3[3]
+    mod_tbl5[count, 10] <- sep_coefs$CI3[3]
+    mod_tbl5[count, 11] <- sep_coefs$P3[3]
+    mod_tbl5[count, 12] <- sep_coefs$Beta3[4]
+    mod_tbl5[count, 13] <- sep_coefs$CI3[4]
+    mod_tbl5[count, 14] <- sep_coefs$P3[4]
+    mod_tbl5[count, 15] <- sep_coefs$cilo3[4]
+    mod_tbl5[count, 16] <- sep_coefs$cihi3[4]
+  }
+}
+
+
+write.xlsx(mod_tbl5, file = paste("/Users/ymou/helix_project/results/sensitivity_analysis/cortisol_highestquartile_ALS/", analysis, analysis_date, ".xlsx", sep = ""), rowNames = FALSE, colNames = TRUE)
+```
+
+
 # ANALYSIS: no EDEN
 ```{r}
 # imputed dataset excluding participants from cohort EDEN 
