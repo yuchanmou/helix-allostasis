@@ -484,7 +484,7 @@ noise_supl <- c("hs_lden_h", "hs_lden_s", "hs_lden_t")
 out <- c("AL_2_total_a1", "AL_z2_tot_a1") # sex-specific scores
 
 # Outcomes per physiological systems
-out_ps <- c("AL_2_cardio_a1", "AL_2_metab_a1", "AL_2_immune_a1", "AL_2_neuro_a1")
+out_ps <- c("AL_2_cardio_a1", "AL_2_metabolic_a1", "AL_2_immune_a1", "AL_2_neuro_a1")
 out_ps_z <- c("AL_z2_cardio_a1", "AL_z2_metab_a1", "AL_z2_immune_a1", "AL_z2_neuro_a1")
 
 
@@ -617,7 +617,7 @@ colnames(coefs1) <- c("DateTime", "Outcome", "Predictor", "Model", "Beta", "cilo
 
 count <- 0
 for (o in out_ps) {
-  if (o %in% c("AL_2_cardio_a1", "AL_2_metab_a1", "AL_2_immune_a1", "AL_2_neuro_a1")) {
+  if (o %in% c("AL_2_cardio_a1", "AL_2_metabolic_a1", "AL_2_immune_a1", "AL_2_neuro_a1")) {
     for (d in ap) {
       for (m in 1:length(model)) {
         count <- count + 1
@@ -709,9 +709,9 @@ for (o in out_ps) {
 }
 
 mod_tbl1 <- mod_tbl1 %>% 
-  mutate(exp_beta_mod4 = case_when(Outcome %in% c("AL_2_cardio_a1", "AL_2_metab_a1", "AL_2_immune_a1", "AL_2_neuro_a1") ~ exp(beta_mod4)),
-         exp_cilo_mod4 = case_when(Outcome %in% c("AL_2_cardio_a1", "AL_2_metab_a1", "AL_2_immune_a1", "AL_2_neuro_a1") ~ exp(cilo_mod4)),
-         exp_cihi_mod4 = case_when(Outcome %in% c("AL_2_cardio_a1", "AL_2_metab_a1", "AL_2_immune_a1", "AL_2_neuro_a1") ~ exp(cihi_mod4))) %>% 
+  mutate(exp_beta_mod4 = case_when(Outcome %in% c("AL_2_cardio_a1", "AL_2_metabolic_a1", "AL_2_immune_a1", "AL_2_neuro_a1") ~ exp(beta_mod4)),
+         exp_cilo_mod4 = case_when(Outcome %in% c("AL_2_cardio_a1", "AL_2_metabolic_a1", "AL_2_immune_a1", "AL_2_neuro_a1") ~ exp(cilo_mod4)),
+         exp_cihi_mod4 = case_when(Outcome %in% c("AL_2_cardio_a1", "AL_2_metabolic_a1", "AL_2_immune_a1", "AL_2_neuro_a1") ~ exp(cihi_mod4))) %>% 
   mutate_at(c("exp_beta_mod4", "exp_cilo_mod4", "exp_cihi_mod4"), round, 2) %>% 
   mutate(exp_ci_mod4 = paste(format(exp_cilo_mod4,drop0Trailing = F), ", ", format(exp_cihi_mod4,drop0Trailing = F), sep = ""))
 
@@ -989,7 +989,7 @@ colnames(coefs5) <- c(
 
 count <- 0
 for (o in out_ps) {
-  if (o %in% c("AL_2_cardio_a1", "AL_2_metab_a1", "AL_2_immune_a1", "AL_2_neuro_a1")) {
+  if (o %in% c("AL_2_cardio_a1", "AL_2_metabolic_a1", "AL_2_immune_a1", "AL_2_neuro_a1")) {
     for (d in noise) {
       for (m in 1:length(model)) {
         count <- count + 1
@@ -1139,9 +1139,9 @@ for (o in out_ps) {
 }
 
 mod_tbl5 <- mod_tbl5 %>% 
-  mutate(exp_beta_mod4 = case_when(Outcome %in% c("AL_2_cardio_a1", "AL_2_metab_a1", "AL_2_immune_a1", "AL_2_neuro_a1") ~ exp(beta_mod4)),
-         exp_cilo_mod4 = case_when(Outcome %in% c("AL_2_cardio_a1", "AL_2_metab_a1", "AL_2_immune_a1", "AL_2_neuro_a1") ~ exp(cilo_mod4)),
-         exp_cihi_mod4 = case_when(Outcome %in% c("AL_2_cardio_a1", "AL_2_metab_a1", "AL_2_immune_a1", "AL_2_neuro_a1") ~ exp(cihi_mod4))) %>% 
+  mutate(exp_beta_mod4 = case_when(Outcome %in% c("AL_2_cardio_a1", "AL_2_metabolic_a1", "AL_2_immune_a1", "AL_2_neuro_a1") ~ exp(beta_mod4)),
+         exp_cilo_mod4 = case_when(Outcome %in% c("AL_2_cardio_a1", "AL_2_metabolic_a1", "AL_2_immune_a1", "AL_2_neuro_a1") ~ exp(cilo_mod4)),
+         exp_cihi_mod4 = case_when(Outcome %in% c("AL_2_cardio_a1", "AL_2_metabolic_a1", "AL_2_immune_a1", "AL_2_neuro_a1") ~ exp(cihi_mod4))) %>% 
   mutate_at(c("exp_beta_mod4", "exp_cilo_mod4", "exp_cihi_mod4"), round, 2) %>% 
   mutate(exp_ci_mod4 = paste(format(exp_cilo_mod4,drop0Trailing = F), ", ", format(exp_cihi_mod4,drop0Trailing = F), sep = ""))
 
