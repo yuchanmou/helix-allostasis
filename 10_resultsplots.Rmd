@@ -441,7 +441,7 @@ p7 <- ggplot(
   ylab("Relative risk (95% Confidence Interval)") +
   geom_errorbar(aes(ymin = low, ymax = hi, col = Outcomes), width = 0.5, cex = 1) +
   facet_grid(rows = vars(Predictor), cols = vars(type), switch = "y", labeller = labeller(Predictor = label_parsed)) +
-  guides(col = guide_legend(nrow = 2, reverse = T, title = "Count-based ALS",
+  guides(col = guide_legend(nrow = 2, reverse = T, title = "Continuous-based ALS",
                             title.position = "top")) +
   # scale_y_continuous(limits = c(-1, 6), breaks = c(-1, 0, 1, 2, 3, 4, 5, 6)) +
   theme(
