@@ -63,38 +63,36 @@ gp <- gpar(fill = "white")
   x = midx, y = .9, box_gp = gp, width = 0.4
 ))
 
-(SAB <- boxGrob(
-  str_glue("SAB (N = {pop})\nNO2: n = {hs_no2_yr_hs_t}\nPM2.5: n = {hs_pm25_yr_hs_t}\nPM2.5abs: n= {hs_pm25abs_yr_hs_t}\nPM10: n = {hs_pm10_yr_hs_t}\nLden home: n = {hs_lden_c_h}\nLden school: n = {hs_lden_c_s}",
-    pop = length(which(df_final$cohort == "SAB")),
-    hs_no2_yr_hs_t = nrow(df_final %>% filter(cohort == "SAB") %>% filter(!is.na(hs_no2_yr_hs_t))),
-    hs_pm25_yr_hs_t = nrow(df_final %>% filter(cohort == "SAB") %>% filter(!is.na(hs_pm25_yr_hs_t))),
-    hs_pm25abs_yr_hs_t = nrow(df_final %>% filter(cohort == "SAB") %>% filter(!is.na(hs_pm25abs_yr_hs_t))),
-    hs_pm10_yr_hs_t = nrow(df_final %>% filter(cohort == "SAB") %>% filter(!is.na(hs_pm10_yr_hs_t))),
-    hs_lden_c_h = nrow(df_final %>% filter(cohort == "SAB") %>% filter(!is.na(hs_lden_c_h))),
-    hs_lden_c_s = nrow(df_final %>% filter(cohort == "SAB") %>% filter(!is.na(hs_lden_c_s)))
+(BIB <- boxGrob(
+  str_glue("BIB (N = {pop})\nNO2: n = {hs_no2_yr_hs_t}\nPM2.5: n = {hs_pm25_yr_hs_t}\nPM2.5abs: n= {hs_pm25abs_yr_hs_t}\nPM10: n = {hs_pm10_yr_hs_t}\nLden home: n = {hs_lden_c_h}\nLden school: n = {hs_lden_c_s}",
+    pop = length(which(df_final$cohort == "BIB")),
+    hs_no2_yr_hs_t = nrow(df_final %>% filter(cohort == "BIB") %>% filter(!is.na(hs_no2_yr_hs_t))),
+    hs_pm25_yr_hs_t = nrow(df_final %>% filter(cohort == "BIB") %>% filter(!is.na(hs_pm25_yr_hs_t))),
+    hs_pm25abs_yr_hs_t = nrow(df_final %>% filter(cohort == "BIB") %>% filter(!is.na(hs_pm25abs_yr_hs_t))),
+    hs_pm10_yr_hs_t = nrow(df_final %>% filter(cohort == "BIB") %>% filter(!is.na(hs_pm10_yr_hs_t))),
+    hs_lden_c_h = nrow(df_final %>% filter(cohort == "BIB") %>% filter(!is.na(hs_lden_c_h))),
+    hs_lden_c_s = nrow(df_final %>% filter(cohort == "BIB") %>% filter(!is.na(hs_lden_c_s)))
   ),
   x = x1, y = .7, box_gp = gp, width = width, just = "left"
 ))
 
-# missing patterns are the same across air pollutants
-# for lden, home sample sizes are larger than school
-# min sample size = lden_school, max sample size = no2
-(SAB_1 <- boxGrob(
+(BIB_1 <- boxGrob(
   str_glue("With all biomarkers\nNO2: n = {hs_no2_yr_hs_t}\nPM2.5: n = {hs_pm25_yr_hs_t}\nPM2.5abs: n= {hs_pm25abs_yr_hs_t}\nPM10: n = {hs_pm10_yr_hs_t}\nLden home: n = {hs_lden_c_h}\nLden school: n = {hs_lden_c_s}",
-    #min = nrow(df_final %>% filter(cohort == "SAB") %>% filter(!is.na(hs_lden_c_s) & !is.na(AL_2_tot))),
-    #max = nrow(df_final %>% filter(cohort == "SAB") %>% filter(!is.na(hs_no2_yr_hs_t) & !is.na(AL_2_tot))),
-    hs_no2_yr_hs_t = nrow(df_final %>% filter(cohort == "SAB") %>% filter(!is.na(hs_no2_yr_hs_t & !is.na(AL_2_tot)))),
-    hs_pm25_yr_hs_t = nrow(df_final %>% filter(cohort == "SAB") %>% filter(!is.na(hs_pm25_yr_hs_t) & !is.na(AL_2_tot))),
-    hs_pm25abs_yr_hs_t = nrow(df_final %>% filter(cohort == "SAB") %>% filter(!is.na(hs_pm25abs_yr_hs_t) & !is.na(AL_2_tot))),
-    hs_pm10_yr_hs_t = nrow(df_final %>% filter(cohort == "SAB") %>% filter(!is.na(hs_pm10_yr_hs_t) & !is.na(AL_2_tot))),
-    hs_lden_c_h = nrow(df_final %>% filter(cohort == "SAB") %>% filter(!is.na(hs_lden_c_h) & !is.na(AL_2_tot))),
-    hs_lden_c_s = nrow(df_final %>% filter(cohort == "SAB") %>% filter(!is.na(hs_lden_c_s) & !is.na(AL_2_tot)))
+    #min = nrow(df_final %>% filter(cohort == "BIB") %>% filter(!is.na(hs_lden_c_s) & !is.na(AL_2_tot))),
+    #max = nrow(df_final %>% filter(cohort == "BIB") %>% filter(!is.na(hs_no2_yr_hs_t) & !is.na(AL_2_tot))),
+    hs_no2_yr_hs_t = nrow(df_final %>% filter(cohort == "BIB") %>% filter(!is.na(hs_no2_yr_hs_t) & !is.na(AL_2_tot))),
+    hs_pm25_yr_hs_t = nrow(df_final %>% filter(cohort == "BIB") %>% filter(!is.na(hs_pm25_yr_hs_t) & !is.na(AL_2_tot))),
+    hs_pm25abs_yr_hs_t = nrow(df_final %>% filter(cohort == "BIB") %>% filter(!is.na(hs_pm25abs_yr_hs_t) & !is.na(AL_2_tot))),
+    hs_pm10_yr_hs_t = nrow(df_final %>% filter(cohort == "BIB") %>% filter(!is.na(hs_pm10_yr_hs_t) & !is.na(AL_2_tot))),
+    hs_lden_c_h = nrow(df_final %>% filter(cohort == "BIB") %>% filter(!is.na(hs_lden_c_h) & !is.na(AL_2_tot))),
+    hs_lden_c_s = nrow(df_final %>% filter(cohort == "BIB") %>% filter(!is.na(hs_lden_c_s) & !is.na(AL_2_tot)))
   ),
   x = x1, y = .5, box_gp = gp, width = width, just = "left"
 ))
 
-connectGrob(org_cohort, SAB, type = "N", "l")
-connectGrob(SAB, SAB_1, type = "N", "l")
+connectGrob(org_cohort, BIB, type = "N", "l")
+connectGrob(BIB, BIB_1, type = "N", "l")
+
 
 (EDEN <- boxGrob(
   str_glue("EDEN (N = {pop})\nNO2: n = {hs_no2_yr_hs_t}\nPM2.5: n = {hs_pm25_yr_hs_t}\nPM2.5abs: n= {hs_pm25abs_yr_hs_t}\nPM10: n = {hs_pm10_yr_hs_t}\nLden home: n = {hs_lden_c_h}\nLden school: n = {hs_lden_c_s}",
@@ -113,7 +111,7 @@ connectGrob(SAB, SAB_1, type = "N", "l")
   str_glue("With all biomarkers\nNO2: n = {hs_no2_yr_hs_t}\nPM2.5: n = {hs_pm25_yr_hs_t}\nPM2.5abs: n= {hs_pm25abs_yr_hs_t}\nPM10: n = {hs_pm10_yr_hs_t}\nLden home: n = {hs_lden_c_h}\nLden school: n = {hs_lden_c_s}",
     #min = nrow(df_final %>% filter(cohort == "EDEN") %>% filter(!is.na(hs_lden_c_h) & !is.na(AL_2_tot))),
     #max = nrow(df_final %>% filter(cohort == "EDEN") %>% filter(!is.na(hs_no2_yr_hs_t) & !is.na(AL_2_tot))),
-    hs_no2_yr_hs_t = nrow(df_final %>% filter(cohort == "EDEN") %>% filter(!is.na(hs_no2_yr_hs_t & !is.na(AL_2_tot)))),
+    hs_no2_yr_hs_t = nrow(df_final %>% filter(cohort == "EDEN") %>% filter(!is.na(hs_no2_yr_hs_t) & !is.na(AL_2_tot))),
     hs_pm25_yr_hs_t = nrow(df_final %>% filter(cohort == "EDEN") %>% filter(!is.na(hs_pm25_yr_hs_t) & !is.na(AL_2_tot))),
     hs_pm25abs_yr_hs_t = nrow(df_final %>% filter(cohort == "EDEN") %>% filter(!is.na(hs_pm25abs_yr_hs_t) & !is.na(AL_2_tot))),
     hs_pm10_yr_hs_t = nrow(df_final %>% filter(cohort == "EDEN") %>% filter(!is.na(hs_pm10_yr_hs_t) & !is.na(AL_2_tot))),
@@ -136,65 +134,39 @@ connectGrob(EDEN, EDEN_1, type = "N", "l")
 connectGrob(EDEN_1, EDEN_2, type = "L", "l")
 
 
-(BIB <- boxGrob(
-  str_glue("BIB (N = {pop})\nNO2: n = {hs_no2_yr_hs_t}\nPM2.5: n = {hs_pm25_yr_hs_t}\nPM2.5abs: n= {hs_pm25abs_yr_hs_t}\nPM10: n = {hs_pm10_yr_hs_t}\nLden home: n = {hs_lden_c_h}\nLden school: n = {hs_lden_c_s}",
-    pop = length(which(df_final$cohort == "BIB")),
-    hs_no2_yr_hs_t = nrow(df_final %>% filter(cohort == "BIB") %>% filter(!is.na(hs_no2_yr_hs_t))),
-    hs_pm25_yr_hs_t = nrow(df_final %>% filter(cohort == "BIB") %>% filter(!is.na(hs_pm25_yr_hs_t))),
-    hs_pm25abs_yr_hs_t = nrow(df_final %>% filter(cohort == "BIB") %>% filter(!is.na(hs_pm25abs_yr_hs_t))),
-    hs_pm10_yr_hs_t = nrow(df_final %>% filter(cohort == "BIB") %>% filter(!is.na(hs_pm10_yr_hs_t))),
-    hs_lden_c_h = nrow(df_final %>% filter(cohort == "BIB") %>% filter(!is.na(hs_lden_c_h))),
-    hs_lden_c_s = nrow(df_final %>% filter(cohort == "BIB") %>% filter(!is.na(hs_lden_c_s)))
+(INMA <- boxGrob(
+  str_glue("INMA (N = {pop})\nNO2: n = {hs_no2_yr_hs_t}\nPM2.5: n = {hs_pm25_yr_hs_t}\nPM2.5abs: n= {hs_pm25abs_yr_hs_t}\nPM10: n = {hs_pm10_yr_hs_t}\nLden home: n = {hs_lden_c_h}\nLden school: n = {hs_lden_c_s}",
+    pop = length(which(df_final$cohort == "SAB")),
+    hs_no2_yr_hs_t = nrow(df_final %>% filter(cohort == "SAB") %>% filter(!is.na(hs_no2_yr_hs_t))),
+    hs_pm25_yr_hs_t = nrow(df_final %>% filter(cohort == "SAB") %>% filter(!is.na(hs_pm25_yr_hs_t))),
+    hs_pm25abs_yr_hs_t = nrow(df_final %>% filter(cohort == "SAB") %>% filter(!is.na(hs_pm25abs_yr_hs_t))),
+    hs_pm10_yr_hs_t = nrow(df_final %>% filter(cohort == "SAB") %>% filter(!is.na(hs_pm10_yr_hs_t))),
+    hs_lden_c_h = nrow(df_final %>% filter(cohort == "SAB") %>% filter(!is.na(hs_lden_c_h))),
+    hs_lden_c_s = nrow(df_final %>% filter(cohort == "SAB") %>% filter(!is.na(hs_lden_c_s)))
   ),
   x = x3, y = .7, box_gp = gp, width = width, just = "left"
 ))
 
-(BIB_1 <- boxGrob(
+# missing patterns are the same across air pollutants
+# for lden, home sample sizes are larger than school
+# min sample size = lden_school, max sample size = no2
+(INMA_1 <- boxGrob(
   str_glue("With all biomarkers\nNO2: n = {hs_no2_yr_hs_t}\nPM2.5: n = {hs_pm25_yr_hs_t}\nPM2.5abs: n= {hs_pm25abs_yr_hs_t}\nPM10: n = {hs_pm10_yr_hs_t}\nLden home: n = {hs_lden_c_h}\nLden school: n = {hs_lden_c_s}",
-    #min = nrow(df_final %>% filter(cohort == "BIB") %>% filter(!is.na(hs_lden_c_s) & !is.na(AL_2_tot))),
-    #max = nrow(df_final %>% filter(cohort == "BIB") %>% filter(!is.na(hs_no2_yr_hs_t) & !is.na(AL_2_tot))),
-    hs_no2_yr_hs_t = nrow(df_final %>% filter(cohort == "BIB") %>% filter(!is.na(hs_no2_yr_hs_t & !is.na(AL_2_tot)))),
-    hs_pm25_yr_hs_t = nrow(df_final %>% filter(cohort == "BIB") %>% filter(!is.na(hs_pm25_yr_hs_t) & !is.na(AL_2_tot))),
-    hs_pm25abs_yr_hs_t = nrow(df_final %>% filter(cohort == "BIB") %>% filter(!is.na(hs_pm25abs_yr_hs_t) & !is.na(AL_2_tot))),
-    hs_pm10_yr_hs_t = nrow(df_final %>% filter(cohort == "BIB") %>% filter(!is.na(hs_pm10_yr_hs_t) & !is.na(AL_2_tot))),
-    hs_lden_c_h = nrow(df_final %>% filter(cohort == "BIB") %>% filter(!is.na(hs_lden_c_h) & !is.na(AL_2_tot))),
-    hs_lden_c_s = nrow(df_final %>% filter(cohort == "BIB") %>% filter(!is.na(hs_lden_c_s) & !is.na(AL_2_tot)))
+    #min = nrow(df_final %>% filter(cohort == "SAB") %>% filter(!is.na(hs_lden_c_s) & !is.na(AL_2_tot))),
+    #max = nrow(df_final %>% filter(cohort == "SAB") %>% filter(!is.na(hs_no2_yr_hs_t) & !is.na(AL_2_tot))),
+    hs_no2_yr_hs_t = nrow(df_final %>% filter(cohort == "SAB") %>% filter(!is.na(hs_no2_yr_hs_t) & !is.na(AL_2_tot))),
+    hs_pm25_yr_hs_t = nrow(df_final %>% filter(cohort == "SAB") %>% filter(!is.na(hs_pm25_yr_hs_t) & !is.na(AL_2_tot))),
+    hs_pm25abs_yr_hs_t = nrow(df_final %>% filter(cohort == "SAB") %>% filter(!is.na(hs_pm25abs_yr_hs_t) & !is.na(AL_2_tot))),
+    hs_pm10_yr_hs_t = nrow(df_final %>% filter(cohort == "SAB") %>% filter(!is.na(hs_pm10_yr_hs_t) & !is.na(AL_2_tot))),
+    hs_lden_c_h = nrow(df_final %>% filter(cohort == "SAB") %>% filter(!is.na(hs_lden_c_h) & !is.na(AL_2_tot))),
+    hs_lden_c_s = nrow(df_final %>% filter(cohort == "SAB") %>% filter(!is.na(hs_lden_c_s) & !is.na(AL_2_tot)))
   ),
   x = x3, y = .5, box_gp = gp, width = width, just = "left"
 ))
 
-connectGrob(org_cohort, BIB, type = "N", "l")
-connectGrob(BIB, BIB_1, type = "N", "l")
+connectGrob(org_cohort, INMA, type = "N", "l")
+connectGrob(INMA, INMA_1, type = "N", "l")
 
-(RHEA <- boxGrob(
-  str_glue("RHEA (N = {pop})\nNO2: n = {hs_no2_yr_hs_t}\nPM2.5: n = {hs_pm25_yr_hs_t}\nPM2.5abs: n= {hs_pm25abs_yr_hs_t}\nPM10: n = {hs_pm10_yr_hs_t}\nLden home: n = {hs_lden_c_h}\nLden school: n = {hs_lden_c_s}",
-    pop = length(which(df_final$cohort == "RHEA")),
-    hs_no2_yr_hs_t = nrow(df_final %>% filter(cohort == "RHEA") %>% filter(!is.na(hs_no2_yr_hs_t))),
-    hs_pm25_yr_hs_t = nrow(df_final %>% filter(cohort == "RHEA") %>% filter(!is.na(hs_pm25_yr_hs_t))),
-    hs_pm25abs_yr_hs_t = nrow(df_final %>% filter(cohort == "RHEA") %>% filter(!is.na(hs_pm25abs_yr_hs_t))),
-    hs_pm10_yr_hs_t = nrow(df_final %>% filter(cohort == "RHEA") %>% filter(!is.na(hs_pm10_yr_hs_t))),
-    hs_lden_c_h = nrow(df_final %>% filter(cohort == "RHEA") %>% filter(!is.na(hs_lden_c_h))),
-    hs_lden_c_s = nrow(df_final %>% filter(cohort == "RHEA") %>% filter(!is.na(hs_lden_c_s)))
-  ),
-  x = x4, y = .7, box_gp = gp, width = width, just = "left"
-))
-
-(RHEA_1 <- boxGrob(
-  str_glue("With all biomarkers\nNO2: n = {hs_no2_yr_hs_t}\nPM2.5: n = {hs_pm25_yr_hs_t}\nPM2.5abs: n= {hs_pm25abs_yr_hs_t}\nPM10: n = {hs_pm10_yr_hs_t}\nLden home: n = {hs_lden_c_h}\nLden school: n = {hs_lden_c_s}",
-    #min = nrow(df_final %>% filter(cohort == "RHEA") %>% filter(!is.na(hs_lden_c_s) & !is.na(AL_2_tot))),
-    #max = nrow(df_final %>% filter(cohort == "RHEA") %>% filter(!is.na(hs_no2_yr_hs_t) & !is.na(AL_2_tot))),
-    hs_no2_yr_hs_t = nrow(df_final %>% filter(cohort == "RHEA") %>% filter(!is.na(hs_no2_yr_hs_t & !is.na(AL_2_tot)))),
-    hs_pm25_yr_hs_t = nrow(df_final %>% filter(cohort == "RHEA") %>% filter(!is.na(hs_pm25_yr_hs_t) & !is.na(AL_2_tot))),
-    hs_pm25abs_yr_hs_t = nrow(df_final %>% filter(cohort == "RHEA") %>% filter(!is.na(hs_pm25abs_yr_hs_t) & !is.na(AL_2_tot))),
-    hs_pm10_yr_hs_t = nrow(df_final %>% filter(cohort == "RHEA") %>% filter(!is.na(hs_pm10_yr_hs_t) & !is.na(AL_2_tot))),
-    hs_lden_c_h = nrow(df_final %>% filter(cohort == "RHEA") %>% filter(!is.na(hs_lden_c_h) & !is.na(AL_2_tot))),
-    hs_lden_c_s = nrow(df_final %>% filter(cohort == "RHEA") %>% filter(!is.na(hs_lden_c_s) & !is.na(AL_2_tot)))
-  ),
-  x = x4, y = .5, box_gp = gp, width = width, just = "left"
-))
-
-connectGrob(org_cohort, RHEA, type = "N", "l")
-connectGrob(RHEA, RHEA_1, type = "N", "l")
 
 (KANC <- boxGrob(
   str_glue("KANC (N = {pop})\nNO2: n = {hs_no2_yr_hs_t}\nPM2.5: n = {hs_pm25_yr_hs_t}\nPM2.5abs: n= {hs_pm25abs_yr_hs_t}\nPM10: n = {hs_pm10_yr_hs_t}\nLden home: n = {hs_lden_c_h}\nLden school: n = {hs_lden_c_s}",
@@ -206,21 +178,21 @@ connectGrob(RHEA, RHEA_1, type = "N", "l")
     hs_lden_c_h = nrow(df_final %>% filter(cohort == "KANC") %>% filter(!is.na(hs_lden_c_h))),
     hs_lden_c_s = nrow(df_final %>% filter(cohort == "KANC") %>% filter(!is.na(hs_lden_c_s)))
   ),
-  x = x5, y = .7, box_gp = gp, width = width, just = "left"
+  x = x4, y = .7, box_gp = gp, width = width, just = "left"
 ))
 
 (KANC_1 <- boxGrob(
   str_glue("With all biomarkers\nNO2: n = {hs_no2_yr_hs_t}\nPM2.5: n = {hs_pm25_yr_hs_t}\nPM2.5abs: n= {hs_pm25abs_yr_hs_t}\nPM10: n = {hs_pm10_yr_hs_t}\nLden home: n = {hs_lden_c_h}\nLden school: n = {hs_lden_c_s}",
     #min = nrow(df_final %>% filter(cohort == "KANC") %>% filter(!is.na(hs_lden_c_s) & !is.na(AL_2_tot))),
     #max = nrow(df_final %>% filter(cohort == "KANC") %>% filter(!is.na(hs_no2_yr_hs_t) & !is.na(AL_2_tot))),
-    hs_no2_yr_hs_t = nrow(df_final %>% filter(cohort == "KANC") %>% filter(!is.na(hs_no2_yr_hs_t & !is.na(AL_2_tot)))),
+    hs_no2_yr_hs_t = nrow(df_final %>% filter(cohort == "KANC") %>% filter(!is.na(hs_no2_yr_hs_t) & !is.na(AL_2_tot))),
     hs_pm25_yr_hs_t = nrow(df_final %>% filter(cohort == "KANC") %>% filter(!is.na(hs_pm25_yr_hs_t) & !is.na(AL_2_tot))),
     hs_pm25abs_yr_hs_t = nrow(df_final %>% filter(cohort == "KANC") %>% filter(!is.na(hs_pm25abs_yr_hs_t) & !is.na(AL_2_tot))),
     hs_pm10_yr_hs_t = nrow(df_final %>% filter(cohort == "KANC") %>% filter(!is.na(hs_pm10_yr_hs_t) & !is.na(AL_2_tot))),
     hs_lden_c_h = nrow(df_final %>% filter(cohort == "KANC") %>% filter(!is.na(hs_lden_c_h) & !is.na(AL_2_tot))),
     hs_lden_c_s = nrow(df_final %>% filter(cohort == "KANC") %>% filter(!is.na(hs_lden_c_s) & !is.na(AL_2_tot)))
   ),
-  x = x5, y = .5, box_gp = gp, width = width, just = "left"
+  x = x4, y = .5, box_gp = gp, width = width, just = "left"
 ))
 
 connectGrob(org_cohort, KANC, type = "N", "l")
@@ -237,26 +209,56 @@ connectGrob(KANC, KANC_1, type = "N", "l")
     hs_lden_c_h = nrow(df_final %>% filter(cohort == "MOBA") %>% filter(!is.na(hs_lden_c_h))),
     hs_lden_c_s = nrow(df_final %>% filter(cohort == "MOBA") %>% filter(!is.na(hs_lden_c_s)))
   ),
-  x = x6, y = .7, box_gp = gp, width = width, just = "left"
+  x = x5, y = .7, box_gp = gp, width = width, just = "left"
 ))
 
 (MOBA_1 <- boxGrob(
   str_glue("With all biomarkers\nNO2: n = {hs_no2_yr_hs_t}\nPM2.5: n = {hs_pm25_yr_hs_t}\nPM2.5abs: n= {hs_pm25abs_yr_hs_t}\nPM10: n = {hs_pm10_yr_hs_t}\nLden home: n = {hs_lden_c_h}\nLden school: n = {hs_lden_c_s}",
     #min = nrow(df_final %>% filter(cohort == "MOBA") %>% filter(!is.na(hs_lden_c_s) & !is.na(AL_2_tot))),
     #max = nrow(df_final %>% filter(cohort == "MOBA") %>% filter(!is.na(hs_no2_yr_hs_t) & !is.na(AL_2_tot))),
-    hs_no2_yr_hs_t = nrow(df_final %>% filter(cohort == "MOBA") %>% filter(!is.na(hs_no2_yr_hs_t & !is.na(AL_2_tot)))),
+    hs_no2_yr_hs_t = nrow(df_final %>% filter(cohort == "MOBA") %>% filter(!is.na(hs_no2_yr_hs_t) & !is.na(AL_2_tot))),
     hs_pm25_yr_hs_t = nrow(df_final %>% filter(cohort == "MOBA") %>% filter(!is.na(hs_pm25_yr_hs_t) & !is.na(AL_2_tot))),
     hs_pm25abs_yr_hs_t = nrow(df_final %>% filter(cohort == "MOBA") %>% filter(!is.na(hs_pm25abs_yr_hs_t) & !is.na(AL_2_tot))),
     hs_pm10_yr_hs_t = nrow(df_final %>% filter(cohort == "MOBA") %>% filter(!is.na(hs_pm10_yr_hs_t) & !is.na(AL_2_tot))),
     hs_lden_c_h = nrow(df_final %>% filter(cohort == "MOBA") %>% filter(!is.na(hs_lden_c_h) & !is.na(AL_2_tot))),
     hs_lden_c_s = nrow(df_final %>% filter(cohort == "MOBA") %>% filter(!is.na(hs_lden_c_s) & !is.na(AL_2_tot)))
   ),
-  x = x6, y = .5, box_gp = gp, width = width, just = "left"
+  x = x5, y = .5, box_gp = gp, width = width, just = "left"
 ))
 
 connectGrob(org_cohort, MOBA, type = "N", "l")
 connectGrob(MOBA, MOBA_1, type = "N", "l")
 
+
+(RHEA <- boxGrob(
+  str_glue("RHEA (N = {pop})\nNO2: n = {hs_no2_yr_hs_t}\nPM2.5: n = {hs_pm25_yr_hs_t}\nPM2.5abs: n= {hs_pm25abs_yr_hs_t}\nPM10: n = {hs_pm10_yr_hs_t}\nLden home: n = {hs_lden_c_h}\nLden school: n = {hs_lden_c_s}",
+    pop = length(which(df_final$cohort == "RHEA")),
+    hs_no2_yr_hs_t = nrow(df_final %>% filter(cohort == "RHEA") %>% filter(!is.na(hs_no2_yr_hs_t))),
+    hs_pm25_yr_hs_t = nrow(df_final %>% filter(cohort == "RHEA") %>% filter(!is.na(hs_pm25_yr_hs_t))),
+    hs_pm25abs_yr_hs_t = nrow(df_final %>% filter(cohort == "RHEA") %>% filter(!is.na(hs_pm25abs_yr_hs_t))),
+    hs_pm10_yr_hs_t = nrow(df_final %>% filter(cohort == "RHEA") %>% filter(!is.na(hs_pm10_yr_hs_t))),
+    hs_lden_c_h = nrow(df_final %>% filter(cohort == "RHEA") %>% filter(!is.na(hs_lden_c_h))),
+    hs_lden_c_s = nrow(df_final %>% filter(cohort == "RHEA") %>% filter(!is.na(hs_lden_c_s)))
+  ),
+  x = x6, y = .7, box_gp = gp, width = width, just = "left"
+))
+
+(RHEA_1 <- boxGrob(
+  str_glue("With all biomarkers\nNO2: n = {hs_no2_yr_hs_t}\nPM2.5: n = {hs_pm25_yr_hs_t}\nPM2.5abs: n= {hs_pm25abs_yr_hs_t}\nPM10: n = {hs_pm10_yr_hs_t}\nLden home: n = {hs_lden_c_h}\nLden school: n = {hs_lden_c_s}",
+    #min = nrow(df_final %>% filter(cohort == "RHEA") %>% filter(!is.na(hs_lden_c_s) & !is.na(AL_2_tot))),
+    #max = nrow(df_final %>% filter(cohort == "RHEA") %>% filter(!is.na(hs_no2_yr_hs_t) & !is.na(AL_2_tot))),
+    hs_no2_yr_hs_t = nrow(df_final %>% filter(cohort == "RHEA") %>% filter(!is.na(hs_no2_yr_hs_t) & !is.na(AL_2_tot))),
+    hs_pm25_yr_hs_t = nrow(df_final %>% filter(cohort == "RHEA") %>% filter(!is.na(hs_pm25_yr_hs_t) & !is.na(AL_2_tot))),
+    hs_pm25abs_yr_hs_t = nrow(df_final %>% filter(cohort == "RHEA") %>% filter(!is.na(hs_pm25abs_yr_hs_t) & !is.na(AL_2_tot))),
+    hs_pm10_yr_hs_t = nrow(df_final %>% filter(cohort == "RHEA") %>% filter(!is.na(hs_pm10_yr_hs_t) & !is.na(AL_2_tot))),
+    hs_lden_c_h = nrow(df_final %>% filter(cohort == "RHEA") %>% filter(!is.na(hs_lden_c_h) & !is.na(AL_2_tot))),
+    hs_lden_c_s = nrow(df_final %>% filter(cohort == "RHEA") %>% filter(!is.na(hs_lden_c_s) & !is.na(AL_2_tot)))
+  ),
+  x = x6, y = .5, box_gp = gp, width = width, just = "left"
+))
+
+connectGrob(org_cohort, RHEA, type = "N", "l")
+connectGrob(RHEA, RHEA_1, type = "N", "l")
 
 # total study sample
 (tot <- boxGrob(
@@ -273,7 +275,7 @@ connectGrob(MOBA, MOBA_1, type = "N", "l")
   x = midx, y = .14, box_gp = gp, width = width, just = "left"
 ))
 
-connectGrob(SAB_1, tot, type = "N", "l")
+connectGrob(INMA_1, tot, type = "N", "l")
 connectGrob(EDEN_1, tot, type = "N", "l")
 connectGrob(BIB_1, tot, type = "N", "l")
 connectGrob(RHEA_1, tot, type = "N", "l")
